@@ -1,10 +1,61 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
 import { Input } from "@/components/ui/input";
+import { useAuthStore } from "@/store/auth";
 import { Label } from "@radix-ui/react-label";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function Home() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const router = useRouter();
+  const login = useAuthStore((state) => state.login);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated); 
+
+  // Redirect to dashboard if already authenticated
+  useEffect(()=>{
+    try {
+      if(isAuthenticated()){
+        router.push('/dashboard');
+      }
+    } catch (e) {
+      // swallow errors during initial render/hydration
+      console.warn('Auth redirect check failed', e);
+    }
+  },[isAuthenticated, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if(!email || !password){
+      toast.error("Please enter both email and password.");
+      return;
+    }
+
+    setLoading(true);
+    try{
+      const result= await login(email,password);
+
+      if(result.success){
+        toast.success("Login successful!");
+        router.push('/dashboard');
+      }else{
+        toast.error("Login failed. " + result.error);
+      }
+    }catch(error){
+      toast.error("Login failed. " + error);
+    }finally{
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="fixed overflow-hidden w-full h-full">
       <DottedGlowBackground
@@ -28,7 +79,7 @@ export default function Home() {
           <div className="p-12 min-w-[300px]">
             <Link href="/" className="flex justify-center text-2xl font-bold mb-4 text-center text-orange-500">COSMOS-ITS</Link>
             <h3 className="text-md  mb-6 text-center text-gray-500">Sign in with your administrator info</h3>
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
                 <Label htmlFor="email" className="block text-sm font-medium mb-1">
                   Email
@@ -38,6 +89,8 @@ export default function Home() {
                   id="email"
                   className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
               <div>
@@ -49,13 +102,17 @@ export default function Home() {
                   id="password"
                   className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="********"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
               <Button
                 type="submit"
                 className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-300 transition-colors duration-300"
+                loading={loading}
+                disabled={loading}
               >
-                Sign In
+                {loading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
           </div>
