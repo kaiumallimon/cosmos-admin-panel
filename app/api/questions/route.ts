@@ -17,7 +17,8 @@ export async function GET(req: NextRequest) {
             .select('*')
             .eq('course_code', course_code)
             .eq('exam_type', exam_type)
-            .eq('semester_term', semester_term);
+            .eq('semester_term', semester_term)
+            .order('created_at', { ascending: true });
 
         if (error) {
             return NextResponse.json({ error: error.message }, { status: 500 });

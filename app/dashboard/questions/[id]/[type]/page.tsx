@@ -50,7 +50,36 @@ export default function QuestionsTypePage(){
             <div className="min-h-screen bg-background">
                 <FrostedHeader title={`${courseId} ${sanitizeType(questionType)} Questions`} onMobileMenuToggle={()=>{toggleMobileMenu()}} />
                 <div className="p-6">
-                    {trimesterTerms.map(term => (
+                    {loading && (
+                        <div className="flex items-center justify-center p-8">
+                            <p>Loading available terms...</p>
+                        </div>
+                    )}
+                    
+                    {error && (
+                        <div className="flex items-center justify-center p-8">
+                            <p className="text-red-500">Error: {error}</p>
+                        </div>
+                    )}
+                    
+                    {!loading && !error && trimesterTerms.length === 0 && (
+                        <div className="flex flex-col items-center justify-center p-8 text-center">
+                            <h3 className="text-lg font-semibold mb-2">No Terms Available</h3>
+                            <p className="text-muted-foreground mb-4">
+                                No {questionType} questions found for course {courseId}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                This could mean:
+                            </p>
+                            <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                                <li>• No {questionType} exams have been uploaded for this course</li>
+                                <li>• The exam type might be named differently in the database</li>
+                                <li>• The course code might not match exactly</li>
+                            </ul>
+                        </div>
+                    )}
+                    
+                    {!loading && !error && trimesterTerms.map(term => (
                         <Card key={term} 
                         className="mt-3 cursor-pointer hover:border-primary transition-colors duration-300"
                         onClick={() => {router.push(`/dashboard/questions/${courseId}/${questionType}/trimester/${term}`)}}

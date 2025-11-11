@@ -8,10 +8,18 @@ export async function GET(req: NextRequest) {
   console.log("Received exam_type parameter:", term)
   console.log("Received course_code parameter:", course_code)
 
+  // First, let's check what data exists in the question_parts table
+  const { data: allData, error: allError } = await supabase
+    .from('question_parts')
+    .select('semester_term, short, exam_type, course_code')
+    .limit(10)
+
+  console.log("Sample data from question_parts:", allData, allError)
+
   // Build the query dynamically
   let query = supabase
     .from('question_parts')
-    .select('semester_term, short, exam_type')
+    .select('semester_term, short, exam_type, course_code')
 
   // Apply filters if provided
   if (term) query = query.eq('exam_type', term)
@@ -20,13 +28,26 @@ export async function GET(req: NextRequest) {
   const { data, error } = await query
 
   console.log("Fetched semester terms:", data, error)
+  
+  // Also try the questions table as a fallback
+  const { data: questionsData, error: questionsError } = await supabase
+    .from('questions')
+    .select('semester_term, exam_type, course_code')
+    .eq('exam_type', term)
+    .eq('course_code', course_code)
+    .limit(5)
+    
+  console.log("Data from questions table:", questionsData, questionsError)
 
-  if (error) {
+  if (error && questionsError) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // Combine data from both tables
+  const combinedData = [...(data || []), ...(questionsData || [])]
+
   // Filter out nulls and extract unique semester terms
-  const uniqueTerms = [...new Set(data.map(item => item.semester_term).filter(Boolean))]
+  const uniqueTerms = [...new Set(combinedData.map(item => item.semester_term).filter(Boolean))]
 
   // Sort numerically descending (e.g., 20242 > 20241)
   const sortedTerms = uniqueTerms.sort((a, b) => Number(b) - Number(a))
@@ -34,5 +55,10 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     semester_terms: sortedTerms,
     count: sortedTerms.length,
+    debug: {
+      question_parts_count: data?.length || 0,
+      questions_count: questionsData?.length || 0,
+      sample_data: allData?.slice(0, 3)
+    }
   })
 }
