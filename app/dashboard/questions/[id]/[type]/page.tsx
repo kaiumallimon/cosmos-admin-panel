@@ -3,7 +3,7 @@
 import { FrostedHeader } from "@/components/custom/frosted-header";
 import { useMobileMenu } from "@/components/mobile-menu-context";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { Card, CardContent } from "@/cosmos-its-training-client/src/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
