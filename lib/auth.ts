@@ -83,6 +83,36 @@ export const signOut = async (): Promise<void> => {
   }
 };
 
+/**
+ * Sign out and redirect the user to the login page ('/').
+ * This clears localStorage and client-side cookies used by the app and then
+ * performs a client-side redirect. Use this on any client action that needs
+ * to sign the user out and take them to the login page.
+ */
+export const signOutAndRedirect = async (redirectTo = '/') : Promise<void> => {
+  try {
+    // Sign out from Supabase
+    await signOut();
+  } catch (e) {
+    console.warn('Auth: signOut failed', e);
+  }
+
+  // Clear local client-side auth storage
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      // Clear cookies used by middleware/store
+      document.cookie = 'auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+      // Redirect to login page
+      window.location.href = redirectTo;
+    }
+  } catch (e) {
+    console.warn('Auth: failed to clear client storage or redirect', e);
+  }
+};
+
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
