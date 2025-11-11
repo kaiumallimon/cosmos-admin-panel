@@ -17,30 +17,39 @@ export default function QuestionsCourseMenuPage() {
             key: 1,
             title: "Update Embeddings",
             description: "Regenerate question embeddings from database in Pinecone.",
+            href: `/dashboard/questions/${courseId}/update-embeddings`,
         },
         {
             key: 2,
-            title: "View Questions",
+            title: "Midterm Questions",
             description: "Browse and manage questions for this course.",
+            href: `/dashboard/questions/${courseId}/mid`,
         },
         {
             key: 3,
-            title: "Browse Trimester-Wise Questions",
+            title: "Final Questions",
             description: "Explore questions categorized by trimester for this course.",
+            href: `/dashboard/questions/${courseId}/final`,
         }
     ]
+
+    function formatCourseCode(code?: string | string[]) {
+        const str = Array.isArray(code) ? code.join("-") : (code ?? "");
+        return str.replace(/%20/g, "-");
+    }
 
     return (
         <ProtectedRoute>
             <div className="min-h-screen bg-background">
                 {/* glass header */}
-                <FrostedHeader title={`Menu for ${courseId} Questions`} onMobileMenuToggle={toggleMobileMenu} />
+                <FrostedHeader title={`Menu for ${formatCourseCode(courseId)} Questions`} onMobileMenuToggle={toggleMobileMenu} />
                  {/* menu cards */}
                  <div className="p-6">
                     {cards.map((card)=>{
                         return (
                             <Card key={card.key}
                             className="mt-3 cursor-pointer hover:border-primary transition-colors duration-300"
+                            onClick={() => router.push(card.href)}
                             >
                                 <CardHeader>
                                     <CardTitle className="text-lg font-bold">{card.title}</CardTitle>
