@@ -5,6 +5,7 @@ export interface User {
   email: string;
   role: 'admin' | 'user';
   isAuthenticated: boolean;
+  profile?: Profile;
 }
 
 export interface Account {
@@ -13,6 +14,25 @@ export interface Account {
   role: 'admin' | 'user';
   created_at: string;
   updated_at: string;
+}
+
+export interface Profile {
+  id: string;
+  email: string | null;
+  phone: string | null;
+  gender: string | null;
+  avatar_url: string;
+  created_at: string;
+  full_name: string | null;
+  role: 'student' | 'admin';
+  student_id: string | null;
+  department: string | null;
+  batch: string | null;
+  program: string | null;
+  completed_credits: number | null;
+  cgpa: number | null;
+  current_trimester: string | null;
+  trimester_credits: number | null;
 }
 
 export const AUTH_STORAGE_KEY = "cosmosAuthData";
@@ -57,11 +77,25 @@ export const signInWithEmail = async (email: string, password: string): Promise<
       return { success: false, error: 'Access restricted - admin privileges required' };
     }
 
+    // Fetch profile data
+    const { data: profileData, error: profileError } = await supabase
+      .from('profile')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profileError) {
+      console.error("Auth: Profile fetch error:", profileError);
+      // Maybe allow login without profile, or return error
+      // For now, allow but log
+    }
+
     const user: User = {
       id: data.user.id,
       email: data.user.email!,
       role: accountData.role,
       isAuthenticated: true,
+      profile: profileData || undefined,
     };
 
     console.log("Auth: Login successful for admin user:", user.email);
@@ -132,11 +166,19 @@ export const getCurrentUser = async (): Promise<User | null> => {
       return null;
     }
 
+    // Fetch profile data
+    const { data: profileData, error: profileError } = await supabase
+      .from('profile')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
     return {
       id: user.id,
       email: user.email!,
       role: accountData.role,
       isAuthenticated: true,
+      profile: profileData || undefined,
     };
   } catch (error) {
     console.error("Auth: Error getting current user:", error);

@@ -5,141 +5,325 @@ import { signOutAndRedirect } from "@/lib/auth";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupLabel,
-    SidebarHeader,
-    SidebarInset,
-    SidebarMenu,
-    SidebarMenuItem,
-    SidebarMenuButton,
     SidebarProvider,
-    SidebarRail,
-    SidebarSeparator,
-    SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogTrigger,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-    DialogClose,
-} from "@/components/ui/dialog";
-import { PanelLeftIcon, HomeIcon, UsersIcon, SettingsIcon } from "lucide-react";
+import { ClientOnlyDialog } from "@/components/client-only-dialog";
+import { 
+    HomeIcon, 
+    UsersIcon, 
+    SettingsIcon,
+    BarChart3Icon,
+    HelpCircleIcon,
+    SearchIcon,
+    ChevronDownIcon,
+    LogOutIcon,
+    UserIcon,
+    SunIcon,
+    MoonIcon,
+    MonitorIcon,
+    BookOpenIcon,
+    UploadIcon
+} from "lucide-react";
+import { useTheme } from "next-themes";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { useAuthStore } from "@/store/auth";
+import { MobileMenuProvider } from "@/components/mobile-menu-context";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const { user } = useAuthStore();
+    const { theme, setTheme } = useTheme();
+    const [mounted, setMounted] = React.useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-    return (
-        <SidebarProvider className="min-h-screen bg-background">
-            <div className="flex h-screen w-full">
-                <Sidebar side="left" variant="sidebar" collapsible="icon">
-                    <div className="flex h-full flex-col overflow-hidden px-3 py-4">
-                        <SidebarHeader className="p-2 overflow-hidden">
-                            <div className="flex items-center w-full overflow-hidden">
-                                <Link href="/dashboard" className="flex items-center gap-2 min-w-0 overflow-hidden">
-                                    <div className="h-8 w-8 rounded-md bg-orange-500 flex items-center justify-center text-white font-bold shrink-0">C</div>
-                                    {/* hide text when collapsed to icon-only rail */}
-                                    <span className="font-semibold group-data-[collapsible=icon]:hidden truncate">COSMOS</span>
-                                </Link>
-                            </div>
-                        </SidebarHeader>
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
 
-                        <SidebarContent className="px-3 py-5 overflow-hidden">
-                            <SidebarGroup>
-                                <SidebarGroupLabel>General</SidebarGroupLabel>
-                                <SidebarMenu>
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild tooltip="Home" isActive={pathname === "/dashboard"}>
-                                            <Link href="/dashboard" className="flex items-center gap-2">
-                                                <HomeIcon className="size-4" /> <span>Home</span>
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild tooltip="Users" isActive={pathname === "/dashboard/users"}>
-                                            <Link href="/dashboard/users" className="flex items-center gap-2">
-                                                <UsersIcon className="size-4" /> <span>Users</span>
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                </SidebarMenu>
-                            </SidebarGroup>
+    // Sidebar content component to reuse in both desktop and mobile
+    const SidebarContentComponent = ({ onLinkClick }: { onLinkClick?: () => void }) => (
+        <div className="flex h-full flex-col overflow-hidden">
+            {/* Header */}
+            <div className="border-b border-border/40 p-4 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-orange-500 to-red-500 text-sm font-bold text-white shadow-md shrink-0">
+                        C
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-semibold leading-none truncate">COSMOS</span>
+                        <span className="text-xs text-muted-foreground truncate">Admin Panel</span>
+                    </div>
+                </div>
+            </div>
 
-                            <SidebarSeparator />
-
-                            <SidebarGroup>
-                                <SidebarGroupLabel>Settings</SidebarGroupLabel>
-                                <SidebarMenu>
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton asChild tooltip="Settings" isActive={pathname === "/dashboard/settings"}>
-                                            <Link href="/dashboard/settings" className="flex items-center gap-2">
-                                                <SettingsIcon className="size-4" /> <span>Settings</span>
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                </SidebarMenu>
-                            </SidebarGroup>
-                        </SidebarContent>
-
-                        <div className="mt-auto">
-                            <SidebarFooter className="overflow-hidden px-2 py-4">
-                                <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 overflow-hidden w-full">
-                                    <div className="flex-1 text-sm group-data-[collapsible=icon]:hidden min-w-0">
-                                        <div className="font-medium truncate">Admin</div>
-                                        <div className="text-xs text-muted-foreground truncate">Signed in</div>
-                                    </div>
-                                    <div className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-medium group-data-[collapsible=icon]:mx-auto shrink-0">
-                                        N
-                                    </div>
-                                </div>
-                                <div className="flex w-full mt-2 px-2">
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button variant="outline" className="w-full">
-                                                Logout
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>Sign out</DialogTitle>
-                                                <DialogDescription>
-                                                    Are you sure you want to sign out?
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <DialogFooter>
-                                                <DialogClose asChild>
-                                                    <Button variant="secondary">Cancel</Button>
-                                                </DialogClose>
-                                                <Button
-                                                    variant="destructive"
-                                                    onClick={() => signOutAndRedirect("/")}
-                                                >
-                                                    Sign out
-                                                </Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
-                                </div>
-                            </SidebarFooter>
+            {/* Content */}
+            <div className="flex-1 p-2 overflow-hidden">
+                {/* Main Navigation */}
+                <div className="overflow-hidden">
+                    <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
+                        Overview
+                    </div>
+                    <div className="overflow-hidden">
+                        <div className="overflow-hidden">
+                            <Link 
+                                href="/dashboard" 
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                    pathname === "/dashboard" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                }`}
+                            >
+                                <HomeIcon className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Dashboard</span>
+                            </Link>
+                        </div>
+                        <div className="overflow-hidden">
+                            <Link 
+                                href="/dashboard/analytics" 
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                    pathname === "/dashboard/analytics" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                }`}
+                            >
+                                <BarChart3Icon className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Analytics</span>
+                            </Link>
+                        </div>
+                        <div className="overflow-hidden">
+                            <Link 
+                                href="/dashboard/search" 
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                    pathname === "/dashboard/search" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                }`}
+                            >
+                                <SearchIcon className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Search</span>
+                            </Link>
                         </div>
                     </div>
-                </Sidebar>
+                </div>
 
-                <SidebarInset className="flex-1 bg-surface/50">
+                <div className="my-4 h-px bg-border"></div>
 
+                {/* Learning Management */}
+                <div className="overflow-hidden">
+                    <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
+                        Training
+                    </div>
+                    <div className="overflow-hidden">
+                        
+                        <div className="overflow-hidden">
+                            <Link 
+                                href="/dashboard/questions" 
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                    pathname === "/dashboard/questions" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                }`}
+                            >
+                                <HelpCircleIcon className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Questions</span>
+                            </Link>
+                        </div>
+                        <div className="overflow-hidden">
+                            <Link 
+                                href="/dashboard/upload" 
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                    pathname === "/dashboard/upload" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                }`}
+                            >
+                                <UploadIcon className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Content Upload</span>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
 
-                    <section className="m-4">
-                        {children}
-                    </section>
-                </SidebarInset>
+                <div className="my-4 h-px bg-border"></div>
+
+                {/* Management Section */}
+                <div className="overflow-hidden">
+                    <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
+                        User Management
+                    </div>
+                    <div className="overflow-hidden">
+                        <div className="overflow-hidden">
+                            <Link 
+                                href="/dashboard/users" 
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                    pathname === "/dashboard/users" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                }`}
+                            >
+                                <UsersIcon className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Users</span>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="my-4 h-px bg-border"></div>
+
+                {/* System Section */}
+                <div className="overflow-hidden">
+                    <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
+                        System
+                    </div>
+                    <div className="overflow-hidden">
+                        <div className="overflow-hidden">
+                            <Link 
+                                href="/dashboard/settings" 
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                    pathname === "/dashboard/settings" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                }`}
+                            >
+                                <SettingsIcon className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Settings</span>
+                            </Link>
+                        </div>
+                        <div className="overflow-hidden">
+                            <Link 
+                                href="/dashboard/help" 
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                    pathname === "/dashboard/help" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                }`}
+                            >
+                                <HelpCircleIcon className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Help</span>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            {/* Footer */}
+            <div className="border-t border-border/40 p-4 shrink-0 overflow-hidden">
+                {/* Theme Toggle */}
+                <div className="mb-3 overflow-hidden">
+                    <div className="flex items-center justify-between min-w-0">
+                        <span className="text-xs font-medium text-muted-foreground truncate">Theme</span>
+                        {mounted && (
+                            <div className="flex items-center rounded-md border p-1 shrink-0">
+                                <button
+                                    className={`h-6 w-6 p-0 shrink-0 rounded-sm flex items-center justify-center transition-colors ${
+                                        theme === "light" 
+                                            ? "bg-primary text-primary-foreground" 
+                                            : "hover:bg-accent hover:text-accent-foreground"
+                                    }`}
+                                    onClick={() => setTheme("light")}
+                                >
+                                    <SunIcon className="h-3 w-3" />
+                                </button>
+                                <button
+                                    className={`h-6 w-6 p-0 shrink-0 rounded-sm flex items-center justify-center transition-colors ${
+                                        theme === "dark" 
+                                            ? "bg-primary text-primary-foreground" 
+                                            : "hover:bg-accent hover:text-accent-foreground"
+                                    }`}
+                                    onClick={() => setTheme("dark")}
+                                >
+                                    <MoonIcon className="h-3 w-3" />
+                                </button>
+                                <button
+                                    className={`h-6 w-6 p-0 shrink-0 rounded-sm flex items-center justify-center transition-colors ${
+                                        theme === "system" 
+                                            ? "bg-primary text-primary-foreground" 
+                                            : "hover:bg-accent hover:text-accent-foreground"
+                                    }`}
+                                    onClick={() => setTheme("system")}
+                                >
+                                    <MonitorIcon className="h-3 w-3" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* User Profile */}
+                <ClientOnlyDialog
+                    trigger={
+                        <button className="w-full flex items-center justify-start gap-3 p-3 rounded-md hover:bg-accent/50 transition-colors overflow-hidden border-0 bg-transparent cursor-pointer">
+                            <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
+                                {user.profile?.avatar_url ? (
+                                    <img 
+                                        src={user.profile.avatar_url} 
+                                        alt="Avatar" 
+                                        className="h-8 w-8 rounded-full ring-2 ring-border shrink-0" 
+                                    />
+                                ) : (
+                                    <div className="h-8 w-8 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium shrink-0 ring-2 ring-border">
+                                        {(user.profile?.full_name?.charAt(0) || user.email.charAt(0)).toUpperCase()}
+                                    </div>
+                                )}
+                                <div className="flex flex-col items-start min-w-0 overflow-hidden">
+                                    <span className="text-sm font-medium truncate max-w-full">
+                                        {user.profile?.full_name || 'User'}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground truncate max-w-full">
+                                        {user.email}
+                                    </span>
+                                </div>
+                            </div>
+                            <ChevronDownIcon className="h-4 w-4 shrink-0" />
+                        </button>
+                    }
+                    title={
+                        <div className="flex items-center gap-2">
+                            <UserIcon className="h-5 w-5" />
+                            Account Menu
+                        </div>
+                    }
+                    description="Manage your account settings and preferences."
+                >
+                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        <Button
+                            variant="destructive"
+                            onClick={() => signOutAndRedirect("/")}
+                            className="w-full gap-2"
+                        >
+                            <LogOutIcon className="h-4 w-4" />
+                            Sign out
+                        </Button>
+                    </div>
+                </ClientOnlyDialog>
+            </div>
+        </div>
+    );
+
+    return (
+        <SidebarProvider defaultOpen={true}>
+            <div className="flex h-screen w-full bg-background">
+            {/* Desktop Sidebar - Hidden on mobile */}
+            <div className="hidden md:flex w-64 border-r border-border/40 bg-card">
+                <SidebarContentComponent />
+            </div>
+
+            {/* Mobile Drawer */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetContent side="left" className="p-0 w-64">
+                    <SheetHeader className="sr-only">
+                        <SheetTitle>Navigation Menu</SheetTitle>
+                        <SheetDescription>
+                            Main navigation menu for the application
+                        </SheetDescription>
+                    </SheetHeader>
+                    <SidebarContentComponent onLinkClick={() => setMobileMenuOpen(false)} />
+                </SheetContent>
+            </Sheet>
+
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col">
+                {/* Main Content */}
+                <main className="flex-1 overflow-auto bg-muted/20">
+                    <MobileMenuProvider toggleMobileMenu={() => setMobileMenuOpen(true)}>
+                        {children}
+                    </MobileMenuProvider>
+                </main>
+            </div>
+        </div>
         </SidebarProvider>
     );
 }
