@@ -2,7 +2,7 @@
 
 import { FrostedHeader } from "@/components/custom/frosted-header";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, HelpCircle } from "lucide-react";
 import { useMobileMenu } from "@/components/mobile-menu-context";
@@ -54,6 +54,18 @@ export default function QuestionsCoursePage() {
     loadData();
   }, []);
 
+
+  function toTitleCase(str: string) {
+    return str
+      .split(" ")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  }
+
+  function toUpperCase(str: string) {
+    return str.toUpperCase();
+  }
+
   if (loading) {
     return (
       <ProtectedRoute>
@@ -90,9 +102,14 @@ export default function QuestionsCoursePage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
+        
+        {/* header  */}
         <FrostedHeader title="Questions" onMobileMenuToggle={toggleMobileMenu} />
-
+        
+        {/* top cards  */}
         <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+          
+          {/* total courses card */}
           <Card className="bg-white dark:bg-card shadow rounded-lg p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
@@ -102,6 +119,8 @@ export default function QuestionsCoursePage() {
             </div>
             <p className="text-3xl font-bold">{courses.length}</p>
           </Card>
+          
+          {/* active questions card */}
           <Card className="bg-white dark:bg-card shadow rounded-lg p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
@@ -111,6 +130,23 @@ export default function QuestionsCoursePage() {
             </div>
             <p className="text-3xl font-bold">{totalQuestions}</p>
           </Card>
+        </div>
+
+        {/* courses */}
+        <div className="p-6">
+          <h2 className="text-xl md:text-2xl font-bold">Available Course Questions </h2>
+          {courses.map((course)=>{
+            return (
+              <Card key={course.course_code} 
+              className="mt-3 cursor-pointer hover:border-primary transition-colors duration-300"
+              onClick={()=>router.push("/dashboard/questions/" + course.course_code)}>
+                <CardHeader>
+                  <h1 className="opacity-75">{course.course_code}</h1>
+                  <h1 className="font-bold text-base ">{toTitleCase(course.course_title) + " (" + toUpperCase(course.short) + ") " }</h1>
+                </CardHeader>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </ProtectedRoute>

@@ -118,7 +118,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 href="/dashboard/questions" 
                                 onClick={onLinkClick}
                                 className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
-                                    pathname === "/dashboard/questions" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                    pathname === "/dashboard/questions" || pathname.startsWith("/dashboard/questions/") ? "bg-primary text-primary-foreground font-semibold" : ""
                                 }`}
                             >
                                 <HelpCircleIcon className="h-4 w-4 shrink-0" />
