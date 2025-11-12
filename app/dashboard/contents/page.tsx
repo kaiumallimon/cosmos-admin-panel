@@ -227,7 +227,7 @@ export default function CdnPage() {
         <FrostedHeader title="Server Contents" onMobileMenuToggle={toggleMobileMenu} />
 
         {/* Breadcrumbs */}
-        <div className="p-6 pb-0">
+        <div className="p-4 sm:p-6 pb-0">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -242,9 +242,9 @@ export default function CdnPage() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 p-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 p-4 sm:p-6">
           {statsArray.map((stat, index) => (
-            <Card key={index} className="p-6 hover:shadow-md transition-shadow">
+            <Card key={index} className="p-4 sm:p-6 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
                   <stat.icon className="h-6 w-6 text-primary" />
@@ -259,45 +259,46 @@ export default function CdnPage() {
         </div>
 
         {/* Filters and Sorting */}
-        <div className="px-6">
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4" />
-              <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="w-[180px] h-9">
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Files</SelectItem>
-                  <SelectItem value="pdf">PDF Files</SelectItem>
-                  <SelectItem value="image">Image Files</SelectItem>
-                </SelectContent>
-              </Select>
+        <div className="px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Select value={filter} onValueChange={setFilter}>
+                  <SelectTrigger className="w-[180px] h-9">
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Files</SelectItem>
+                    <SelectItem value="pdf">PDF Files</SelectItem>
+                    <SelectItem value="image">Image Files</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+                  className="flex items-center gap-2 h-9"
+                >
+                  {sortOrder === "desc" ? <SortDesc className="h-4 w-4" /> : <SortAsc className="h-4 w-4" />}
+                  Sort by Date {sortOrder === "desc" ? "(Newest)" : "(Oldest)"}
+                </Button>
+              </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-                className="flex items-center gap-2 h-9"
-              >
-                {sortOrder === "desc" ? <SortDesc className="h-4 w-4" /> : <SortAsc className="h-4 w-4" />}
-                Sort by Date {sortOrder === "desc" ? "(Newest)" : "(Oldest)"}
-              </Button>
-            </div>
-            
-            <div className="flex items-center text-sm text-muted-foreground ml-auto">
+            <div className="flex items-center text-sm text-muted-foreground">
               Showing {filteredAndSortedFiles.length} of {allFiles.length} files
             </div>
           </div>
         </div>
 
         {/* Files Grid */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6 pb-12">
           {loadingFiles ? (
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }, (_, i) => (
-                <Card key={i} className="p-4 animate-pulse">
+                <Card key={i} className="p-3 sm:p-4 animate-pulse">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-gray-200 rounded-lg" />
                     <div className="flex-1">
@@ -309,7 +310,7 @@ export default function CdnPage() {
               ))}
             </div>
           ) : cdnFiles.length === 0 ? (
-            <Card className="p-8">
+            <Card className="p-6 sm:p-8">
               <div className="text-center text-muted-foreground">
                 <CloudIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No files found</p>
@@ -323,7 +324,7 @@ export default function CdnPage() {
                   const fileIsPDF = isPDF(file.ext);
                   
                   return (
-                    <Card key={file.filename} className="p-4 hover:shadow-md transition-shadow">
+                    <Card key={file.filename} className="p-3 sm:p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-4">
                         <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
                           {fileIsPDF ? (
@@ -374,7 +375,7 @@ export default function CdnPage() {
               {(() => {
                 const totalPages = Math.ceil(filteredAndSortedFiles.length / limit);
                 return totalPages > 1 && (
-                  <div className="flex justify-center mt-6">
+                  <div className="flex justify-center mt-6 mb-8">
                     <Pagination>
                       <PaginationContent>
                         <PaginationItem>

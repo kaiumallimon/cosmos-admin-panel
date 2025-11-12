@@ -6,15 +6,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { FrostedHeader } from "@/components/custom/frosted-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-    Pagination, 
-    PaginationContent, 
-    PaginationEllipsis, 
-    PaginationItem, 
-    PaginationLink, 
-    PaginationNext, 
-    PaginationPrevious 
-} from "@/components/ui/pagination";
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -44,6 +36,7 @@ import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { JetBrains_Mono } from "next/font/google";
+import { useMobileMenu } from "@/components/mobile-menu-context";
 
 const jetbrainsMono = JetBrains_Mono({
     subsets: ["latin"],
@@ -105,9 +98,6 @@ export default function QuestionsPage() {
     const [questions, setQuestions] = useState<QuestionsModel[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [page, setPage] = useState<number>(1);
-    const [totalPages, setTotalPages] = useState<number>(0);
-    const [totalQuestions, setTotalQuestions] = useState<number>(0);
     
     // Edit dialog state
     const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
@@ -122,7 +112,7 @@ export default function QuestionsPage() {
     const trimester_type = params.trimester;
     const semester_term = params.term;
 
-    const fetchQuestions = async (pageNum: number = 1) => {
+    const fetchQuestions = async () => {
         if (!course_code || !exam_type || !semester_term) {
             setError("Missing required parameters");
             return;
@@ -132,19 +122,15 @@ export default function QuestionsPage() {
             setLoading(true);
 
             const response = await fetch(
-                `/api/questions?course_code=${course_code}&exam_type=${exam_type}&semester_term=${semester_term}&page=${pageNum}&limit=10`
+                `/api/questions?course_code=${course_code}&exam_type=${exam_type}&semester_term=${semester_term}`
             );
             const data = await response.json();
 
-            console.log(`Page ${pageNum} response:`, data);
+            console.log('Response:', data);
 
             if (response.ok) {
                 setQuestions(data.data || []);
-                setTotalPages(data.pagination?.totalPages || 0);
-                setTotalQuestions(data.pagination?.total || 0);
                 setError(null);
-
-                console.log('Pagination info:', data.pagination);
             } else {
                 setError(data.error || "Failed to fetch questions");
             }
@@ -156,42 +142,12 @@ export default function QuestionsPage() {
         }
     };
 
-    // Pagination navigation functions
-    const goToPage = (pageNum: number) => {
-        if (pageNum >= 1 && pageNum <= totalPages && pageNum !== page) {
-            setPage(pageNum);
-            fetchQuestions(pageNum);
-        }
-    };
 
-    const goToPreviousPage = () => {
-        if (page > 1) {
-            const prevPage = page - 1;
-            setPage(prevPage);
-            fetchQuestions(prevPage);
-        }
-    };
-
-    const goToNextPage = () => {
-        if (page < totalPages) {
-            const nextPage = page + 1;
-            setPage(nextPage);
-            fetchQuestions(nextPage);
-        }
-    };
 
     useEffect(() => {
-        setPage(1);
         setQuestions([]);
-        fetchQuestions(1);
+        fetchQuestions();
     }, [course_code, exam_type, semester_term]);
-
-    // Refetch when page changes (for direct page navigation)
-    useEffect(() => {
-        if (page > 1) {
-            fetchQuestions(page);
-        }
-    }, [page]);
 
     // Delete question function
     const handleDelete = async (questionId: number) => {
@@ -210,17 +166,6 @@ export default function QuestionsPage() {
             if (response.ok) {
                 // Update local state by removing the deleted question
                 setQuestions(prev => prev.filter(q => q.id !== questionId));
-                setTotalQuestions(prev => prev - 1);
-                
-                // If current page becomes empty and it's not the first page, go to previous page
-                if (questions.length === 1 && page > 1) {
-                    const prevPage = page - 1;
-                    setPage(prevPage);
-                    fetchQuestions(prevPage);
-                } else if (questions.length === 1 && page === 1) {
-                    // If we're on the first page and it becomes empty, just refresh
-                    fetchQuestions(1);
-                }
                 
                 console.log("Question deleted successfully");
             } else {
@@ -243,6 +188,8 @@ export default function QuestionsPage() {
         setEditDialogOpen(true);
         setEditError(null);
     };
+
+    const { toggleMobileMenu } = useMobileMenu();
 
     // Save edited question
     const handleSaveEdit = async () => {
@@ -311,11 +258,11 @@ export default function QuestionsPage() {
                         "%20",
                         "-"
                     )} - ${exam_type} - ${trimester_type} ${semester_term} Questions`}
-                    onMobileMenuToggle={() => { }}
+                    onMobileMenuToggle={toggleMobileMenu}
                 />
 
                 {/* breadcrumbs */}
-                <div className="p-6 pb-0">
+                <div className="p-4 sm:p-6 pb-0">
                   <Breadcrumb>
                     <BreadcrumbList>
                       <BreadcrumbItem>
@@ -341,7 +288,7 @@ export default function QuestionsPage() {
                   </Breadcrumb>
                 </div>
 
-                <div className="p-6">
+                <div className="p-4 sm:p-6 pb-12">
                     {/* Loading skeletons */}
                     {loading && (
                         <div className="animate-pulse">
@@ -370,12 +317,14 @@ export default function QuestionsPage() {
                     {/* Questions */}
                     {!loading &&
                         !error &&
-                        questions.map((question) => (
+                        questions.map((question, index) => (
                             <Card
                                 key={question.id}
-                                className="mt-4 border border-border shadow-sm hover:shadow-md transition"
+                                className={`mt-4 border border-border shadow-sm hover:shadow-md transition ${
+                                    index === questions.length - 1 ? 'mb-8' : 'mb-4'
+                                }`}
                             >
-                                <CardContent className="py-5 px-8 space-y-4">
+                                <CardContent className="py-5 px-4 sm:px-8 space-y-4">
                                     {/* Header */}
                                     <div className="flex justify-between items-center">
                                         <h3 className="text-lg font-semibold">
@@ -471,98 +420,12 @@ export default function QuestionsPage() {
                             </Card>
                         ))}
 
-                    {/* Pagination Controls */}
-                    {!loading && !error && questions.length > 0 && totalPages > 1 && (
-                        <div className="mt-8 flex flex-col items-center space-y-4">
-                            {/* Pagination Info */}
+                    {/* Total Questions Info */}
+                    {!loading && !error && questions.length > 0 && (
+                        <div className="mt-8 mb-8 flex justify-center">
                             <div className="text-sm text-gray-500 text-center">
-                                Showing page {page} of {totalPages} ({totalQuestions} total questions)
+                                Showing {questions.length} questions
                             </div>
-                            
-                            {/* Pagination Component */}
-                            <Pagination>
-                                <PaginationContent>
-                                    <PaginationItem>
-                                        <PaginationPrevious 
-                                            onClick={goToPreviousPage}
-                                            className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                                        />
-                                    </PaginationItem>
-                                    
-                                    {/* Page Numbers */}
-                                    {(() => {
-                                        const pages = [];
-                                        const maxVisiblePages = 5;
-                                        let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
-                                        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-                                        
-                                        // Adjust start page if we're near the end
-                                        if (endPage - startPage + 1 < maxVisiblePages) {
-                                            startPage = Math.max(1, endPage - maxVisiblePages + 1);
-                                        }
-                                        
-                                        // First page + ellipsis
-                                        if (startPage > 1) {
-                                            pages.push(
-                                                <PaginationItem key={1}>
-                                                    <PaginationLink onClick={() => goToPage(1)} className="cursor-pointer">
-                                                        1
-                                                    </PaginationLink>
-                                                </PaginationItem>
-                                            );
-                                            if (startPage > 2) {
-                                                pages.push(
-                                                    <PaginationItem key="ellipsis-start">
-                                                        <PaginationEllipsis />
-                                                    </PaginationItem>
-                                                );
-                                            }
-                                        }
-                                        
-                                        // Visible page range
-                                        for (let i = startPage; i <= endPage; i++) {
-                                            pages.push(
-                                                <PaginationItem key={i}>
-                                                    <PaginationLink 
-                                                        onClick={() => goToPage(i)}
-                                                        isActive={i === page}
-                                                        className="cursor-pointer"
-                                                    >
-                                                        {i}
-                                                    </PaginationLink>
-                                                </PaginationItem>
-                                            );
-                                        }
-                                        
-                                        // Last page + ellipsis
-                                        if (endPage < totalPages) {
-                                            if (endPage < totalPages - 1) {
-                                                pages.push(
-                                                    <PaginationItem key="ellipsis-end">
-                                                        <PaginationEllipsis />
-                                                    </PaginationItem>
-                                                );
-                                            }
-                                            pages.push(
-                                                <PaginationItem key={totalPages}>
-                                                    <PaginationLink onClick={() => goToPage(totalPages)} className="cursor-pointer">
-                                                        {totalPages}
-                                                    </PaginationLink>
-                                                </PaginationItem>
-                                            );
-                                        }
-                                        
-                                        return pages;
-                                    })()}
-                                    
-                                    <PaginationItem>
-                                        <PaginationNext 
-                                            onClick={goToNextPage}
-                                            className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                                        />
-                                    </PaginationItem>
-                                </PaginationContent>
-                            </Pagination>
                         </div>
                     )}
 
