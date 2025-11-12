@@ -4,6 +4,14 @@ import { FrostedHeader } from "@/components/custom/frosted-header";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { 
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb";
 import { BookOpen, HelpCircle } from "lucide-react";
 import { useMobileMenu } from "@/components/mobile-menu-context";
 import { useRouter } from "next/navigation";
@@ -72,6 +80,21 @@ export default function QuestionsCoursePage() {
         <div className="min-h-screen bg-background">
           <FrostedHeader title="Questions" onMobileMenuToggle={toggleMobileMenu} />
           
+          {/* breadcrumbs */}
+          <div className="p-6 pb-0">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Questions</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+          
           <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
             <Card className="bg-white dark:bg-card shadow rounded-lg p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -105,6 +128,21 @@ export default function QuestionsCoursePage() {
         
         {/* header  */}
         <FrostedHeader title="Questions" onMobileMenuToggle={toggleMobileMenu} />
+        
+        {/* breadcrumbs */}
+        <div className="p-6 pb-0">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Questions</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
         
         {/* top cards  */}
         <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
