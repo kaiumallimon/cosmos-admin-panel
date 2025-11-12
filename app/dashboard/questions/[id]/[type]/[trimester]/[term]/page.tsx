@@ -15,6 +15,24 @@ import {
     PaginationNext, 
     PaginationPrevious 
 } from "@/components/ui/pagination";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { JetBrains_Mono } from "next/font/google";
@@ -82,6 +100,13 @@ export default function QuestionsPage() {
     const [page, setPage] = useState<number>(1);
     const [totalPages, setTotalPages] = useState<number>(0);
     const [totalQuestions, setTotalQuestions] = useState<number>(0);
+    
+    // Edit dialog state
+    const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
+    const [editingQuestion, setEditingQuestion] = useState<QuestionsModel | null>(null);
+    const [editForm, setEditForm] = useState<QuestionsModel | null>(null);
+    const [editLoading, setEditLoading] = useState<boolean>(false);
+    const [editError, setEditError] = useState<string | null>(null);
 
     const params = useParams();
     const course_code = params.id;
@@ -160,6 +185,105 @@ export default function QuestionsPage() {
         }
     }, [page]);
 
+    // Delete question function
+    const handleDelete = async (questionId: number) => {
+        const questionToDelete = questions.find(q => q.id === questionId);
+        const confirmMessage = `Are you sure you want to delete this question?\n\nQ${questionToDelete?.question_number}${questionToDelete?.sub_question ? `.${questionToDelete.sub_question}` : ""}\n\nThis action cannot be undone.`;
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/questions/${questionId}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                // Update local state by removing the deleted question
+                setQuestions(prev => prev.filter(q => q.id !== questionId));
+                setTotalQuestions(prev => prev - 1);
+                
+                // If current page becomes empty and it's not the first page, go to previous page
+                if (questions.length === 1 && page > 1) {
+                    const prevPage = page - 1;
+                    setPage(prevPage);
+                    fetchQuestions(prevPage);
+                } else if (questions.length === 1 && page === 1) {
+                    // If we're on the first page and it becomes empty, just refresh
+                    fetchQuestions(1);
+                }
+                
+                console.log("Question deleted successfully");
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to delete question: ${errorData.error}`);
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+            alert("An error occurred while deleting the question");
+        }
+    };
+
+    // Open edit dialog
+    const handleEdit = async (questionId: number) => {
+        const question = questions.find(q => q.id === questionId);
+        if (!question) return;
+        
+        setEditingQuestion(question);
+        setEditForm({ ...question });
+        setEditDialogOpen(true);
+        setEditError(null);
+    };
+
+    // Save edited question
+    const handleSaveEdit = async () => {
+        if (!editForm || !editingQuestion) return;
+        
+        setEditLoading(true);
+        setEditError(null);
+        
+        try {
+            const response = await fetch(`/api/questions/${editingQuestion.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editForm),
+            });
+            
+            if (response.ok) {
+                const updatedQuestion = await response.json();
+                
+                // Update local state with the edited question
+                setQuestions(prev => prev.map(q => 
+                    q.id === editingQuestion.id ? { ...editForm } : q
+                ));
+                
+                // Close dialog
+                setEditDialogOpen(false);
+                setEditingQuestion(null);
+                setEditForm(null);
+                
+                console.log("Question updated successfully");
+            } else {
+                const errorData = await response.json();
+                setEditError(errorData.error || "Failed to update question");
+            }
+        } catch (error) {
+            console.error("Edit error:", error);
+            setEditError("An error occurred while updating the question");
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
+    // Close edit dialog
+    const handleCancelEdit = () => {
+        setEditDialogOpen(false);
+        setEditingQuestion(null);
+        setEditForm(null);
+        setEditError(null);
+    };
+
     const SkeletonCard = () => (
         <Card className="mt-3">
             <CardContent className="p-4 space-y-3">
@@ -224,9 +348,34 @@ export default function QuestionsPage() {
                                             {question.sub_question ? `.${question.sub_question}` : ""}
                                             {question.marks && ` (${question.marks} marks)`}
                                         </h3>
-                                        <p className="text-sm text-gray-500">
-                                            {question.course_code} | {question.semester_term}
-                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm text-gray-500">
+                                                {question.course_code} | {question.semester_term}
+                                            </p>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleEdit(question.id)}
+                                                        className="cursor-pointer"
+                                                    >
+                                                        <Edit className="mr-2 h-4 w-4" />
+                                                        Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleDelete(question.id)}
+                                                        className="cursor-pointer text-red-600 hover:text-red-700"
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                     </div>
 
                                     {/* Description */}
@@ -381,6 +530,198 @@ export default function QuestionsPage() {
                             </Pagination>
                         </div>
                     )}
+
+                    {/* Edit Question Dialog */}
+                    <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle>
+                                    Edit Question {editingQuestion?.question_number}
+                                    {editingQuestion?.sub_question && `.${editingQuestion.sub_question}`}
+                                </DialogTitle>
+                            </DialogHeader>
+
+                            <div className="space-y-6">
+                                {editError && (
+                                    <div className="p-3 text-red-600 bg-red-50 dark:bg-red-950 rounded border border-red-200 dark:border-red-800">
+                                        {editError}
+                                    </div>
+                                )}
+
+                                {/* Basic Information */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit_course_title">Course Title</Label>
+                                        <Input
+                                            id="edit_course_title"
+                                            value={editForm?.course_title || ""}
+                                            onChange={(e) => setEditForm(prev => prev ? { ...prev, course_title: e.target.value } : null)}
+                                            placeholder="Course Title"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit_course_code">Course Code</Label>
+                                        <Input
+                                            id="edit_course_code"
+                                            value={editForm?.course_code || ""}
+                                            onChange={(e) => setEditForm(prev => prev ? { ...prev, course_code: e.target.value } : null)}
+                                            placeholder="Course Code"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit_short">Short Name</Label>
+                                        <Input
+                                            id="edit_short"
+                                            value={editForm?.short || ""}
+                                            onChange={(e) => setEditForm(prev => prev ? { ...prev, short: e.target.value } : null)}
+                                            placeholder="Short Name"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit_semester_term">Semester Term</Label>
+                                        <Input
+                                            id="edit_semester_term"
+                                            value={editForm?.semester_term || ""}
+                                            onChange={(e) => setEditForm(prev => prev ? { ...prev, semester_term: e.target.value } : null)}
+                                            placeholder="Semester Term"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit_exam_type">Exam Type</Label>
+                                        <Input
+                                            id="edit_exam_type"
+                                            value={editForm?.exam_type || ""}
+                                            onChange={(e) => setEditForm(prev => prev ? { ...prev, exam_type: e.target.value } : null)}
+                                            placeholder="Exam Type"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit_question_number">Question Number</Label>
+                                        <Input
+                                            id="edit_question_number"
+                                            value={editForm?.question_number || ""}
+                                            onChange={(e) => setEditForm(prev => prev ? { ...prev, question_number: e.target.value } : null)}
+                                            placeholder="Question Number"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit_sub_question">Sub Question</Label>
+                                        <Input
+                                            id="edit_sub_question"
+                                            value={editForm?.sub_question || ""}
+                                            onChange={(e) => setEditForm(prev => prev ? { ...prev, sub_question: e.target.value } : null)}
+                                            placeholder="Sub Question"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit_marks">Marks</Label>
+                                        <Input
+                                            id="edit_marks"
+                                            type="number"
+                                            value={editForm?.marks || ""}
+                                            onChange={(e) => setEditForm(prev => prev ? { ...prev, marks: Number(e.target.value) } : null)}
+                                            placeholder="Marks"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Switches */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center space-x-2">
+                                        <Switch
+                                            id="edit_has_image"
+                                            checked={!!editForm?.has_image}
+                                            onCheckedChange={(val) => setEditForm(prev => prev ? { ...prev, has_image: val } : null)}
+                                        />
+                                        <Label htmlFor="edit_has_image">Has Image</Label>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2">
+                                        <Switch
+                                            id="edit_has_description"
+                                            checked={!!editForm?.has_description}
+                                            onCheckedChange={(val) => setEditForm(prev => prev ? { ...prev, has_description: val } : null)}
+                                        />
+                                        <Label htmlFor="edit_has_description">Has Description</Label>
+                                    </div>
+                                </div>
+
+                                {/* Conditional Fields */}
+                                {editForm?.has_image && (
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="edit_image_url">Image URL</Label>
+                                            <Input
+                                                id="edit_image_url"
+                                                value={editForm?.image_url || ""}
+                                                onChange={(e) => setEditForm(prev => prev ? { ...prev, image_url: e.target.value } : null)}
+                                                placeholder="Image URL"
+                                            />
+                                        </div>
+                                        
+                                        <div className="space-y-2">
+                                            <Label htmlFor="edit_image_type">Image Type</Label>
+                                            <Input
+                                                id="edit_image_type"
+                                                value={editForm?.image_type || ""}
+                                                onChange={(e) => setEditForm(prev => prev ? { ...prev, image_type: e.target.value } : null)}
+                                                placeholder="Image Type"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {editForm?.has_description && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit_description_content">Description Content</Label>
+                                        <Textarea
+                                            id="edit_description_content"
+                                            value={editForm?.description_content || ""}
+                                            onChange={(e) => setEditForm(prev => prev ? { ...prev, description_content: e.target.value } : null)}
+                                            placeholder="Description Content"
+                                            rows={4}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Question Content */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit_question">Question</Label>
+                                    <Textarea
+                                        id="edit_question"
+                                        value={editForm?.question || ""}
+                                        onChange={(e) => setEditForm(prev => prev ? { ...prev, question: e.target.value } : null)}
+                                        placeholder="Question content"
+                                        rows={6}
+                                    />
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex justify-end gap-2 pt-4">
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleCancelEdit}
+                                        disabled={editLoading}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        onClick={handleSaveEdit}
+                                        disabled={editLoading}
+                                    >
+                                        {editLoading ? "Saving..." : "Save Changes"}
+                                    </Button>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
         </ProtectedRoute>
