@@ -48,7 +48,7 @@ export default function QuestionsTypePage(){
     return (
         <ProtectedRoute>
             <div className="min-h-screen bg-background">
-                <FrostedHeader title={`${courseId} ${sanitizeType(questionType)} Questions`} onMobileMenuToggle={()=>{toggleMobileMenu()}} />
+                <FrostedHeader title={`${courseId?.toString().replace("%20", "-")} ${sanitizeType(questionType)} Questions`} onMobileMenuToggle={()=>{toggleMobileMenu()}} />
                 <div className="p-6">
                     {loading && (
                         <div className="flex items-center justify-center p-8">

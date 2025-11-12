@@ -5,6 +5,43 @@ import { useEffect, useState } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { FrostedHeader } from "@/components/custom/frosted-header";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { JetBrains_Mono } from "next/font/google";
+
+const jetbrainsMono = JetBrains_Mono({
+    subsets: ["latin"],
+    weight: ["400", "500", "700"],
+});
+
+// Markdown components: only code blocks use JetBrains Mono
+const markdownComponents = {
+  code({ node, inline, className, children, ...props }: any) {
+    const content = Array.isArray(children) ? children.join("") : children;
+
+    if (inline) {
+      return (
+        <code
+          className={`bg-gray-100 dark:bg-gray-800 px-1 rounded text-sm font-mono ${jetbrainsMono.className}`}
+          {...props}
+        >
+          {content}
+        </code>
+      );
+    }
+
+    return (
+      <pre
+        className={`mt-3 bg-gray-100 dark:bg-gray-800 px-5 py-4 rounded-md overflow-x-auto ${jetbrainsMono.className}`}
+        {...props}
+      >
+        <code className="text-sm">{content}</code>
+      </pre>
+    );
+  },
+};
+
 
 interface QuestionsModel {
     id: number;
@@ -24,9 +61,9 @@ interface QuestionsModel {
     has_description?: boolean | null;
     description_content?: string | null;
     question: string;
+    pdf_url?: string | null;
     created_at?: string | null;
     vector_id?: string | null;
-    pdf_url?: string | null;
 }
 
 export default function QuestionsPage() {
@@ -43,24 +80,26 @@ export default function QuestionsPage() {
     useEffect(() => {
         async function fetchQuestions() {
             if (!course_code || !exam_type || !semester_term) {
-                setError('Missing required parameters');
+                setError("Missing required parameters");
                 return;
             }
 
             try {
                 setLoading(true);
-                const response = await fetch(`/api/questions?course_code=${course_code}&exam_type=${exam_type}&semester_term=${semester_term}`);
+                const response = await fetch(
+                    `/api/questions?course_code=${course_code}&exam_type=${exam_type}&semester_term=${semester_term}`
+                );
                 const data = await response.json();
 
                 if (response.ok) {
                     setQuestions(data.data || []);
                     setError(null);
                 } else {
-                    setError(data.error || 'Failed to fetch questions');
+                    setError(data.error || "Failed to fetch questions");
                 }
             } catch (error) {
-                console.error('Fetch error:', error);
-                setError('An unexpected error occurred');
+                console.error("Fetch error:", error);
+                setError("An unexpected error occurred");
             } finally {
                 setLoading(false);
             }
@@ -69,67 +108,132 @@ export default function QuestionsPage() {
         fetchQuestions();
     }, [course_code, exam_type, semester_term]);
 
+    const SkeletonCard = () => (
+        <Card className="mt-3">
+            <CardContent className="p-4 space-y-3">
+                <Skeleton className="h-5 w-1/3" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-32 w-full rounded" />
+            </CardContent>
+        </Card>
+    );
+
     return (
         <ProtectedRoute>
             <div className="min-h-screen bg-background">
                 <FrostedHeader
-                    title={`Questions for ${course_code} - ${exam_type} - ${trimester_type} ${semester_term}`}
-                    onMobileMenuToggle={() => {}}
+                    title={`${course_code?.toString().replace(
+                        "%20",
+                        "-"
+                    )} - ${exam_type} - ${trimester_type} ${semester_term} Questions`}
+                    onMobileMenuToggle={() => { }}
                 />
 
                 <div className="p-6">
+                    {/* Loading skeletons */}
                     {loading && (
-                        <div className="flex items-center justify-center p-8">
-                            <p>Loading questions...</p>
+                        <div className="animate-pulse">
+                            {[...Array(4)].map((_, i) => (
+                                <SkeletonCard key={i} />
+                            ))}
                         </div>
                     )}
-                    
-                    {error && (
+
+                    {/* Error */}
+                    {error && !loading && (
                         <div className="flex items-center justify-center p-8">
                             <p className="text-red-500">Error: {error}</p>
                         </div>
                     )}
-                    
+
+                    {/* No questions */}
                     {!loading && !error && questions.length === 0 && (
                         <div className="flex items-center justify-center p-8">
-                            <p className="text-gray-500">No questions found for this course and term.</p>
+                            <p className="text-gray-500">
+                                No questions found for this course and term.
+                            </p>
                         </div>
                     )}
 
-                    {!loading && !error && questions.map((question) => (
-                        <Card key={question.id} className="mt-3">
-                            <CardContent className="p-4">
-                                <h3 className="text-lg font-semibold">
-                                    Q{question.question_number}
-                                    {question.sub_question ? `.${question.sub_question}` : ""}
-                                    {question.marks && ` (${question.marks} marks)`}
-                                </h3>
-
-                                <p className="mt-2 whitespace-pre-wrap">{question.question}</p>
-
-                                {question.has_description && question.description_content && (
-                                    <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded">
-                                        <strong>Description:</strong>
-                                        <p className="whitespace-pre-wrap">{question.description_content}</p>
+                    {/* Questions */}
+                    {!loading &&
+                        !error &&
+                        questions.map((question) => (
+                            <Card
+                                key={question.id}
+                                className="mt-4 border border-border shadow-sm hover:shadow-md transition"
+                            >
+                                <CardContent className="p-5 space-y-4">
+                                    {/* Header */}
+                                    <div className="flex justify-between items-center">
+                                        <h3 className="text-lg font-semibold">
+                                            Q{question.question_number}
+                                            {question.sub_question ? `.${question.sub_question}` : ""}
+                                            {question.marks && ` (${question.marks} marks)`}
+                                        </h3>
+                                        <p className="text-sm text-gray-500">
+                                            {question.course_code} | {question.semester_term}
+                                        </p>
                                     </div>
-                                )}
 
-                                {question.has_image && question.image_url && (
-                                    <div className="mt-2">
-                                        <img
-                                            src={question.image_url}
-                                            alt={question.image_type ?? "Question image"}
-                                            className="max-w-full rounded border"
-                                        />
+                                    {/* Description */}
+                                    {question.has_description && question.description_content && (
+                                        <div className="mt-2 p-4 bg-muted rounded-md">
+                                            <strong className="block mb-1">Description:</strong>
+                                            <div className="prose dark:prose-invert text-sm max-w-none">
+                                                <ReactMarkdown
+                                                    remarkPlugins={[remarkGfm]}
+                                                    components={markdownComponents}
+                                                >
+                                                    {question.description_content}
+                                                </ReactMarkdown>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Image */}
+                                    {question.has_image && question.image_url && (
+                                        <div className="mt-3">
+                                            <img
+                                                src={question.image_url}
+                                                alt={question.image_type ?? "Question image"}
+                                                className="max-w-full rounded border"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Question content */}
+                                    <div className="mt-3 prose dark:prose-invert max-w-none leading-relaxed">
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]} components={markdownComponents}
+                                        >
+                                            {question.question}
+                                        </ReactMarkdown>
                                     </div>
-                                )}
 
-                                <div className="mt-2 text-sm text-gray-500">
-                                    Course: {question.course_title} | Code: {question.course_code} | Term: {question.semester_term}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                    {/* PDF reference */}
+                                    {question.pdf_url && (
+                                        <div className="mt-3 text-sm">
+                                            <a
+                                                href={question.pdf_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-500 underline"
+                                            >
+                                                View Question PDF
+                                            </a>
+                                        </div>
+                                    )}
+
+                                    {/* Footer with course shortname, created at */}
+                                    <div className="mt-4 border-t border-border pt-2 text-sm text-gray-500 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                                        <span>Course: {question.short} ({question.course_title})</span>
+                                        {question.created_at && <span>Created: {new Date(question.created_at).toLocaleDateString()}</span>}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
                 </div>
             </div>
         </ProtectedRoute>
