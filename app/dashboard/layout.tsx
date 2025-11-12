@@ -65,11 +65,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         Overview
                     </div>
                     <div className="overflow-hidden">
-                        <div className="overflow-hidden">
+                        <div className=" overflow-hidden">
                             <Link 
                                 href="/dashboard" 
                                 onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
                                     pathname === "/dashboard" ? "bg-primary text-primary-foreground font-semibold" : ""
                                 }`}
                             >
@@ -77,11 +77,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <span className="font-medium truncate">Dashboard</span>
                             </Link>
                         </div>
-                        <div className="overflow-hidden">
+                        <div className="mt-1 overflow-hidden">
                             <Link 
                                 href="/dashboard/analytics" 
                                 onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
                                     pathname === "/dashboard/analytics" ? "bg-primary text-primary-foreground font-semibold" : ""
                                 }`}
                             >
@@ -89,11 +89,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <span className="font-medium truncate">Analytics</span>
                             </Link>
                         </div>
-                        <div className="overflow-hidden">
+                        <div className="mt-1 overflow-hidden">
                             <Link 
                                 href="/dashboard/search" 
                                 onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
                                     pathname === "/dashboard/search" ? "bg-primary text-primary-foreground font-semibold" : ""
                                 }`}
                             >
@@ -117,7 +117,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <Link 
                                 href="/dashboard/questions" 
                                 onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
                                     pathname === "/dashboard/questions" || pathname.startsWith("/dashboard/questions/") ? "bg-primary text-primary-foreground font-semibold" : ""
                                 }`}
                             >
@@ -125,11 +125,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <span className="font-medium truncate">Questions</span>
                             </Link>
                         </div>
-                        <div className="overflow-hidden">
+                        <div className="mt-1 overflow-hidden">
                             <Link 
                                 href="/dashboard/upload" 
                                 onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
                                     pathname === "/dashboard/upload" ? "bg-primary text-primary-foreground font-semibold" : ""
                                 }`}
                             >
@@ -152,7 +152,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <Link 
                                 href="/dashboard/users" 
                                 onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
                                     pathname === "/dashboard/users" ? "bg-primary text-primary-foreground font-semibold" : ""
                                 }`}
                             >
@@ -175,7 +175,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <Link 
                                 href="/dashboard/settings" 
                                 onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
                                     pathname === "/dashboard/settings" ? "bg-primary text-primary-foreground font-semibold" : ""
                                 }`}
                             >
@@ -183,11 +183,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <span className="font-medium truncate">Settings</span>
                             </Link>
                         </div>
-                        <div className="overflow-hidden">
+                        <div className="mt-1 overflow-hidden">
                             <Link 
                                 href="/dashboard/help" 
                                 onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-accent/50 ${
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
                                     pathname === "/dashboard/help" ? "bg-primary text-primary-foreground font-semibold" : ""
                                 }`}
                             >
@@ -245,7 +245,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {/* User Profile */}
                 <ClientOnlyDialog
                     trigger={
-                        <button className="w-full flex items-center justify-start gap-3 p-3 rounded-md hover:bg-accent/50 transition-colors overflow-hidden border-0 bg-transparent cursor-pointer">
+                        <button className="w-full flex items-center justify-start gap-3 p-3 rounded-md hover:bg-primary/30 transition-colors overflow-hidden border-0 bg-transparent cursor-pointer">
                             <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
                                 {user.profile?.avatar_url ? (
                                     <img 
