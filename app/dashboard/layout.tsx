@@ -134,7 +134,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 }`}
                             >
                                 <UploadIcon className="h-4 w-4 shrink-0" />
-                                <span className="font-medium truncate">Content Upload</span>
+                                <span className="font-medium truncate">Contents</span>
                             </Link>
                         </div>
                     </div>
