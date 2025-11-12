@@ -326,7 +326,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return (
         <SidebarProvider defaultOpen={true}>
-            <div className="flex h-screen w-full bg-background">
+            <div className="flex h-screen w-full bg-background overflow-hidden">
             {/* Desktop Sidebar - Hidden on mobile */}
             <div className="hidden md:flex w-64 border-r border-border/40 bg-card">
                 <SidebarContentComponent />
@@ -346,9 +346,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Sheet>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-h-0">
                 {/* Main Content */}
-                <main className="flex-1 overflow-auto bg-muted/20">
+                <main className="flex-1 overflow-y-auto overflow-x-hidden bg-muted/20">
                     <MobileMenuProvider toggleMobileMenu={() => setMobileMenuOpen(true)}>
                         {children}
                     </MobileMenuProvider>
