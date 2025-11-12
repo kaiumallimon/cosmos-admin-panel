@@ -171,7 +171,7 @@ export default function QuestionsCoursePage() {
         </div>
 
         {/* courses */}
-        <div className="p-6">
+        <div className="p-6 mb-20">
           <h2 className="text-xl md:text-2xl font-bold">Available Course Questions </h2>
           {courses.map((course)=>{
             return (

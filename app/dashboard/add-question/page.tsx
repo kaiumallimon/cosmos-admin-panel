@@ -123,30 +123,23 @@ export default function AddQuestionPage() {
     };
 
     const handleConfirmationOkay = () => {
-        const pdfUrl = formData.pdf_url; // keep PDF URL
-        setFormData({
-            course_title: "",
-            short: "",
-            course_code: "",
-            semester_term: "",
-            exam_type: "",
-            question_number: "",
+        const updatedFormData = {
+            ...formData,
+            // Clear only specific fields after successful submission
             sub_question: "",
             marks: 0,
-            total_question_mark: 0,
-            contribution_percentage: 0,
+            question: "",
+            // Clear image fields if they were used
             has_image: false,
             image_url: "",
             image_type: "",
+            // Clear description fields if they were used
             has_description: false,
             description_content: "",
-            question: "",
-            pdf_url: pdfUrl,
-        });
-        localStorage.setItem(
-            LOCAL_STORAGE_KEY,
-            JSON.stringify({ ...formData, pdf_url: pdfUrl })
-        );
+        };
+        
+        setFormData(updatedFormData);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedFormData));
         setIsConfirmationOpen(false);
     };
 
@@ -293,25 +286,15 @@ export default function AddQuestionPage() {
                                 <Label htmlFor="total_question_mark">Total Question Mark</Label>
                                 <Input
                                     type="number"
+                                    step="0.01"
                                     id="total_question_mark"
                                     className="text-sm"
                                     value={formData.total_question_mark}
-                                    onChange={(e) => handleChange("total_question_mark", Number(e.target.value))}
+                                    onChange={(e) => handleChange("total_question_mark", parseFloat(e.target.value) || 0)}
                                 />
                             </div>
 
-                            {/* Contribution Percentage */}
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="contribution_percentage">Contribution Percentage</Label>
-                                <Input
-                                    type="number"
-                                    id="contribution_percentage"
-                                    value={formData.contribution_percentage}
-                                    className="text-sm"
-                                    readOnly
-                                    onChange={(e) => handleChange("contribution_percentage", Number(e.target.value))}
-                                />
-                            </div>
+
 
                             {/* Question */}
                             <div className="md:col-span-2 flex flex-col gap-2">
