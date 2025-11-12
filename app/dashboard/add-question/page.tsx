@@ -178,8 +178,8 @@ export default function AddQuestionPage() {
                         <BreadcrumbList>
                             <BreadcrumbItem>
                                 <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-                                <BreadcrumbSeparator />
                             </BreadcrumbItem>
+                            <BreadcrumbSeparator />
                             <BreadcrumbItem>
                                 <BreadcrumbLink href="/dashboard/add-question">Add Question</BreadcrumbLink>
                             </BreadcrumbItem>
