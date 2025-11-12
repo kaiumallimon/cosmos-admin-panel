@@ -27,6 +27,14 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { 
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -306,6 +314,33 @@ export default function QuestionsPage() {
                     onMobileMenuToggle={() => { }}
                 />
 
+                {/* breadcrumbs */}
+                <div className="p-6 pb-0">
+                  <Breadcrumb>
+                    <BreadcrumbList>
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href="/dashboard/questions">Questions</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href={`/dashboard/questions/${course_code}`}>{course_code?.toString().replace("%20", "-")}</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href={`/dashboard/questions/${course_code}/${exam_type}`}>{exam_type}</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage>Trimester {semester_term}</BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </div>
+
                 <div className="p-6">
                     {/* Loading skeletons */}
                     {loading && (
@@ -340,7 +375,7 @@ export default function QuestionsPage() {
                                 key={question.id}
                                 className="mt-4 border border-border shadow-sm hover:shadow-md transition"
                             >
-                                <CardContent className="p-5 space-y-4">
+                                <CardContent className="py-5 px-8 space-y-4">
                                     {/* Header */}
                                     <div className="flex justify-between items-center">
                                         <h3 className="text-lg font-semibold">

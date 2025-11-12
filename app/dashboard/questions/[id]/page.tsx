@@ -4,6 +4,14 @@ import { FrostedHeader } from "@/components/custom/frosted-header";
 import { useMobileMenu } from "@/components/mobile-menu-context";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb";
 import { useParams, useRouter } from "next/navigation";
 
 export default function QuestionsCourseMenuPage() {
@@ -43,6 +51,26 @@ export default function QuestionsCourseMenuPage() {
             <div className="min-h-screen bg-background">
                 {/* glass header */}
                 <FrostedHeader title={`Menu for ${formatCourseCode(courseId)} Questions`} onMobileMenuToggle={toggleMobileMenu} />
+                
+                {/* breadcrumbs */}
+                <div className="p-6 pb-0">
+                  <Breadcrumb>
+                    <BreadcrumbList>
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href="/dashboard/questions">Questions</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage>{formatCourseCode(courseId)}</BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </div>
+                
                  {/* menu cards */}
                  <div className="p-6">
                     {cards.map((card)=>{

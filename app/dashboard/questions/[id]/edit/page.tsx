@@ -9,6 +9,14 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { FrostedHeader } from "@/components/custom/frosted-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface QuestionsModel {
@@ -106,6 +114,26 @@ export default function EditQuestionPage() {
             <ProtectedRoute>
                 <div className="min-h-screen bg-background">
                     <FrostedHeader title="Edit Question" onMobileMenuToggle={() => {}} />
+                    
+                    {/* breadcrumbs */}
+                    <div className="p-6 pb-0">
+                      <Breadcrumb>
+                        <BreadcrumbList>
+                          <BreadcrumbItem>
+                            <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                          </BreadcrumbItem>
+                          <BreadcrumbSeparator />
+                          <BreadcrumbItem>
+                            <BreadcrumbLink href="/dashboard/questions">Questions</BreadcrumbLink>
+                          </BreadcrumbItem>
+                          <BreadcrumbSeparator />
+                          <BreadcrumbItem>
+                            <BreadcrumbPage>Edit</BreadcrumbPage>
+                          </BreadcrumbItem>
+                        </BreadcrumbList>
+                      </Breadcrumb>
+                    </div>
+                    
                     <div className="p-6">
                         <p className="text-red-500 p-4">{error}</p>
                         <Button onClick={() => router.back()}>Go Back</Button>
@@ -119,6 +147,29 @@ export default function EditQuestionPage() {
         <ProtectedRoute>
             <div className="min-h-screen bg-background">
                 <FrostedHeader title="Edit Question" onMobileMenuToggle={() => {}} />
+
+                {/* breadcrumbs */}
+                <div className="p-6 pb-0">
+                  <Breadcrumb>
+                    <BreadcrumbList>
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href="/dashboard/questions">Questions</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href={`/dashboard/questions/${form?.course_code}`}>{form?.course_code}</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage>Edit</BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </div>
 
                 <div className="max-w-4xl mx-auto p-6">
                     <Card>

@@ -4,6 +4,14 @@ import { FrostedHeader } from "@/components/custom/frosted-header";
 import { useMobileMenu } from "@/components/mobile-menu-context";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
@@ -49,6 +57,30 @@ export default function QuestionsTypePage(){
         <ProtectedRoute>
             <div className="min-h-screen bg-background">
                 <FrostedHeader title={`${courseId?.toString().replace("%20", "-")} ${sanitizeType(questionType)} Questions`} onMobileMenuToggle={()=>{toggleMobileMenu()}} />
+                
+                {/* breadcrumbs */}
+                <div className="p-6 pb-0">
+                  <Breadcrumb>
+                    <BreadcrumbList>
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href="/dashboard/questions">Questions</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbLink href={`/dashboard/questions/${courseId}`}>{courseId?.toString().replace("%20", "-")}</BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage>{sanitizeType(questionType)}</BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </div>
+                
                 <div className="p-6">
                     {loading && (
                         <div className="flex items-center justify-center p-8">
