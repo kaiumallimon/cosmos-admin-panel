@@ -6,6 +6,15 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { FrostedHeader } from "@/components/custom/frosted-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { 
+    Pagination, 
+    PaginationContent, 
+    PaginationEllipsis, 
+    PaginationItem, 
+    PaginationLink, 
+    PaginationNext, 
+    PaginationPrevious 
+} from "@/components/ui/pagination";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { JetBrains_Mono } from "next/font/google";
@@ -70,6 +79,9 @@ export default function QuestionsPage() {
     const [questions, setQuestions] = useState<QuestionsModel[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState<number>(1);
+    const [totalPages, setTotalPages] = useState<number>(0);
+    const [totalQuestions, setTotalQuestions] = useState<number>(0);
 
     const params = useParams();
     const course_code = params.id;
@@ -77,36 +89,76 @@ export default function QuestionsPage() {
     const trimester_type = params.trimester;
     const semester_term = params.term;
 
-    useEffect(() => {
-        async function fetchQuestions() {
-            if (!course_code || !exam_type || !semester_term) {
-                setError("Missing required parameters");
-                return;
-            }
-
-            try {
-                setLoading(true);
-                const response = await fetch(
-                    `/api/questions?course_code=${course_code}&exam_type=${exam_type}&semester_term=${semester_term}`
-                );
-                const data = await response.json();
-
-                if (response.ok) {
-                    setQuestions(data.data || []);
-                    setError(null);
-                } else {
-                    setError(data.error || "Failed to fetch questions");
-                }
-            } catch (error) {
-                console.error("Fetch error:", error);
-                setError("An unexpected error occurred");
-            } finally {
-                setLoading(false);
-            }
+    const fetchQuestions = async (pageNum: number = 1) => {
+        if (!course_code || !exam_type || !semester_term) {
+            setError("Missing required parameters");
+            return;
         }
 
-        fetchQuestions();
+        try {
+            setLoading(true);
+
+            const response = await fetch(
+                `/api/questions?course_code=${course_code}&exam_type=${exam_type}&semester_term=${semester_term}&page=${pageNum}&limit=10`
+            );
+            const data = await response.json();
+
+            console.log(`Page ${pageNum} response:`, data);
+
+            if (response.ok) {
+                setQuestions(data.data || []);
+                setTotalPages(data.pagination?.totalPages || 0);
+                setTotalQuestions(data.pagination?.total || 0);
+                setError(null);
+
+                console.log('Pagination info:', data.pagination);
+            } else {
+                setError(data.error || "Failed to fetch questions");
+            }
+        } catch (error) {
+            console.error("Fetch error:", error);
+            setError("An unexpected error occurred");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Pagination navigation functions
+    const goToPage = (pageNum: number) => {
+        if (pageNum >= 1 && pageNum <= totalPages && pageNum !== page) {
+            setPage(pageNum);
+            fetchQuestions(pageNum);
+        }
+    };
+
+    const goToPreviousPage = () => {
+        if (page > 1) {
+            const prevPage = page - 1;
+            setPage(prevPage);
+            fetchQuestions(prevPage);
+        }
+    };
+
+    const goToNextPage = () => {
+        if (page < totalPages) {
+            const nextPage = page + 1;
+            setPage(nextPage);
+            fetchQuestions(nextPage);
+        }
+    };
+
+    useEffect(() => {
+        setPage(1);
+        setQuestions([]);
+        fetchQuestions(1);
     }, [course_code, exam_type, semester_term]);
+
+    // Refetch when page changes (for direct page navigation)
+    useEffect(() => {
+        if (page > 1) {
+            fetchQuestions(page);
+        }
+    }, [page]);
 
     const SkeletonCard = () => (
         <Card className="mt-3">
@@ -234,6 +286,101 @@ export default function QuestionsPage() {
                                 </CardContent>
                             </Card>
                         ))}
+
+                    {/* Pagination Controls */}
+                    {!loading && !error && questions.length > 0 && totalPages > 1 && (
+                        <div className="mt-8 flex flex-col items-center space-y-4">
+                            {/* Pagination Info */}
+                            <div className="text-sm text-gray-500 text-center">
+                                Showing page {page} of {totalPages} ({totalQuestions} total questions)
+                            </div>
+                            
+                            {/* Pagination Component */}
+                            <Pagination>
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <PaginationPrevious 
+                                            onClick={goToPreviousPage}
+                                            className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                        />
+                                    </PaginationItem>
+                                    
+                                    {/* Page Numbers */}
+                                    {(() => {
+                                        const pages = [];
+                                        const maxVisiblePages = 5;
+                                        let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
+                                        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                                        
+                                        // Adjust start page if we're near the end
+                                        if (endPage - startPage + 1 < maxVisiblePages) {
+                                            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                                        }
+                                        
+                                        // First page + ellipsis
+                                        if (startPage > 1) {
+                                            pages.push(
+                                                <PaginationItem key={1}>
+                                                    <PaginationLink onClick={() => goToPage(1)} className="cursor-pointer">
+                                                        1
+                                                    </PaginationLink>
+                                                </PaginationItem>
+                                            );
+                                            if (startPage > 2) {
+                                                pages.push(
+                                                    <PaginationItem key="ellipsis-start">
+                                                        <PaginationEllipsis />
+                                                    </PaginationItem>
+                                                );
+                                            }
+                                        }
+                                        
+                                        // Visible page range
+                                        for (let i = startPage; i <= endPage; i++) {
+                                            pages.push(
+                                                <PaginationItem key={i}>
+                                                    <PaginationLink 
+                                                        onClick={() => goToPage(i)}
+                                                        isActive={i === page}
+                                                        className="cursor-pointer"
+                                                    >
+                                                        {i}
+                                                    </PaginationLink>
+                                                </PaginationItem>
+                                            );
+                                        }
+                                        
+                                        // Last page + ellipsis
+                                        if (endPage < totalPages) {
+                                            if (endPage < totalPages - 1) {
+                                                pages.push(
+                                                    <PaginationItem key="ellipsis-end">
+                                                        <PaginationEllipsis />
+                                                    </PaginationItem>
+                                                );
+                                            }
+                                            pages.push(
+                                                <PaginationItem key={totalPages}>
+                                                    <PaginationLink onClick={() => goToPage(totalPages)} className="cursor-pointer">
+                                                        {totalPages}
+                                                    </PaginationLink>
+                                                </PaginationItem>
+                                            );
+                                        }
+                                        
+                                        return pages;
+                                    })()}
+                                    
+                                    <PaginationItem>
+                                        <PaginationNext 
+                                            onClick={goToNextPage}
+                                            className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                        />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                        </div>
+                    )}
                 </div>
             </div>
         </ProtectedRoute>

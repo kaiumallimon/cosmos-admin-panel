@@ -29,22 +29,12 @@ export async function GET(req: NextRequest) {
 
   console.log("Fetched semester terms:", data, error)
   
-  // Also try the questions table as a fallback
-  const { data: questionsData, error: questionsError } = await supabase
-    .from('questions')
-    .select('semester_term, exam_type, course_code')
-    .eq('exam_type', term)
-    .eq('course_code', course_code)
-    .limit(5)
-    
-  console.log("Data from questions table:", questionsData, questionsError)
-
-  if (error && questionsError) {
+  if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Combine data from both tables
-  const combinedData = [...(data || []), ...(questionsData || [])]
+  // Use only question_parts table data
+  const combinedData = data || []
 
   // Filter out nulls and extract unique semester terms
   const uniqueTerms = [...new Set(combinedData.map(item => item.semester_term).filter(Boolean))]
@@ -57,7 +47,6 @@ export async function GET(req: NextRequest) {
     count: sortedTerms.length,
     debug: {
       question_parts_count: data?.length || 0,
-      questions_count: questionsData?.length || 0,
       sample_data: allData?.slice(0, 3)
     }
   })
