@@ -26,7 +26,7 @@ export const FrostedHeader: React.FC<FrostedHeaderProps> = ({
   subtitle, 
   children, 
   className = "", 
-  onMobileMenuToggle 
+  onMobileMenuToggle,
 }) => {
   
   return (
