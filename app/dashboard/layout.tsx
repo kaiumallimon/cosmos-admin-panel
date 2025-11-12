@@ -23,7 +23,9 @@ import {
     MoonIcon,
     MonitorIcon,
     BookOpenIcon,
-    UploadIcon
+    UploadIcon,
+    FileIcon,
+    FileTextIcon
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -127,13 +129,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
                         <div className="mt-1 overflow-hidden">
                             <Link 
-                                href="/dashboard/upload" 
+                                href="/dashboard/contents" 
                                 onClick={onLinkClick}
                                 className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
-                                    pathname === "/dashboard/upload" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                    pathname === "/dashboard/contents" ? "bg-primary text-primary-foreground font-semibold" : ""
                                 }`}
                             >
-                                <UploadIcon className="h-4 w-4 shrink-0" />
+                                <FileTextIcon className="h-4 w-4 shrink-0" />
                                 <span className="font-medium truncate">Contents</span>
                             </Link>
                         </div>
