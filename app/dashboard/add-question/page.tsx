@@ -154,7 +154,7 @@ export default function AddQuestionPage() {
     if (!isInitialized) {
         return (
             <ProtectedRoute>
-                <div className="min-h-screen bg-background">
+                <>
                     <FrostedHeader title="Add Question" onMobileMenuToggle={toggleMobileMenu} />
                     <div className="p-6">
                         <div className="text-center">
@@ -162,7 +162,7 @@ export default function AddQuestionPage() {
                             <p className="text-muted-foreground text-lg">Loading application...</p>
                         </div>
                     </div>
-                </div>
+                </>
             </ProtectedRoute>
         );
     }
@@ -171,7 +171,7 @@ export default function AddQuestionPage() {
 
     return (
         <ProtectedRoute>
-            <div className="min-h-screen bg-background">
+            <>
                 <FrostedHeader title="Add Question" onMobileMenuToggle={toggleMobileMenu} />
                 <div className="p-6">
                     <Breadcrumb>
@@ -411,7 +411,7 @@ export default function AddQuestionPage() {
                     </Card>
 
                 </div>
-            </div>
+            </>
         </ProtectedRoute>
     );
 }
