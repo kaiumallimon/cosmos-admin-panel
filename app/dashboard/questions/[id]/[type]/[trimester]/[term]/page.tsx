@@ -364,9 +364,8 @@ export default function QuestionsPage() {
 
                                     {/* Description */}
                                     {question.has_description && question.description_content && (
-                                        <div className="mt-2 p-4 bg-muted rounded-md">
-                                            <strong className="block mb-1">Description:</strong>
-                                            <div className="prose dark:prose-invert text-sm max-w-none">
+                                        <div className="mt-2 text-muted-foreground rounded-md">
+                                            <div className="prose dark:prose-invert max-w-none">
                                                 <ReactMarkdown
                                                     remarkPlugins={[remarkGfm]}
                                                     components={markdownComponents}

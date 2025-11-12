@@ -128,7 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </Link>
                         </div>
 
-                        <div className="overflow-hidden">
+                        <div className="mt-1 overflow-hidden">
                             <Link 
                                 href="/dashboard/questions" 
                                 onClick={onLinkClick}
