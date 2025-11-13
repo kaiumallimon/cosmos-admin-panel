@@ -240,7 +240,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         </div>
 
         {/* User Overview Cards */}
-        <div className="p-6 pt-0">
+        <div className="mt-5 p-6 pt-0">
           <div className="grid gap-4 md:grid-cols-3 mb-6">
             <Card className="bg-white dark:bg-card shadow rounded-lg p-6">
               <div className="flex items-center gap-3 mb-4">

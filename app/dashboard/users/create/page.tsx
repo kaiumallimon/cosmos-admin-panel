@@ -122,7 +122,7 @@ export default function CreateUserPage() {
         </div>
 
         {/* Form */}
-        <div className="p-6 pt-0">
+        <div className="p-6 pt-5">
           <Card>
           <CardHeader>
             <CardTitle>User Information</CardTitle>
