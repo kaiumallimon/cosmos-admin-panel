@@ -91,12 +91,12 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
           role: data.data.role || '',
           full_name: data.data.profile?.full_name || '',
           phone: data.data.profile?.phone || '',
-          gender: data.data.profile?.gender || '',
+          gender: data.data.profile?.gender || 'not_specified',
           student_id: data.data.profile?.student_id || '',
-          department: data.data.profile?.department || '',
+          department: data.data.profile?.department || 'not_specified',
           batch: data.data.profile?.batch || '',
-          program: data.data.profile?.program || '',
-          current_trimester: data.data.profile?.current_trimester || '',
+          program: data.data.profile?.program || 'not_specified',
+          current_trimester: data.data.profile?.current_trimester || 'not_specified',
           completed_credits: data.data.profile?.completed_credits?.toString() || '',
           cgpa: data.data.profile?.cgpa?.toString() || '',
           trimester_credits: data.data.profile?.trimester_credits?.toString() || ''
@@ -126,6 +126,10 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     try {
       const submitData = {
         ...formData,
+        gender: formData.gender === 'not_specified' ? null : formData.gender,
+        department: formData.department === 'not_specified' ? null : formData.department,
+        program: formData.program === 'not_specified' ? null : formData.program,
+        current_trimester: formData.current_trimester === 'not_specified' ? null : formData.current_trimester,
         completed_credits: formData.completed_credits ? parseInt(formData.completed_credits) : null,
         cgpa: formData.cgpa ? parseFloat(formData.cgpa) : null,
         trimester_credits: formData.trimester_credits ? parseInt(formData.trimester_credits) : null
@@ -324,7 +328,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Not specified</SelectItem>
+                        <SelectItem value="not_specified">Not specified</SelectItem>
                         <SelectItem value="male">Male</SelectItem>
                         <SelectItem value="female">Female</SelectItem>
                         <SelectItem value="other">Other</SelectItem>
@@ -355,7 +359,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                           <SelectValue placeholder="Select department" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Not specified</SelectItem>
+                          <SelectItem value="not_specified">Not specified</SelectItem>
                           <SelectItem value="CSE">Computer Science & Engineering</SelectItem>
                           <SelectItem value="EEE">Electrical & Electronic Engineering</SelectItem>
                           <SelectItem value="BBA">Business Administration</SelectItem>
@@ -386,7 +390,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                           <SelectValue placeholder="Select program" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Not specified</SelectItem>
+                          <SelectItem value="not_specified">Not specified</SelectItem>
                           <SelectItem value="undergraduate">Undergraduate</SelectItem>
                           <SelectItem value="graduate">Graduate</SelectItem>
                           <SelectItem value="postgraduate">Postgraduate</SelectItem>
@@ -403,7 +407,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                           <SelectValue placeholder="Select trimester" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Not specified</SelectItem>
+                          <SelectItem value="not_specified">Not specified</SelectItem>
                           <SelectItem value="summer_2024">Summer 2024</SelectItem>
                           <SelectItem value="fall_2024">Fall 2024</SelectItem>
                           <SelectItem value="spring_2025">Spring 2025</SelectItem>

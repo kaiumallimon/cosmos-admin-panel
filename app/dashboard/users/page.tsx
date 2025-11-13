@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
   Table,
   TableBody,
   TableCell,
@@ -50,6 +60,8 @@ import {
   UserX,
   User,
   X,
+  Key,
+  EyeOff,
   GraduationCap,
   Shield
 } from "lucide-react";
@@ -98,6 +110,10 @@ export default function UsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const { toggleMobileMenu } = useMobileMenu();
   const router = useRouter();
 
@@ -190,6 +206,62 @@ export default function UsersPage() {
       }
     } catch (error) {
       console.error('Error deleting user:', error);
+    }
+  };
+
+  const generateRandomPassword = () => {
+    const length = 12;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let password = "";
+    
+    // Ensure at least one of each type
+    password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)]; // uppercase
+    password += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)]; // lowercase
+    password += "0123456789"[Math.floor(Math.random() * 10)]; // number
+    password += "!@#$%^&*"[Math.floor(Math.random() * 8)]; // special
+    
+    // Fill the rest randomly
+    for (let i = 4; i < length; i++) {
+      password += charset[Math.floor(Math.random() * charset.length)];
+    }
+    
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordUser || !newPassword.trim()) return;
+
+    try {
+      setResettingPassword(true);
+      const response = await fetch(`/api/users/${resetPasswordUser.id}/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          newPassword: newPassword.trim()
+        }),
+      });
+
+      if (response.ok) {
+        const userName = resetPasswordUser.name;
+        setResetPasswordUser(null);
+        setNewPassword('');
+        setShowPassword(false);
+        // Show success message - you could replace this with a toast notification
+        setTimeout(() => {
+          alert(`✅ Password reset successfully for ${userName}!`);
+        }, 100);
+      } else {
+        const data = await response.json();
+        alert(`❌ Error resetting password: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      alert('An error occurred while resetting the password');
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -474,6 +546,17 @@ export default function UsersPage() {
                                 Edit User
                               </DropdownMenuItem>
                               <DropdownMenuItem 
+                                onClick={() => setResetPasswordUser({
+                                  id: user.id,
+                                  name: user.profile?.full_name || user.email,
+                                  email: user.email
+                                })}
+                                className="text-orange-600 focus:text-orange-600"
+                              >
+                                <Key className="mr-2 h-4 w-4" />
+                                Reset Password
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
                                 onClick={() => handleDeleteUser(user.id)}
                                 className="text-destructive focus:text-destructive"
                               >
@@ -560,6 +643,118 @@ export default function UsersPage() {
         </Card>
         </div>
       </div>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={!!resetPasswordUser} onOpenChange={(open) => {
+        if (!open) {
+          setResetPasswordUser(null);
+          setNewPassword('');
+          setShowPassword(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for <strong>{resetPasswordUser?.name}</strong> ({resetPasswordUser?.email})
+              <br />
+              <span className="text-orange-600 font-medium">⚠️ This will immediately change the user's password and they will need to use the new password to log in.</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="newPassword">
+                  New Password
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setNewPassword(generateRandomPassword())}
+                  className="text-xs"
+                >
+                  Generate Random
+                </Button>
+              </div>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password (min. 6 characters)"
+                  minLength={6}
+                  className={`pr-10 ${
+                    newPassword && newPassword.length < 6 
+                      ? 'border-red-300 focus:border-red-500' 
+                      : newPassword.length >= 6 
+                      ? 'border-green-300 focus:border-green-500' 
+                      : ''
+                  }`}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <div className={`h-2 w-2 rounded-full ${
+                  newPassword.length >= 6 ? 'bg-green-500' : 'bg-gray-300'
+                }`}></div>
+                <span className={newPassword.length >= 6 ? 'text-green-600' : 'text-muted-foreground'}>
+                  Minimum 6 characters
+                </span>
+              </div>
+              {newPassword.length >= 8 && (
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                  <span className="text-green-600">Good password length</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setResetPasswordUser(null);
+                setNewPassword('');
+                setShowPassword(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="button"
+              onClick={handleResetPassword}
+              disabled={resettingPassword || !newPassword.trim() || newPassword.length < 6}
+            >
+              {resettingPassword ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  <Key className="h-4 w-4 mr-2" />
+                  Reset Password
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ProtectedRoute>
   );
 }

@@ -114,6 +114,18 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
 
+        // Check if user already exists in accounts table
+        const { data: existingAccounts } = await supabaseAdmin
+            .from('accounts')
+            .select('id, email')
+            .eq('email', email);
+
+        if (existingAccounts && existingAccounts.length > 0) {
+            return NextResponse.json({ 
+                error: 'A user with this email already exists' 
+            }, { status: 409 });
+        }
+
         // Create user in Supabase Auth (without email confirmation)
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email,
@@ -125,31 +137,50 @@ export async function POST(req: NextRequest) {
         });
 
         if (authError) {
-            return NextResponse.json({ error: authError.message }, { status: 400 });
+            console.error('Auth creation error:', authError);
+            
+            // Handle specific auth errors
+            if (authError.message.includes('already_registered')) {
+                return NextResponse.json({ 
+                    error: 'A user with this email already exists in the authentication system' 
+                }, { status: 409 });
+            }
+            
+            return NextResponse.json({ 
+                error: `Failed to create user account: ${authError.message}` 
+            }, { status: 400 });
         }
 
         if (!authData.user) {
             return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
         }
 
-        // Create account record
+        // Create account record using upsert to handle any potential conflicts
         const { data: accountData, error: accountError } = await supabaseAdmin
             .from('accounts')
-            .insert({
+            .upsert({
                 id: authData.user.id,
                 email,
-                role
+                role,
+                updated_at: new Date().toISOString()
             })
             .select()
             .single();
 
         if (accountError) {
-            // If account creation fails, delete the auth user
+            console.error('Account creation error:', accountError);
+            
+            // Clean up auth user if account creation fails
             await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-            return NextResponse.json({ error: accountError.message }, { status: 500 });
+            
+            return NextResponse.json({ 
+                error: `Failed to create account: ${accountError.message}` 
+            }, { status: 500 });
         }
 
-        // Create profile record
+        // Create profile record with correct role mapping
+        const profileRole = role === 'user' ? 'student' : role; // Map 'user' to 'student' for profile table
+        
         const { data: profileData, error: profileError } = await supabaseAdmin
             .from('profile')
             .insert({
@@ -158,7 +189,7 @@ export async function POST(req: NextRequest) {
                 full_name,
                 phone,
                 gender,
-                role,
+                role: profileRole,
                 student_id,
                 department,
                 batch,
@@ -169,10 +200,22 @@ export async function POST(req: NextRequest) {
             .single();
 
         if (profileError) {
-            // If profile creation fails, delete the account and auth user
+            console.error('Profile creation error:', profileError);
+            
+            // Clean up account and auth user if profile creation fails
             await supabaseAdmin.from('accounts').delete().eq('id', authData.user.id);
             await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-            return NextResponse.json({ error: profileError.message }, { status: 500 });
+            
+            // Handle specific database errors
+            if (profileError.message.includes('duplicate key') || profileError.code === '23505') {
+                return NextResponse.json({ 
+                    error: 'A profile with this information already exists' 
+                }, { status: 409 });
+            }
+            
+            return NextResponse.json({ 
+                error: `Failed to create user profile: ${profileError.message}` 
+            }, { status: 500 });
         }
 
         return NextResponse.json({
