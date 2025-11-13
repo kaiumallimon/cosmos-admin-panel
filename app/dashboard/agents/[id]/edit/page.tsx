@@ -84,12 +84,21 @@ export default function EditAgentPage() {
                     .select(
                         `
             *,
-            agent_tools (*),
-            few_shot_examples (*)
+            agent_tools (*)
           `
                     )
                     .eq("id", agentId)
                     .single();
+
+                // Fetch few_shot_examples separately using agent_name
+                let fewShotExamples = [];
+                if (agentData) {
+                    const { data: examplesData } = await supabase
+                        .from("few_shot_examples")
+                        .select("*")
+                        .eq("agent_name", agentData.name);
+                    fewShotExamples = examplesData || [];
+                }
 
                 if (error || !agentData)
                     throw new Error(error?.message || "Agent not found");
@@ -105,7 +114,7 @@ export default function EditAgentPage() {
                     is_active: agentData.is_active ?? true,
                 });
                 setTools(agentData.agent_tools || []);
-                setExamples(agentData.few_shot_examples || []);
+                setExamples(fewShotExamples || []);
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -181,11 +190,11 @@ export default function EditAgentPage() {
             }
 
             // Update few-shot examples
-            await supabase.from("few_shot_examples").delete().eq("agent_id", agentId);
+            await supabase.from("few_shot_examples").delete().eq("agent_name", updatedAgent.name);
             if (examples.length > 0) {
                 const examplesToInsert = examples.map((ex) => ({
                     ...ex,
-                    agent_id: agentId,
+                    agent_name: updatedAgent.name,
                 }));
                 const { error: examplesError } = await supabase
                     .from("few_shot_examples")

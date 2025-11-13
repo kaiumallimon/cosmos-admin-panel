@@ -34,11 +34,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       .from('agents')
       .select(`
         *,
-        agent_tools (*),
-        few_shot_examples (*)
+        agent_tools (*)
       `)
       .eq('id', id)
       .single();
+
+    // Fetch few_shot_examples separately using agent_name
+    let fewShotExamples = [];
+    if (agent) {
+      const { data: examplesData } = await supabase
+        .from('few_shot_examples')
+        .select('*')
+        .eq('agent_name', agent.name);
+      fewShotExamples = examplesData || [];
+      agent.few_shot_examples = fewShotExamples;
+    }
 
     if (agentError || !agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
@@ -130,10 +140,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // Update few_shot_examples
     if (body.few_shot_examples) {
-      await supabase.from('few_shot_examples').delete().eq('agent_id', id);
+      await supabase.from('few_shot_examples').delete().eq('agent_name', agent.name);
       if (body.few_shot_examples.length > 0) {
         const examplesToInsert = body.few_shot_examples.map((ex: any) => ({
-          agent_id: id,
+          agent_name: agent.name,
           example_type: ex.example_type,
           user_query: ex.user_query,
           expected_output: ex.expected_output,
@@ -150,11 +160,19 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       .from('agents')
       .select(`
         *,
-        agent_tools (*),
-        few_shot_examples (*)
+        agent_tools (*)
       `)
       .eq('id', id)
       .single();
+
+    // Fetch few_shot_examples separately using agent_name
+    if (updatedAgent) {
+      const { data: examplesData } = await supabase
+        .from('few_shot_examples')
+        .select('*')
+        .eq('agent_name', updatedAgent.name);
+      updatedAgent.few_shot_examples = examplesData || [];
+    }
 
     if (fetchError || !updatedAgent) {
       return NextResponse.json({ error: 'Failed to fetch updated agent' }, { status: 500 });
