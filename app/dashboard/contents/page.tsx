@@ -226,7 +226,6 @@ export default function CdnPage() {
       <div className="min-h-screen bg-background">
         <FrostedHeader title="Server Contents" onMobileMenuToggle={toggleMobileMenu} />
 
-        {/* Breadcrumbs */}
         <div className="p-4 sm:p-6 pb-0">
           <Breadcrumb>
             <BreadcrumbList>
@@ -241,7 +240,6 @@ export default function CdnPage() {
           </Breadcrumb>
         </div>
 
-        {/* Statistics Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 p-4 sm:p-6">
           {statsArray.map((stat, index) => (
             <Card key={index} className="p-4 sm:p-6 hover:shadow-md transition-shadow">
