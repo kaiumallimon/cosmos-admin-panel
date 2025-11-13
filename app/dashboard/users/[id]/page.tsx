@@ -239,172 +239,201 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
 
-        {/* User Information */}
+        {/* User Overview Cards */}
         <div className="p-6 pt-0">
-          <div className="grid gap-6 md:grid-cols-2">
-          {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserCheck className="h-5 w-5" />
-                Basic Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{user.email}</p>
+          <div className="grid gap-4 md:grid-cols-3 mb-6">
+            <Card className="bg-white dark:bg-card shadow rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                  <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
+                <h2 className="text-lg font-medium">User Profile</h2>
               </div>
+              <p className="text-3xl font-bold">{user.profile?.full_name}</p>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+            </Card>
 
-              <div className="flex items-center gap-3">
-                <UserCheck className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Role</p>
-                  <Badge variant={getRoleBadgeVariant(user.role)}>
-                    {user.role === 'admin' ? 'Administrator' : 'Student'}
-                  </Badge>
+            <Card className="bg-white dark:bg-card shadow rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                  <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
+                <h2 className="text-lg font-medium">Account Status</h2>
               </div>
+              <Badge variant={getRoleBadgeVariant(user.role)} className="mb-2">
+                {user.role === 'admin' ? 'Administrator' : 'Student'}
+              </Badge>
+              <p className="text-sm text-muted-foreground">
+                Joined {formatDate(user.created_at).split(' at')[0]}
+              </p>
+            </Card>
 
-              {user.profile?.phone && (
-                <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{user.profile.phone}</p>
+            {user.role === 'user' && user.profile?.cgpa && (
+              <Card className="bg-white dark:bg-card shadow rounded-lg p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
+                    <Award className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                   </div>
+                  <h2 className="text-lg font-medium">Academic Standing</h2>
                 </div>
-              )}
+                <p className="text-3xl font-bold text-primary">{user.profile.cgpa}</p>
+                <p className="text-sm text-muted-foreground">Current CGPA</p>
+              </Card>
+            )}
+          </div>
+        </div>
 
-              {user.profile?.gender && (
-                <div className="flex items-center gap-3">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Gender</p>
-                    <p className="font-medium capitalize">{user.profile.gender}</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Joined</p>
-                  <p className="font-medium">{formatDate(user.created_at)}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Last Updated</p>
-                  <p className="font-medium">{formatDate(user.updated_at)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Student Information */}
-          {user.role === 'user' && (
+        {/* Detailed Information */}
+        <div className="p-6 pt-0">
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Personal & Contact Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5" />
-                  Student Information
+                  <User className="h-5 w-5" />
+                  Personal & Contact Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {user.profile?.student_id && (
-                  <div className="flex items-center gap-3">
-                    <BookOpen className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Student ID</p>
-                      <p className="font-medium">{user.profile.student_id}</p>
-                    </div>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
+                    <span className="text-sm font-medium text-muted-foreground">Full Name</span>
+                    <span className="font-medium">{user.profile?.full_name || 'Not provided'}</span>
                   </div>
-                )}
-
-                {user.profile?.department && (
-                  <div className="flex items-center gap-3">
-                    <Building className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Department</p>
-                      <p className="font-medium">{user.profile.department}</p>
-                    </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
+                    <span className="text-sm font-medium text-muted-foreground">Email Address</span>
+                    <span className="font-medium">{user.email}</span>
                   </div>
-                )}
-
-                {user.profile?.batch && (
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Batch</p>
-                      <p className="font-medium">{user.profile.batch}</p>
-                    </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
+                    <span className="text-sm font-medium text-muted-foreground">Phone Number</span>
+                    <span className="font-medium">{user.profile?.phone || 'Not provided'}</span>
                   </div>
-                )}
-
-                {user.profile?.program && (
-                  <div className="flex items-center gap-3">
-                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Program</p>
-                      <p className="font-medium capitalize">{user.profile.program}</p>
-                    </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
+                    <span className="text-sm font-medium text-muted-foreground">Gender</span>
+                    <span className="font-medium capitalize">{user.profile?.gender || 'Not specified'}</span>
                   </div>
-                )}
-
-                {user.profile?.current_trimester && (
-                  <div className="flex items-center gap-3">
-                    <BookOpen className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Current Trimester</p>
-                      <p className="font-medium">{user.profile.current_trimester.replace('_', ' ').toUpperCase()}</p>
-                    </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm font-medium text-muted-foreground">Account Role</span>
+                    <Badge variant={getRoleBadgeVariant(user.role)}>
+                      {user.role === 'admin' ? 'Administrator' : 'Student'}
+                    </Badge>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Academic Performance */}
-          {user.role === 'user' && (user.profile?.cgpa || user.profile?.completed_credits) && (
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Award className="h-5 w-5" />
-                  Academic Performance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-6 md:grid-cols-3">
-                  {user.profile?.cgpa && (
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-primary">{user.profile.cgpa}</div>
-                      <p className="text-sm text-muted-foreground">CGPA</p>
-                    </div>
-                  )}
-
-                  {user.profile?.completed_credits && (
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600">{user.profile.completed_credits}</div>
-                      <p className="text-sm text-muted-foreground">Completed Credits</p>
-                    </div>
-                  )}
-
-                  {user.profile?.trimester_credits && (
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-600">{user.profile.trimester_credits}</div>
-                      <p className="text-sm text-muted-foreground">Current Trimester Credits</p>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
-          )}
+
+            {/* Academic Information */}
+            {user.role === 'user' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5" />
+                    Academic Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-4">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
+                      <span className="text-sm font-medium text-muted-foreground">Student ID</span>
+                      <span className="font-medium">{user.profile?.student_id || 'Not assigned'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
+                      <span className="text-sm font-medium text-muted-foreground">Department</span>
+                      <span className="font-medium">{user.profile?.department || 'Not specified'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
+                      <span className="text-sm font-medium text-muted-foreground">Batch</span>
+                      <span className="font-medium">{user.profile?.batch || 'Not specified'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800">
+                      <span className="text-sm font-medium text-muted-foreground">Program</span>
+                      <span className="font-medium capitalize">{user.profile?.program || 'Not specified'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-muted-foreground">Current Trimester</span>
+                      <span className="font-medium">
+                        {user.profile?.current_trimester 
+                          ? user.profile.current_trimester.replace('_', ' ').toUpperCase()
+                          : 'Not specified'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Account Timeline */}
+            <Card className={user.role === 'admin' ? 'lg:col-span-1' : ''}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Account Timeline
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-full">
+                    <User className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Account Created</p>
+                    <p className="text-sm text-muted-foreground">{formatDate(user.created_at)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-full">
+                    <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Last Updated</p>
+                    <p className="text-sm text-muted-foreground">{formatDate(user.updated_at)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Academic Performance - Only for students with performance data */}
+            {user.role === 'user' && (user.profile?.cgpa || user.profile?.completed_credits || user.profile?.trimester_credits) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Award className="h-5 w-5" />
+                    Academic Performance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6 sm:grid-cols-3">
+                    {user.profile?.cgpa && (
+                      <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/10 rounded-lg">
+                        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 mb-1">
+                          {user.profile.cgpa}
+                        </div>
+                        <p className="text-sm text-muted-foreground">CGPA</p>
+                      </div>
+                    )}
+
+                    {user.profile?.completed_credits && (
+                      <div className="text-center p-4 bg-green-50 dark:bg-green-900/10 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
+                          {user.profile.completed_credits}
+                        </div>
+                        <p className="text-sm text-muted-foreground">Completed Credits</p>
+                      </div>
+                    )}
+
+                    {user.profile?.trimester_credits && (
+                      <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+                          {user.profile.trimester_credits}
+                        </div>
+                        <p className="text-sm text-muted-foreground">Current Credits</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

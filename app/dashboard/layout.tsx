@@ -184,7 +184,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 href="/dashboard/users" 
                                 onClick={onLinkClick}
                                 className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
-                                    pathname === "/dashboard/users" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                    pathname === "/dashboard/users" || pathname.startsWith("/dashboard/users/") ? "bg-primary text-primary-foreground font-semibold" : ""
                                 }`}
                             >
                                 <UsersIcon className="h-4 w-4 shrink-0" />
