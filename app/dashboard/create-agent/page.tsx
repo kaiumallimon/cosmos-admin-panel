@@ -315,8 +315,8 @@ export default function CreateAgentPage() {
           onMobileMenuToggle={toggleMobileMenu}
         />
 
-        <div className="flex-1 p-6 max-w-6xl mx-auto w-full">
-          <div className="space-y-8">
+        <div className="flex-1 p-4 sm:p-6 w-full">
+          <div className="space-y-6 sm:space-y-8">
             {/* Existing Agents List */}
             <ExistingAgentsList onCreateNewAgent={handleCreateNewAgent} />
 
@@ -327,13 +327,15 @@ export default function CreateAgentPage() {
 
             {/* Create New Agent Form */}
             {showCreateForm && (
-              <div ref={createFormRef} className="space-y-8">
+              <div ref={createFormRef} className="space-y-6 lg:space-y-8">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <ArrowDown className="h-4 w-4" />
                   <span>Create New Agent</span>
                 </div>
                 
-                {/* Basic Information */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+                  <div className="space-y-6 lg:space-y-8">
+                    {/* Basic Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -345,7 +347,7 @@ export default function CreateAgentPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="display_name">Display Name *</Label>
                     <Input
@@ -470,7 +472,7 @@ export default function CreateAgentPage() {
                         <Minus className="h-4 w-4" />
                       </Button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
                       <div className="space-y-2">
                         <Label>Tool Name</Label>
                         <Input
@@ -511,8 +513,10 @@ export default function CreateAgentPage() {
                 </Button>
               </CardContent>
             </Card>
-
-            {/* Configurations Section */}
+                  </div>
+                  
+                  <div className="space-y-6 lg:space-y-8">
+                    {/* Configurations Section */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -539,7 +543,7 @@ export default function CreateAgentPage() {
                         <Minus className="h-4 w-4" />
                       </Button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
                       <div className="space-y-2">
                         <Label>Configuration Key</Label>
                         <Input
@@ -622,7 +626,7 @@ export default function CreateAgentPage() {
                         </Button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
                       <div className="space-y-2">
                         <Label>Example Type</Label>
                         <Input
@@ -676,9 +680,11 @@ export default function CreateAgentPage() {
                 </Button>
               </CardContent>
             </Card>
+                  </div>
+                </div>
 
                 {/* Actions */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-between">
+                <div className="flex flex-col lg:flex-row gap-4 justify-between">
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       variant="outline"

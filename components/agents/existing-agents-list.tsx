@@ -191,7 +191,7 @@ export function ExistingAgentsList({ onCreateNewAgent }: AgentListProps) {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             {Array.isArray(agents) && agents.map((agent) => (
               <div 
                 key={agent.id} 
@@ -239,11 +239,11 @@ export function ExistingAgentsList({ onCreateNewAgent }: AgentListProps) {
                   )}
                 </div>
                 
-                <div className="flex items-center gap-1">
+                <div className="grid grid-cols-3 gap-1">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 text-xs"
+                    className="text-xs min-w-0 px-2"
                     onClick={() => {
                       // Navigate to agent details or edit
                       window.open(`/dashboard/agents/${agent.name}`, '_blank');
@@ -255,7 +255,7 @@ export function ExistingAgentsList({ onCreateNewAgent }: AgentListProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 text-xs"
+                    className="text-xs min-w-0 px-2"
                     onClick={() => {
                       // Navigate to edit agent
                       window.open(`/dashboard/agents/${agent.name}/edit`, '_blank');
@@ -268,9 +268,10 @@ export function ExistingAgentsList({ onCreateNewAgent }: AgentListProps) {
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeleteAgent(agent.name, agent.display_name)}
-                    className="text-red-600 hover:text-red-700 text-xs"
+                    className="text-red-600 hover:text-red-700 text-xs min-w-0 px-2"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Delete
                   </Button>
                 </div>
               </div>
