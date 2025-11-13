@@ -26,7 +26,8 @@ import {
     UploadIcon,
     FileIcon,
     FileTextIcon,
-    PlusIcon
+    PlusIcon,
+    Code2Icon
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -91,17 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <span className="font-medium truncate">Analytics</span>
                             </Link>
                         </div>
-                        <div className="mt-1">
-                            <Link
-                                href="/dashboard/search"
-                                onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/search" ? "bg-primary text-primary-foreground font-semibold" : ""
-                                    }`}
-                            >
-                                <SearchIcon className="h-4 w-4 shrink-0" />
-                                <span className="font-medium truncate">Search</span>
-                            </Link>
-                        </div>
+                        
                     </div>
                 </div>
 
@@ -158,6 +149,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             >
                                 <FileTextIcon className="h-4 w-4 shrink-0" />
                                 <span className="font-medium truncate">Contents</span>
+                            </Link>
+                        </div>
+
+                         <div className="mt-1">
+                            <Link
+                                href="/dashboard/update-embeddings"
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/update-embeddings" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                    }`}
+                            >
+                                <Code2Icon className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Update Embeddings</span>
                             </Link>
                         </div>
 
