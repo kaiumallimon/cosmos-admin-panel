@@ -32,6 +32,7 @@ import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useAuthStore } from "@/store/auth";
 import { MobileMenuProvider } from "@/components/mobile-menu-context";
+import { IconRobot } from "@tabler/icons-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -168,6 +169,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
 
                         
+                    </div>
+                </div>
+
+                <div className="my-4 h-px bg-border"></div>
+
+                <div className="overflow-hidden">
+                    <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
+                        Agent Management
+                    </div>
+                    <div className="overflow-hidden">
+                        <div className="overflow-hidden">
+                            <Link 
+                                href="/dashboard/agents" 
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
+                                    pathname === "/dashboard/agents" || pathname.startsWith("/dashboard/agents/") ? "bg-primary text-primary-foreground font-semibold" : ""
+                                }`}
+                            >
+                                <IconRobot className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Agents</span>
+                            </Link>
+                        </div>
                     </div>
                 </div>
 
