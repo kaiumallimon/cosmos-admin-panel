@@ -365,7 +365,7 @@ export default function EditAgentPage() {
                                                 </div>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                                                    <div>
+                                                    <div className="space-y-2">
 
                                                         <Label>Tool Name</Label>
                                                         <Input
@@ -387,7 +387,7 @@ export default function EditAgentPage() {
                                                         <Label>Enabled</Label>
                                                     </div>
                                                 </div>
-                                                <div className="mt-3">
+                                                <div className="mt-3 space-y-2">
 
                                                     <Label>Tool Description</Label>
                                                     <Textarea
