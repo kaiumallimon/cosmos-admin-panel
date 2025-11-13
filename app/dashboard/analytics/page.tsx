@@ -1,3 +1,5 @@
+'use client';
+
 import { FrostedHeader } from "@/components/custom/frosted-header";
 import ShowLottieAnimation from "@/components/custom/lottie-animations";
 import { useMobileMenu } from "@/components/mobile-menu-context";

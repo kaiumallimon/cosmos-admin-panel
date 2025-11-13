@@ -11,8 +11,8 @@ export default function DashboardHome() {
       <ProtectedRoute>
         <div className="min-h-screen bg-background flex flex-col">
           <FrostedHeader 
-            title="Create New Agent" 
-            subtitle="Set up a new agent to start managing tasks efficiently." 
+            title="Dashboard" 
+            subtitle="Welcome to your dashboard overview." 
             onMobileMenuToggle={toggleMobileMenu}
           />
   

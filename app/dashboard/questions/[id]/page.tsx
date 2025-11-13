@@ -21,20 +21,15 @@ export default function QuestionsCourseMenuPage() {
     const { toggleMobileMenu } = useMobileMenu();
 
     const cards = [
+        
         {
             key: 1,
-            title: "Update Embeddings",
-            description: "Regenerate question embeddings from database in Pinecone.",
-            href: `/dashboard/questions/${courseId}/update-embeddings`,
-        },
-        {
-            key: 2,
             title: "Midterm Questions",
             description: "Browse and manage questions for this course.",
             href: `/dashboard/questions/${courseId}/mid`,
         },
         {
-            key: 3,
+            key: 2,
             title: "Final Questions",
             description: "Explore questions categorized by trimester for this course.",
             href: `/dashboard/questions/${courseId}/final`,

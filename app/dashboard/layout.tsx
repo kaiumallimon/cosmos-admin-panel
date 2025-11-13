@@ -61,15 +61,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 p-2 overflow-hidden">
+            {/* Content - Scrollable Area */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 scrollbar-hide">
                 {/* Main Navigation */}
-                <div className="overflow-hidden">
+                <div>
                     <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
                         Overview
                     </div>
-                    <div className="overflow-hidden">
-                        <div className=" overflow-hidden">
+                    <div>
+                        <div>
                             <Link
                                 href="/dashboard"
                                 onClick={onLinkClick}
@@ -80,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <span className="font-medium truncate">Dashboard</span>
                             </Link>
                         </div>
-                        <div className="mt-1 overflow-hidden">
+                        <div className="mt-1">
                             <Link
                                 href="/dashboard/analytics"
                                 onClick={onLinkClick}
@@ -91,7 +91,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <span className="font-medium truncate">Analytics</span>
                             </Link>
                         </div>
-                        <div className="mt-1 overflow-hidden">
+                        <div className="mt-1">
                             <Link
                                 href="/dashboard/search"
                                 onClick={onLinkClick}
@@ -108,12 +108,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="my-4 h-px bg-border"></div>
 
                 {/* Learning Management */}
-                <div className="overflow-hidden">
+                <div>
                     <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
                         Training
                     </div>
-                    <div className="overflow-hidden">
-                        <div className="overflow-hidden">
+                    <div>
+                        <div>
                             <Link
                                 href="/dashboard/add-question"
                                 onClick={onLinkClick}
@@ -125,7 +125,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </Link>
                         </div>
 
-                        <div className="mt-1 overflow-hidden">
+                        <div className="mt-1">
                             <Link
                                 href="/dashboard/questions"
                                 onClick={onLinkClick}
@@ -137,7 +137,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </Link>
                         </div>
 
-                        <div className="mt-1 overflow-hidden">
+                        <div className="mt-1">
                             <Link
                                 href="/dashboard/upload"
                                 onClick={onLinkClick}
@@ -149,7 +149,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </Link>
                         </div>
 
-                        <div className="mt-1 overflow-hidden">
+                        <div className="mt-1">
                             <Link
                                 href="/dashboard/contents"
                                 onClick={onLinkClick}
@@ -167,12 +167,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 <div className="my-4 h-px bg-border"></div>
 
-                <div className="overflow-hidden">
+                <div>
                     <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
                         Agent Management
                     </div>
-                    <div className="overflow-hidden">
-                        <div className="overflow-hidden">
+                    <div>
+                        <div>
                             <Link
                                 href="/dashboard/create-agent"
                                 onClick={onLinkClick}
@@ -184,8 +184,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </Link>
                         </div>
                     </div>
-                    <div className="mt-1 overflow-hidden">
-                        <div className="overflow-hidden">
+                    <div className="mt-1">
+                        <div>
                             <Link
                                 href="/dashboard/agents"
                                 onClick={onLinkClick}
@@ -202,12 +202,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="my-4 h-px bg-border"></div>
 
                 {/* Management Section */}
-                <div className="overflow-hidden">
+                <div>
                     <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
                         User Management
                     </div>
-                    <div className="overflow-hidden">
-                        <div className="overflow-hidden">
+                    <div>
+                        <div>
                             <Link
                                 href="/dashboard/users"
                                 onClick={onLinkClick}
@@ -224,12 +224,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="my-4 h-px bg-border"></div>
 
                 {/* System Section */}
-                <div className="overflow-hidden">
+                <div>
                     <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
                         System
                     </div>
-                    <div className="overflow-hidden">
-                        <div className="overflow-hidden">
+                    <div>
+                        <div>
                             <Link
                                 href="/dashboard/settings"
                                 onClick={onLinkClick}
@@ -240,7 +240,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <span className="font-medium truncate">Settings</span>
                             </Link>
                         </div>
-                        <div className="mt-1 overflow-hidden">
+                        <div className="mt-1">
                             <Link
                                 href="/dashboard/help"
                                 onClick={onLinkClick}
