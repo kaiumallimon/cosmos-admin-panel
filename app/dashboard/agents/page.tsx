@@ -107,9 +107,9 @@ export default function AgentsPage() {
                     </Breadcrumb>
 
                     {/* Stats Cards */}
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 p-4 sm:p-6">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 p-4 sm:p-6">
                         {statsArray.map((stat, index) => (
-                            <Card key={index} className="p-4 sm:p-6 hover:shadow-md transition-shadow">
+                            <Card key={index} className="p-5 sm:p-8 hover:shadow-md transition-shadow">
                                 <div className="flex items-center gap-4">
                                     <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
                                         <stat.icon className="h-6 w-6 text-primary" />
