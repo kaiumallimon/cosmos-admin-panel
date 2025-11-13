@@ -48,6 +48,8 @@ import {
   Download,
   UserCheck,
   UserX,
+  User,
+  X,
   GraduationCap,
   Shield
 } from "lucide-react";
@@ -90,6 +92,7 @@ export default function UsersPage() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -97,10 +100,25 @@ export default function UsersPage() {
   const { toggleMobileMenu } = useMobileMenu();
   const router = useRouter();
 
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1); // Reset to first page when searching
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   useEffect(() => {
     loadUsers();
     loadStats();
   }, [currentPage, searchTerm, roleFilter, departmentFilter]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [roleFilter, departmentFilter]);
 
   const loadUsers = async () => {
     try {
@@ -282,10 +300,28 @@ export default function UsersPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name, email, or student ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className={`pl-10 ${searchInput ? 'pr-20' : 'pr-4'}`}
                 />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                  {searchInput !== searchTerm && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  )}
+                  {searchInput && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSearchInput('');
+                        setSearchTerm('');
+                      }}
+                      className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
               </div>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
                 <SelectTrigger className="w-full sm:w-[180px]">
@@ -312,72 +348,104 @@ export default function UsersPage() {
             </div>
 
             {/* Users Table */}
-            {loading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-center space-x-4">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-[250px]" />
-                      <Skeleton className="h-4 w-[200px]" />
+            <div className="bg-white dark:bg-card rounded-lg border shadow-sm overflow-hidden">
+              {loading ? (
+                <div className="p-6 space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                      <Skeleton className="h-12 w-12 rounded-full" />
+                      <div className="space-y-2 flex-1">
+                        <Skeleton className="h-4 w-[250px]" />
+                        <Skeleton className="h-4 w-[200px]" />
+                      </div>
+                      <Skeleton className="h-8 w-24" />
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-md border">
+                  ))}
+                </div>
+              ) : users.length === 0 ? (
+                <div className="p-12 text-center">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No users found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    {searchInput ? `No users match "${searchInput}"` : 'No users have been created yet.'}
+                  </p>
+                  {!searchInput && (
+                    <Link href="/dashboard/users/create">
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add First User
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              ) : (
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Student ID</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>CGPA</TableHead>
-                      <TableHead>Joined</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                  <TableHeader >
+                    <TableRow className="bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-900/50">
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">User</TableHead>
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Role</TableHead>
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Student ID</TableHead>
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Department</TableHead>
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">CGPA</TableHead>
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Joined</TableHead>
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {users.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{user.profile?.full_name}</div>
-                            <div className="text-sm text-muted-foreground">{user.email}</div>
+                      <TableRow key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
+                        <TableCell className="py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
+                              <User className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="font-medium">{user.profile?.full_name || 'No name'}</div>
+                              <div className="text-sm text-muted-foreground">{user.email}</div>
+                            </div>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4">
                           <Badge variant={getRoleBadgeVariant(user.role)}>
                             {user.role === 'admin' ? 'Admin' : 'Student'}
                           </Badge>
                         </TableCell>
-                        <TableCell>{user.profile?.student_id || '-'}</TableCell>
-                        <TableCell>{user.profile?.department || '-'}</TableCell>
-                        <TableCell>{user.profile?.cgpa || '-'}</TableCell>
-                        <TableCell>{formatDate(user.created_at)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="py-4 font-mono text-sm">{user.profile?.student_id || '-'}</TableCell>
+                        <TableCell className="py-4">{user.profile?.department || '-'}</TableCell>
+                        <TableCell className="py-4 font-semibold">
+                          {user.profile?.cgpa ? (
+                            <span className={`${
+                              parseFloat(String(user.profile.cgpa)) >= 3.5 ? 'text-green-600 dark:text-green-400' :
+                              parseFloat(String(user.profile.cgpa)) >= 3.0 ? 'text-yellow-600 dark:text-yellow-400' :
+                              'text-red-600 dark:text-red-400'
+                            }`}>
+                              {user.profile.cgpa}
+                            </span>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell className="py-4 text-sm text-muted-foreground">{formatDate(user.created_at)}</TableCell>
+                        <TableCell className="py-4 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
+                              <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800">
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuItem onClick={() => router.push(`/dashboard/users/${user.id}`)}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => router.push(`/dashboard/users/${user.id}/edit`)}>
                                 <Edit className="mr-2 h-4 w-4" />
-                                Edit
+                                Edit User
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteUser(user.id)}
-                                className="text-destructive"
+                                className="text-destructive focus:text-destructive"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                Delete User
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -386,31 +454,73 @@ export default function UsersPage() {
                     ))}
                   </TableBody>
                 </Table>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center space-x-2 pt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
+            {/* Pagination and Results Info */}
+            {!loading && (
+              <div className="flex items-center justify-between pt-4">
+                <div className="text-sm text-muted-foreground">
+                  {users.length > 0 ? (
+                    <span>
+                      Showing {((currentPage - 1) * 10) + 1} to {Math.min(currentPage * 10, stats?.totalUsers || 0)} of {stats?.totalUsers || 0} users
+                      {searchInput && ` matching "${searchInput}"`}
+                    </span>
+                  ) : (
+                    <span>No users found</span>
+                  )}
+                </div>
+                
+                {totalPages > 1 && (
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center space-x-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        const page = i + 1;
+                        const isCurrentPage = page === currentPage;
+                        return (
+                          <Button
+                            key={page}
+                            variant={isCurrentPage ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className={`w-8 h-8 ${isCurrentPage ? '' : 'text-muted-foreground'}`}
+                          >
+                            {page}
+                          </Button>
+                        );
+                      })}
+                      {totalPages > 5 && (
+                        <>
+                          <span className="text-muted-foreground px-2">...</span>
+                          <Button
+                            variant={currentPage === totalPages ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(totalPages)}
+                            className="w-8 h-8"
+                          >
+                            {totalPages}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
