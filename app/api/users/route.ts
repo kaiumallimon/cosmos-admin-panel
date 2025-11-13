@@ -21,46 +21,65 @@ export async function GET(req: NextRequest) {
                 profile:profile(*)
             `);
 
-        // Apply filters
-        if (search) {
-            query = query.or(`email.ilike.%${search}%,profile.full_name.ilike.%${search}%,profile.student_id.ilike.%${search}%`);
-        }
-
+        // Apply non-search filters to query
         if (role) {
             query = query.eq('role', role);
         }
 
+        // Apply department filter if provided
         if (department) {
             query = query.eq('profile.department', department);
         }
 
-        // Get total count for pagination
-        const { count, error: countError } = await supabaseAdmin
+        // Build count query - we'll filter the results after getting them for search
+        let countQuery = supabaseAdmin
             .from('accounts')
             .select('*', { count: 'exact', head: true });
 
-        if (countError) {
-            return NextResponse.json({ error: countError.message }, { status: 500 });
+        // Apply non-search filters to count query
+        if (role) {
+            countQuery = countQuery.eq('role', role);
         }
 
-        // Get paginated data
-        const { data, error } = await query
-            .order('created_at', { ascending: false })
-            .range(offset, offset + limit - 1);
-
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
+        if (department) {
+            countQuery = countQuery.eq('profile.department', department);
         }
 
-        const totalPages = Math.ceil((count || 0) / limit);
+        // Get all data first, then filter and paginate in memory for search
+        const { data: allData, error: dataError } = await query
+            .order('created_at', { ascending: false });
+
+        if (dataError) {
+            return NextResponse.json({ error: dataError.message }, { status: 500 });
+        }
+
+        let filteredData = allData || [];
+
+        // Apply search filter in memory for profile fields
+        if (search) {
+            const searchTerm = search.toLowerCase();
+            filteredData = filteredData.filter(user => {
+                const emailMatch = user.email?.toLowerCase().includes(searchTerm);
+                const nameMatch = user.profile?.full_name?.toLowerCase().includes(searchTerm);
+                const studentIdMatch = user.profile?.student_id?.toLowerCase().includes(searchTerm);
+                return emailMatch || nameMatch || studentIdMatch;
+            });
+        }
+
+        // Calculate pagination on filtered data
+        const total = filteredData.length;
+        const totalPages = Math.ceil(total / limit);
+        const startIndex = offset;
+        const endIndex = startIndex + limit;
+        const paginatedData = filteredData.slice(startIndex, endIndex);
         const hasMore = page < totalPages;
 
         return NextResponse.json({
-            data,
+            data: paginatedData,
             pagination: {
                 page,
                 limit,
-                total: count || 0,
+                total,
                 totalPages,
                 hasMore
             }

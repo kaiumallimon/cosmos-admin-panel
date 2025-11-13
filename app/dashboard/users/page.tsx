@@ -97,6 +97,7 @@ export default function UsersPage() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [error, setError] = useState<string | null>(null);
   const { toggleMobileMenu } = useMobileMenu();
   const router = useRouter();
 
@@ -123,6 +124,7 @@ export default function UsersPage() {
   const loadUsers = async () => {
     try {
       setLoading(true);
+      setError(null);
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '10',
@@ -138,10 +140,22 @@ export default function UsersPage() {
         setUsers(data.data || []);
         setTotalPages(data.pagination?.totalPages || 1);
       } else {
-        console.error('Users API error:', data);
+        console.error('Users API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: data.error || 'Unknown error',
+          data
+        });
+        // Show user-friendly error
+        setUsers([]);
+        setTotalPages(1);
+        setError(data.error || 'Failed to load users');
       }
     } catch (error) {
       console.error('Error loading users:', error);
+      setUsers([]);
+      setTotalPages(1);
+      setError('Network error: Unable to load users');
     } finally {
       setLoading(false);
     }
@@ -349,7 +363,26 @@ export default function UsersPage() {
 
             {/* Users Table */}
             <div className="bg-white dark:bg-card rounded-lg border shadow-sm overflow-hidden">
-              {loading ? (
+              {error ? (
+                <div className="p-12 text-center">
+                  <div className="h-12 w-12 text-red-500 mx-auto mb-4">
+                    <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2 text-red-600 dark:text-red-400">Error Loading Users</h3>
+                  <p className="text-muted-foreground mb-4">{error}</p>
+                  <Button 
+                    onClick={() => {
+                      setError(null);
+                      loadUsers();
+                    }}
+                    variant="outline"
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              ) : loading ? (
                 <div className="p-6 space-y-4">
                   {[...Array(5)].map((_, i) => (
                     <div key={i} className="flex items-center space-x-4">
