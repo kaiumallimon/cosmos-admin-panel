@@ -3,10 +3,10 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         const { data, error } = await supabaseAdmin
             .from('accounts')
@@ -35,10 +35,10 @@ export async function GET(
 
 export async function PUT(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = params;
+        const { id } = await params;
         const body = await req.json();
         const { 
             email,
@@ -114,10 +114,10 @@ export async function PUT(
 
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         // Delete from Supabase Auth (this will cascade delete from accounts and profile tables)
         const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
