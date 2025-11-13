@@ -19,7 +19,7 @@ async function getSupabaseClient() {
   );
 }
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await getSupabaseClient();
 
@@ -28,7 +28,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const { data: agent, error: agentError } = await supabase
       .from('agents')
@@ -51,7 +51,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await getSupabaseClient();
 
@@ -60,7 +60,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
 
     const { data: agent, error: updateError } = await supabase
@@ -81,7 +81,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await getSupabaseClient();
 
@@ -90,7 +90,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
 
     // Update agent
