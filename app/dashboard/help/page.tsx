@@ -7,6 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
 import { 
   HomeIcon,
   UsersIcon,
@@ -34,7 +44,7 @@ import {
   CheckCircleIcon
 } from "lucide-react";
 import { IconRobot } from "@tabler/icons-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 interface HelpSection {
@@ -59,6 +69,18 @@ export default function HelpPage() {
   const { toggleMobileMenu } = useMobileMenu();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
+  const [commandOpen, setCommandOpen] = useState(false);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setCommandOpen((open) => !open);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
 
   const helpSections: HelpSection[] = [
     {
@@ -243,6 +265,25 @@ export default function HelpPage() {
     faq.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredHelpSections = helpSections.map(section => {
+    const filteredItems = section.items.filter(item =>
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    // Show section if it matches or if any of its items match
+    const sectionMatches = section.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          section.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (searchQuery === '' || sectionMatches || filteredItems.length > 0) {
+      return {
+        ...section,
+        items: searchQuery === '' || sectionMatches ? section.items : filteredItems
+      };
+    }
+    return null;
+  }).filter(Boolean) as HelpSection[];
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
@@ -270,101 +311,124 @@ export default function HelpPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="relative">
-                  <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search help topics, features, or questions..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
+                <div className="space-y-3">
+                  <Button
+                    variant="outline"
+                    className="relative h-9 w-full justify-start text-sm text-muted-foreground sm:pr-12 md:w-96"
+                    onClick={() => setCommandOpen(true)}
+                  >
+                    <SearchIcon className="mr-2 h-4 w-4" />
+                    Search help topics, features, or questions...
+                    <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+                      <span className="text-xs">{typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl+'}</span>K
+                    </kbd>
+                  </Button>
+                  
+                  {searchQuery && (
+                    <div className="text-sm text-muted-foreground">
+                      Found {filteredHelpSections.reduce((acc, section) => acc + section.items.length, 0)} help topics 
+                      and {filteredFAQs.length} FAQs matching "{searchQuery}"
+                    </div>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Button variant="outline" className="justify-start h-auto p-4" asChild>
-                    <Link href="/dashboard/add-question">
-                      <div className="flex flex-col items-start gap-1">
+                  <Link href="/dashboard/add-question">
+                    <Button variant="outline" className="justify-start h-auto p-4 w-full">
+                      <div className="flex flex-col items-start gap-1 w-full">
                         <div className="flex items-center gap-2">
                           <PlusIcon className="h-4 w-4" />
                           <span className="font-medium">Add Question</span>
                         </div>
                         <span className="text-xs text-muted-foreground">Create new training content</span>
                       </div>
-                    </Link>
-                  </Button>
+                    </Button>
+                  </Link>
                   
-                  <Button variant="outline" className="justify-start h-auto p-4" asChild>
-                    <Link href="/dashboard/create-agent">
-                      <div className="flex flex-col items-start gap-1">
+                  <Link href="/dashboard/create-agent">
+                    <Button variant="outline" className="justify-start h-auto p-4 w-full">
+                      <div className="flex flex-col items-start gap-1 w-full">
                         <div className="flex items-center gap-2">
                           <BotIcon className="h-4 w-4" />
                           <span className="font-medium">Create Agent</span>
                         </div>
                         <span className="text-xs text-muted-foreground">Build AI assistants</span>
                       </div>
-                    </Link>
-                  </Button>
+                    </Button>
+                  </Link>
                   
-                  <Button variant="outline" className="justify-start h-auto p-4" asChild>
-                    <Link href="/dashboard/users/create">
-                      <div className="flex flex-col items-start gap-1">
+                  <Link href="/dashboard/users/create">
+                    <Button variant="outline" className="justify-start h-auto p-4 w-full">
+                      <div className="flex flex-col items-start gap-1 w-full">
                         <div className="flex items-center gap-2">
                           <UserPlusIcon className="h-4 w-4" />
                           <span className="font-medium">Add User</span>
                         </div>
                         <span className="text-xs text-muted-foreground">Invite team members</span>
                       </div>
-                    </Link>
-                  </Button>
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
 
             {/* Feature Documentation */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {helpSections.map((section) => (
-                <Card key={section.id} className="border-border/50 shadow-sm">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        {section.icon}
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">{section.title}</CardTitle>
-                        <CardDescription>
-                          {section.description}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {section.items.map((item, index) => (
-                        <div key={index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors">
-                          <CheckCircleIcon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium text-sm">{item.title}</h4>
-                              {item.link && (
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" asChild>
-                                  <Link href={item.link}>
-                                    <ExternalLinkIcon className="h-3 w-3" />
-                                  </Link>
-                                </Button>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
-                          </div>
+            {filteredHelpSections.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {filteredHelpSections.map((section) => (
+                  <Card key={section.id} className="border-border/50 shadow-sm">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          {section.icon}
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                        <div>
+                          <CardTitle className="text-lg">{section.title}</CardTitle>
+                          <CardDescription>
+                            {section.description}
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {section.items.map((item, index) => (
+                          <div key={index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors">
+                            <CheckCircleIcon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium text-sm">{item.title}</h4>
+                                {item.link && (
+                                  <Link href={item.link}>
+                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                      <ExternalLinkIcon className="h-3 w-3" />
+                                    </Button>
+                                  </Link>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : searchQuery && (
+              <Card className="border-border/50 shadow-sm">
+                <CardContent className="text-center py-12">
+                  <SearchIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No help topics found</h3>
+                  <p className="text-muted-foreground">
+                    Try searching with different keywords or browse the categories above.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* FAQ Section */}
-            <Card className="border-border/50 shadow-sm">
+            <Card className="border-border/50 shadow-sm" data-faq-section>
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-primary/10">
@@ -379,38 +443,81 @@ export default function HelpPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {filteredFAQs.map((faq, index) => (
-                    <div key={index} className="border border-border/50 rounded-lg">
-                      <button
-                        className="w-full flex items-center justify-between p-4 text-left hover:bg-accent/50 transition-colors"
-                        onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
-                              {faq.category}
-                            </span>
+                {filteredFAQs.length > 0 ? (
+                  <div className="space-y-4">
+                    {filteredFAQs.map((faq, index) => (
+                      <div key={index} className="border border-border/50 rounded-lg">
+                        <button
+                          className="w-full flex items-center justify-between p-4 text-left hover:bg-accent/50 transition-colors"
+                          onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                                {faq.category}
+                              </span>
+                            </div>
+                            <h4 className="font-medium">{faq.question}</h4>
                           </div>
-                          <h4 className="font-medium">{faq.question}</h4>
-                        </div>
-                        {expandedFAQ === index ? (
-                          <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronRightIcon className="h-4 w-4 text-muted-foreground" />
+                          {expandedFAQ === index ? (
+                            <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronRightIcon className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </button>
+                        {expandedFAQ === index && (
+                          <div className="px-4 pb-4">
+                            <Separator className="mb-3" />
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {faq.answer}
+                            </p>
+                          </div>
                         )}
-                      </button>
-                      {expandedFAQ === index && (
-                        <div className="px-4 pb-4">
-                          <Separator className="mb-3" />
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {faq.answer}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : searchQuery ? (
+                  <div className="text-center py-8">
+                    <HelpCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No FAQs found</h3>
+                    <p className="text-muted-foreground">
+                      No frequently asked questions match your search query.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {faqs.map((faq, index) => (
+                      <div key={index} className="border border-border/50 rounded-lg">
+                        <button
+                          className="w-full flex items-center justify-between p-4 text-left hover:bg-accent/50 transition-colors"
+                          onClick={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                                {faq.category}
+                              </span>
+                            </div>
+                            <h4 className="font-medium">{faq.question}</h4>
+                          </div>
+                          {expandedFAQ === index ? (
+                            <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronRightIcon className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </button>
+                        {expandedFAQ === index && (
+                          <div className="px-4 pb-4">
+                            <Separator className="mb-3" />
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {faq.answer}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -466,6 +573,94 @@ export default function HelpPage() {
 
           </div>
         </div>
+        
+        {/* Command Dialog for Search */}
+        <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
+          <CommandInput placeholder="Search help topics, features, or questions..." />
+          <CommandList>
+            <CommandEmpty>No results found.</CommandEmpty>
+            
+            <CommandGroup heading="Quick Actions">
+              <CommandItem
+                onSelect={() => {
+                  setCommandOpen(false);
+                  window.location.href = "/dashboard/add-question";
+                }}
+              >
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Add Question
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setCommandOpen(false);
+                  window.location.href = "/dashboard/create-agent";
+                }}
+              >
+                <BotIcon className="mr-2 h-4 w-4" />
+                Create Agent
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setCommandOpen(false);
+                  window.location.href = "/dashboard/users/create";
+                }}
+              >
+                <UserPlusIcon className="mr-2 h-4 w-4" />
+                Add User
+              </CommandItem>
+            </CommandGroup>
+
+            {helpSections.map((section) => (
+              <CommandGroup key={section.id} heading={section.title}>
+                {section.items.map((item, index) => (
+                  <CommandItem
+                    key={index}
+                    onSelect={() => {
+                      setCommandOpen(false);
+                      if (item.link) {
+                        window.location.href = item.link;
+                      }
+                    }}
+                  >
+                    <CheckCircleIcon className="mr-2 h-4 w-4" />
+                    <div>
+                      <div className="font-medium">{item.title}</div>
+                      <div className="text-xs text-muted-foreground">{item.description}</div>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))}
+
+            <CommandSeparator />
+            
+            <CommandGroup heading="Frequently Asked Questions">
+              {faqs.map((faq, index) => (
+                <CommandItem
+                  key={index}
+                  onSelect={() => {
+                    setCommandOpen(false);
+                    setSearchQuery(faq.question);
+                    setExpandedFAQ(index);
+                    // Scroll to FAQ section
+                    setTimeout(() => {
+                      const faqSection = document.querySelector('[data-faq-section]');
+                      if (faqSection) {
+                        faqSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }, 100);
+                  }}
+                >
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  <div>
+                    <div className="font-medium">{faq.question}</div>
+                    <div className="text-xs text-muted-foreground">{faq.category}</div>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </CommandDialog>
       </div>
     </ProtectedRoute>
   );
