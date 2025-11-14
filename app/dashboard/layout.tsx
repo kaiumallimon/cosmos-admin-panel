@@ -81,18 +81,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <span className="font-medium truncate">Dashboard</span>
                             </Link>
                         </div>
-                        <div className="mt-1">
-                            <Link
-                                href="/dashboard/analytics"
-                                onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/analytics" ? "bg-primary text-primary-foreground font-semibold" : ""
-                                    }`}
-                            >
-                                <BarChart3Icon className="h-4 w-4 shrink-0" />
-                                <span className="font-medium truncate">Analytics</span>
-                            </Link>
-                        </div>
-                        
                     </div>
                 </div>
 
