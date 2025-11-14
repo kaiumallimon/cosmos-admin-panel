@@ -4,7 +4,7 @@ const EXTERNAL_API_BASE_URL = 'https://cosmos-its-production-v1.onrender.com';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { name: string } }
+  { params }: { params: Promise<{ name: string }> }
 ) {
   try {
     // Get the authorization token from the request headers
@@ -17,7 +17,7 @@ export async function GET(
       );
     }
 
-    const { name } = params;
+    const { name } = await params;
 
     if (!name) {
       return NextResponse.json(
@@ -57,7 +57,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { name: string } }
+  { params }: { params: Promise<{ name: string }> }
 ) {
   try {
     // Get the authorization token from the request headers
@@ -70,7 +70,7 @@ export async function PUT(
       );
     }
 
-    const { name } = params;
+    const { name } = await params;
 
     if (!name) {
       return NextResponse.json(
@@ -115,7 +115,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { name: string } }
+  { params }: { params: Promise<{ name: string }> }
 ) {
   try {
     // Get the authorization token from the request headers
@@ -128,7 +128,7 @@ export async function DELETE(
       );
     }
 
-    const { name } = params;
+    const { name } = await params;
 
     if (!name) {
       return NextResponse.json(
