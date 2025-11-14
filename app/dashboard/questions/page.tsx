@@ -16,6 +16,7 @@ import { BookOpen, HelpCircle } from "lucide-react";
 import { useMobileMenu } from "@/components/mobile-menu-context";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { StatsCard } from "@/components/dashboard/stats-card";
 
 export default function QuestionsCoursePage() {
   const [courses, setCourses] = useState<any[]>([]);
@@ -140,26 +141,16 @@ export default function QuestionsCoursePage() {
         <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
           
           {/* total courses card */}
-          <Card className="bg-white dark:bg-card shadow rounded-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h2 className="text-lg font-medium">Total Courses</h2>
-            </div>
-            <p className="text-3xl font-bold">{courses.length}</p>
-          </Card>
+          <StatsCard
+          title="Total Courses"
+          icon={BookOpen}
+          value={courses.length}/>
           
           {/* active questions card */}
-          <Card className="bg-white dark:bg-card shadow rounded-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                <HelpCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <h2 className="text-lg font-medium">Active Questions</h2>
-            </div>
-            <p className="text-3xl font-bold">{totalQuestions}</p>
-          </Card>
+          <StatsCard
+          title="Active Questions"
+          icon={HelpCircle}
+          value={totalQuestions}/>
         </div>
 
         {/* courses */}
