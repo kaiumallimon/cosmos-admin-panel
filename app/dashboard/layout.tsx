@@ -144,7 +144,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <Link
                                 href="/dashboard/update-embeddings"
                                 onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/update-embeddings" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/update-embeddings" || pathname.startsWith("/dashboard/update-embeddings/") ? "bg-primary text-primary-foreground font-semibold" : ""
                                     }`}
                             >
                                 <Code2Icon className="h-4 w-4 shrink-0" />
