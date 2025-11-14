@@ -36,15 +36,8 @@ export default function QuestionsCoursePage() {
           fetch(`/api/questions/count`),
         ]);
 
-        if (!coursesRes.ok) {
-          const errorData = await coursesRes.json().catch(() => ({}));
-          throw new Error(`Failed to fetch courses: ${errorData.error || coursesRes.statusText}`);
-        }
-
-        if (!questionsRes.ok) {
-          const errorData = await questionsRes.json().catch(() => ({}));
-          throw new Error(`Failed to fetch questions count: ${errorData.error || questionsRes.statusText}`);
-        }
+        if (!coursesRes.ok) throw new Error("Failed to fetch courses");
+        if (!questionsRes.ok) throw new Error("Failed to fetch questions count");
 
         const coursesData = await coursesRes.json();
         const questionsData = await questionsRes.json();
@@ -62,7 +55,6 @@ export default function QuestionsCoursePage() {
     loadData();
   }, []);
 
-
   function toTitleCase(str: string) {
     return str
       .split(" ")
@@ -78,54 +70,54 @@ export default function QuestionsCoursePage() {
     return (
       <ProtectedRoute>
         <div className="min-h-screen bg-background">
-          <FrostedHeader title="Questions" onMobileMenuToggle={toggleMobileMenu} />
-          
-          {/* breadcrumbs */}
+          {/* Header */}
+          <Skeleton className="h-20 w-full mb-6" />
+
+          {/* Breadcrumbs */}
           <div className="p-6 pb-0">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Questions</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+            <Skeleton className="h-5 w-48 mb-2" />
+            <Skeleton className="h-5 w-36" />
           </div>
-          
+
+          {/* Top Cards */}
           <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-            <Card className="bg-white dark:bg-card shadow rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                  <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            {[0, 1].map((_, i) => (
+              <Card key={i} className="bg-white dark:bg-card shadow rounded-lg p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Skeleton className="h-6 w-6 rounded-full" />
+                  <Skeleton className="h-6 w-32" />
                 </div>
-                <Skeleton className="h-6 w-24" />
-              </div>
-              <Skeleton className="h-8 w-16" />
-            </Card>
-            <Card className="bg-white dark:bg-card shadow rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                  <HelpCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-                <Skeleton className="h-6 w-28" />
-              </div>
-              <Skeleton className="h-8 w-20" />
-            </Card>
+                <Skeleton className="h-8 w-20" />
+              </Card>
+            ))}
+          </div>
+
+          {/* Courses */}
+          <div className="p-6 mb-20">
+            <Skeleton className="h-8 w-64 mb-4" />
+            <div className="space-y-3">
+              {Array(5)
+                .fill(0)
+                .map((_, idx) => (
+                  <Card key={idx} className="p-4 bg-white dark:bg-card shadow rounded-lg">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-5 w-48" />
+                    </div>
+                  </Card>
+                ))}
+            </div>
           </div>
         </div>
       </ProtectedRoute>
     );
   }
-  
+
   if (error) return <p className="p-6 text-red-500">{error}</p>;
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
-        
         {/* header  */}
         <FrostedHeader title="Questions" onMobileMenuToggle={toggleMobileMenu} />
         
@@ -173,18 +165,16 @@ export default function QuestionsCoursePage() {
         {/* courses */}
         <div className="p-6 mb-20">
           <h2 className="text-xl md:text-2xl font-bold">Available Course Questions </h2>
-          {courses.map((course)=>{
-            return (
-              <Card key={course.course_code} 
+          {courses.map((course)=>(
+            <Card key={course.course_code} 
               className="mt-3 cursor-pointer hover:border-primary transition-colors duration-300"
               onClick={()=>router.push("/dashboard/questions/" + course.course_code)}>
-                <CardHeader>
-                  <h1 className="opacity-75">{course.course_code}</h1>
-                  <h1 className="font-bold text-base ">{toTitleCase(course.course_title) + " (" + toUpperCase(course.short) + ") " }</h1>
-                </CardHeader>
-              </Card>
-            );
-          })}
+              <CardHeader>
+                <h1 className="opacity-75">{course.course_code}</h1>
+                <h1 className="font-bold text-base">{toTitleCase(course.course_title)} ({toUpperCase(course.short)})</h1>
+              </CardHeader>
+            </Card>
+          ))}
         </div>
       </div>
     </ProtectedRoute>

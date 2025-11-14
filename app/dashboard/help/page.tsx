@@ -17,7 +17,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { 
+import {
   HomeIcon,
   UsersIcon,
   SettingsIcon,
@@ -46,6 +46,7 @@ import {
 import { IconRobot } from "@tabler/icons-react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb";
 
 interface HelpSection {
   id: string;
@@ -259,44 +260,114 @@ export default function HelpPage() {
     }
   ];
 
-  const filteredFAQs = faqs.filter(faq => 
-    faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    faq.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    faq.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Enhanced search utility functions
+  const searchTerms = searchQuery.toLowerCase().trim().split(/\s+/).filter(term => term.length > 0);
 
-  const filteredHelpSections = helpSections.map(section => {
-    const filteredItems = section.items.filter(item =>
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  const calculateRelevanceScore = (text: string, searchTerms: string[]): number => {
+    const lowerText = text.toLowerCase();
+    let score = 0;
 
-    // Show section if it matches or if any of its items match
-    const sectionMatches = section.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          section.description.toLowerCase().includes(searchQuery.toLowerCase());
+    searchTerms.forEach(term => {
+      // Exact phrase match (highest score)
+      if (lowerText.includes(searchQuery.toLowerCase())) {
+        score += 10;
+      }
+      // Word boundary match
+      const wordBoundaryRegex = new RegExp(`\\b${term}\\b`, 'i');
+      if (wordBoundaryRegex.test(text)) {
+        score += 5;
+      }
+      // Partial match
+      else if (lowerText.includes(term)) {
+        score += 2;
+      }
+      // Fuzzy match (starts with)
+      else if (lowerText.startsWith(term) || lowerText.includes(` ${term}`)) {
+        score += 1;
+      }
+    });
 
-    if (searchQuery === '' || sectionMatches || filteredItems.length > 0) {
-      return {
-        ...section,
-        items: searchQuery === '' || sectionMatches ? section.items : filteredItems
-      };
-    }
-    return null;
-  }).filter(Boolean) as HelpSection[];
+    return score;
+  };
+
+  const searchInContent = (content: string[], searchTerms: string[]): number => {
+    return content.reduce((maxScore, text) => {
+      const score = calculateRelevanceScore(text, searchTerms);
+      return Math.max(maxScore, score);
+    }, 0);
+  };
+
+  // Enhanced FAQ filtering with relevance scoring
+  const filteredFAQs = searchQuery ? faqs
+    .map(faq => ({
+      ...faq,
+      relevanceScore: searchInContent(
+        [faq.question, faq.answer, faq.category],
+        searchTerms
+      )
+    }))
+    .filter(faq => faq.relevanceScore > 0)
+    .sort((a, b) => b.relevanceScore - a.relevanceScore)
+    : faqs;
+
+  // Enhanced help sections filtering with relevance scoring
+  const filteredHelpSections = searchQuery ? helpSections
+    .map(section => {
+      const sectionScore = searchInContent(
+        [section.title, section.description],
+        searchTerms
+      );
+
+      const itemsWithScores = section.items
+        .map(item => ({
+          ...item,
+          relevanceScore: searchInContent(
+            [item.title, item.description],
+            searchTerms
+          )
+        }))
+        .filter(item => item.relevanceScore > 0)
+        .sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+      const maxItemScore = itemsWithScores.length > 0
+        ? Math.max(...itemsWithScores.map(item => item.relevanceScore))
+        : 0;
+
+      const totalScore = Math.max(sectionScore, maxItemScore);
+
+      if (totalScore > 0) {
+        return {
+          ...section,
+          items: sectionScore > 0 ? section.items : itemsWithScores,
+          relevanceScore: totalScore
+        };
+      }
+      return null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => (b as any).relevanceScore - (a as any).relevanceScore) as HelpSection[]
+    : helpSections;
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
-        <FrostedHeader 
-          title="Help & Support" 
+        <FrostedHeader
+          title="Help & Support"
           subtitle="Find answers, guides, and documentation for Cosmos Admin Panel"
           onMobileMenuToggle={toggleMobileMenu}
         />
 
         {/* Page content with padding to avoid overlapping fixed header */}
-        <div className="pt-10 px-6 md:px-10 pb-10">
-          <div className="max-w-6xl mx-auto space-y-8">
-            
+        <div className="p-6">
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem><BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink></BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem><BreadcrumbPage>Help & Support</BreadcrumbPage></BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="w-full space-y-8">
+
             {/* Quick Actions */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-4">
@@ -314,7 +385,7 @@ export default function HelpPage() {
                 <div className="space-y-3">
                   <Button
                     variant="outline"
-                    className="relative h-9 w-full justify-start text-sm text-muted-foreground sm:pr-12 md:w-96"
+                    className="relative h-10 w-full justify-start text-sm text-muted-foreground pr-12"
                     onClick={() => setCommandOpen(true)}
                   >
                     <SearchIcon className="mr-2 h-4 w-4" />
@@ -323,16 +394,26 @@ export default function HelpPage() {
                       <span className="text-xs">{typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl+'}</span>K
                     </kbd>
                   </Button>
-                  
+
                   {searchQuery && (
-                    <div className="text-sm text-muted-foreground">
-                      Found {filteredHelpSections.reduce((acc, section) => acc + section.items.length, 0)} help topics 
-                      and {filteredFAQs.length} FAQs matching "{searchQuery}"
+                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                        <span>
+                          Found {filteredHelpSections.reduce((acc, section) => acc + section.items.length, 0)} help topics
+                          and {filteredFAQs.length} FAQs
+                        </span>
+                      </div>
+                      {(filteredHelpSections.length > 0 || filteredFAQs.length > 0) && (
+                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                          ✓ Sorted by relevance
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <Link href="/dashboard/add-question">
                     <Button variant="outline" className="justify-start h-auto p-4 w-full">
                       <div className="flex flex-col items-start gap-1 w-full">
@@ -344,7 +425,7 @@ export default function HelpPage() {
                       </div>
                     </Button>
                   </Link>
-                  
+
                   <Link href="/dashboard/create-agent">
                     <Button variant="outline" className="justify-start h-auto p-4 w-full">
                       <div className="flex flex-col items-start gap-1 w-full">
@@ -356,7 +437,7 @@ export default function HelpPage() {
                       </div>
                     </Button>
                   </Link>
-                  
+
                   <Link href="/dashboard/users/create">
                     <Button variant="outline" className="justify-start h-auto p-4 w-full">
                       <div className="flex flex-col items-start gap-1 w-full">
@@ -364,7 +445,7 @@ export default function HelpPage() {
                           <UserPlusIcon className="h-4 w-4" />
                           <span className="font-medium">Add User</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">Invite team members</span>
+                        <span className="text-xs text-muted-foreground">Register new users</span>
                       </div>
                     </Button>
                   </Link>
@@ -374,7 +455,7 @@ export default function HelpPage() {
 
             {/* Feature Documentation */}
             {filteredHelpSections.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredHelpSections.map((section) => (
                   <Card key={section.id} className="border-border/50 shadow-sm">
                     <CardHeader className="pb-4">
@@ -537,7 +618,7 @@ export default function HelpPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="flex items-start gap-4">
                     <div className="p-3 rounded-lg bg-blue-500/10">
                       <MailIcon className="h-5 w-5 text-blue-500" />
@@ -552,7 +633,7 @@ export default function HelpPage() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-4">
                     <div className="p-3 rounded-lg bg-green-500/10">
                       <FileTextIcon className="h-5 w-5 text-green-500" />
@@ -573,40 +654,93 @@ export default function HelpPage() {
 
           </div>
         </div>
-        
+
         {/* Command Dialog for Search */}
         <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
-          <CommandInput placeholder="Search help topics, features, or questions..." />
+          <CommandInput
+            placeholder="Search help topics, features, or questions..."
+            onValueChange={(value) => {
+              // Update the search query in real-time for better UX
+              if (value !== searchQuery) {
+                setSearchQuery(value);
+              }
+            }}
+          />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
-            
+            <CommandEmpty>
+              <div className="text-center py-6">
+                <SearchIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  No results found. Try different keywords or check spelling.
+                </p>
+              </div>
+            </CommandEmpty>
+
             <CommandGroup heading="Quick Actions">
               <CommandItem
                 onSelect={() => {
                   setCommandOpen(false);
                   window.location.href = "/dashboard/add-question";
                 }}
+                keywords={["question", "create", "add", "training", "content"]}
               >
                 <PlusIcon className="mr-2 h-4 w-4" />
-                Add Question
+                <div>
+                  <div className="font-medium">Add Question</div>
+                  <div className="text-xs text-muted-foreground">Create new training content</div>
+                </div>
               </CommandItem>
               <CommandItem
                 onSelect={() => {
                   setCommandOpen(false);
                   window.location.href = "/dashboard/create-agent";
                 }}
+                keywords={["agent", "ai", "bot", "create", "assistant"]}
               >
                 <BotIcon className="mr-2 h-4 w-4" />
-                Create Agent
+                <div>
+                  <div className="font-medium">Create Agent</div>
+                  <div className="text-xs text-muted-foreground">Build AI assistants</div>
+                </div>
               </CommandItem>
               <CommandItem
                 onSelect={() => {
                   setCommandOpen(false);
                   window.location.href = "/dashboard/users/create";
                 }}
+                keywords={["user", "add", "create", "invite", "member"]}
               >
                 <UserPlusIcon className="mr-2 h-4 w-4" />
-                Add User
+                <div>
+                  <div className="font-medium">Add User</div>
+                  <div className="text-xs text-muted-foreground">Invite team members</div>
+                </div>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setCommandOpen(false);
+                  window.location.href = "/dashboard/upload";
+                }}
+                keywords={["upload", "content", "file", "document", "material"]}
+              >
+                <UploadIcon className="mr-2 h-4 w-4" />
+                <div>
+                  <div className="font-medium">Upload Content</div>
+                  <div className="text-xs text-muted-foreground">Add training materials</div>
+                </div>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setCommandOpen(false);
+                  window.location.href = "/dashboard/settings";
+                }}
+                keywords={["settings", "preferences", "config", "theme", "account"]}
+              >
+                <SettingsIcon className="mr-2 h-4 w-4" />
+                <div>
+                  <div className="font-medium">Settings</div>
+                  <div className="text-xs text-muted-foreground">Configure preferences</div>
+                </div>
               </CommandItem>
             </CommandGroup>
 
@@ -633,31 +767,49 @@ export default function HelpPage() {
             ))}
 
             <CommandSeparator />
-            
+
             <CommandGroup heading="Frequently Asked Questions">
-              {faqs.map((faq, index) => (
-                <CommandItem
-                  key={index}
-                  onSelect={() => {
-                    setCommandOpen(false);
-                    setSearchQuery(faq.question);
-                    setExpandedFAQ(index);
-                    // Scroll to FAQ section
-                    setTimeout(() => {
-                      const faqSection = document.querySelector('[data-faq-section]');
-                      if (faqSection) {
-                        faqSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
-                    }, 100);
-                  }}
-                >
-                  <HelpCircle className="mr-2 h-4 w-4" />
-                  <div>
-                    <div className="font-medium">{faq.question}</div>
-                    <div className="text-xs text-muted-foreground">{faq.category}</div>
+              {(searchQuery ? filteredFAQs : faqs.slice(0, 8)).map((faq, index) => {
+                const originalIndex = faqs.findIndex(f => f.question === faq.question);
+                return (
+                  <CommandItem
+                    key={originalIndex}
+                    onSelect={() => {
+                      setCommandOpen(false);
+                      setSearchQuery('');
+                      setExpandedFAQ(originalIndex);
+                      // Scroll to FAQ section
+                      setTimeout(() => {
+                        const faqSection = document.querySelector('[data-faq-section]');
+                        if (faqSection) {
+                          faqSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }, 100);
+                    }}
+                    keywords={[faq.question, faq.answer, faq.category].join(' ').toLowerCase().split(' ')}
+                  >
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{faq.question}</div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-2">
+                        <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-sm">
+                          {faq.category}
+                        </span>
+                        {(faq as any).relevanceScore > 0 && (
+                          <span className="text-green-600 dark:text-green-400">✓ Relevant</span>
+                        )}
+                      </div>
+                    </div>
+                  </CommandItem>
+                );
+              })}
+              {!searchQuery && faqs.length > 8 && (
+                <CommandItem disabled>
+                  <div className="text-xs text-muted-foreground italic ml-6">
+                    ...and {faqs.length - 8} more FAQs. Use search to find specific questions.
                   </div>
                 </CommandItem>
-              ))}
+              )}
             </CommandGroup>
           </CommandList>
         </CommandDialog>
