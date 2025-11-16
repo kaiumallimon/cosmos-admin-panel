@@ -226,7 +226,7 @@ export default function CdnPage() {
       <div className="min-h-screen bg-background">
         <FrostedHeader title="Server Contents" onMobileMenuToggle={toggleMobileMenu} />
 
-        <div className="p-4 sm:p-6 pb-0">
+        <div className="p-6">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
