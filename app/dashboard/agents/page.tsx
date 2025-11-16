@@ -85,8 +85,48 @@ export default function AgentsPage() {
         { title: "Total Examples", value: totalExamples, icon: FileText },
     ];
 
-    // Handler functions for suspend/edit remain the same
-    const handleSuspendAgent = async (agentId: string, currentStatus: boolean) => { /* ... */ };
+    // Handler functions for suspend/edit
+    const handleSuspendAgent = async (agentId: string, currentStatus: boolean) => {
+        const action = currentStatus ? 'suspend' : 'activate';
+        const actionText = currentStatus ? 'Suspending' : 'Activating';
+        
+        setUpdatingAgent(agentId);
+        
+        try {
+            const response = await fetch(`/api/agents/${agentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    is_active: !currentStatus
+                }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || `Failed to ${action} agent`);
+            }
+
+            // Update the local state to reflect the change
+            setAgents(prevAgents => 
+                prevAgents.map(agent => 
+                    agent.id === agentId 
+                        ? { ...agent, is_active: !currentStatus }
+                        : agent
+                )
+            );
+
+            toast.success(`Agent ${currentStatus ? 'suspended' : 'activated'} successfully`);
+        } catch (error: any) {
+            console.error(`Error ${actionText.toLowerCase()} agent:`, error);
+            toast.error(error.message || `Failed to ${action} agent`);
+        } finally {
+            setUpdatingAgent(null);
+        }
+    };
+    
     const handleEditAgent = (agentId: string) => router.push(`/dashboard/agents/${agentId}/edit`);
 
     if (loading) return <ProtectedRoute><div className="min-h-screen flex items-center justify-center">Loading...</div></ProtectedRoute>;

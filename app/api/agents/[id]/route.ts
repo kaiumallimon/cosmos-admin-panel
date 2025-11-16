@@ -1,36 +1,11 @@
-import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-
-// Helper to create Supabase client
-async function getSupabaseClient() {
-  const cookieStore = await cookies(); // ✅ await here
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-      },
-    }
-  );
-}
+import { supabaseAdmin } from '@/lib/supabaseClient';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const supabase = await getSupabaseClient();
-
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
     const { id } = await params;
 
-    const { data: agent, error: agentError } = await supabase
+    const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
       .select(`
         *,
@@ -42,7 +17,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     // Fetch few_shot_examples separately using agent_name
     let fewShotExamples = [];
     if (agent) {
-      const { data: examplesData } = await supabase
+      const { data: examplesData } = await supabaseAdmin
         .from('few_shot_examples')
         .select('*')
         .eq('agent_name', agent.name);
@@ -63,17 +38,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const supabase = await getSupabaseClient();
-
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
     const { id } = await params;
     const body = await req.json();
 
-    const { data: agent, error: updateError } = await supabase
+    const { data: agent, error: updateError } = await supabaseAdmin
       .from('agents')
       .update({ ...body, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -93,18 +61,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const supabase = await getSupabaseClient();
-
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
     const { id } = await params;
     const body = await req.json();
 
     // Update agent
-    const { data: agent, error: agentError } = await supabase
+    const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
       .update({
         name: body.name,
@@ -125,7 +86,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // Update agent_tools
     if (body.agent_tools) {
-      await supabase.from('agent_tools').delete().eq('agent_id', id);
+      await supabaseAdmin.from('agent_tools').delete().eq('agent_id', id);
       if (body.agent_tools.length > 0) {
         const toolsToInsert = body.agent_tools.map((tool: any) => ({
           agent_id: id,
@@ -133,14 +94,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           tool_description: tool.tool_description,
           is_enabled: tool.is_enabled,
         }));
-        const { error: toolsError } = await supabase.from('agent_tools').insert(toolsToInsert);
+        const { error: toolsError } = await supabaseAdmin.from('agent_tools').insert(toolsToInsert);
         if (toolsError) throw toolsError;
       }
     }
 
     // Update few_shot_examples
     if (body.few_shot_examples) {
-      await supabase.from('few_shot_examples').delete().eq('agent_name', agent.name);
+      await supabaseAdmin.from('few_shot_examples').delete().eq('agent_name', agent.name);
       if (body.few_shot_examples.length > 0) {
         const examplesToInsert = body.few_shot_examples.map((ex: any) => ({
           agent_name: agent.name,
@@ -150,13 +111,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           description: ex.description,
           is_active: ex.is_active,
         }));
-        const { error: examplesError } = await supabase.from('few_shot_examples').insert(examplesToInsert);
+        const { error: examplesError } = await supabaseAdmin.from('few_shot_examples').insert(examplesToInsert);
         if (examplesError) throw examplesError;
       }
     }
 
     // Fetch updated agent with related data
-    const { data: updatedAgent, error: fetchError } = await supabase
+    const { data: updatedAgent, error: fetchError } = await supabaseAdmin
       .from('agents')
       .select(`
         *,
@@ -167,7 +128,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // Fetch few_shot_examples separately using agent_name
     if (updatedAgent) {
-      const { data: examplesData } = await supabase
+      const { data: examplesData } = await supabaseAdmin
         .from('few_shot_examples')
         .select('*')
         .eq('agent_name', updatedAgent.name);

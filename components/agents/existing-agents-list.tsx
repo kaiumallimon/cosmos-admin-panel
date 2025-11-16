@@ -192,9 +192,9 @@ export function ExistingAgentsList({ onCreateNewAgent }: AgentListProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-            {Array.isArray(agents) && agents.map((agent) => (
+            {Array.isArray(agents) && agents.map((agent, index) => (
               <div 
-                key={agent.id} 
+                key={agent.id || `agent-${index}`} 
                 className="border rounded-lg p-4 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-3">
@@ -239,41 +239,7 @@ export function ExistingAgentsList({ onCreateNewAgent }: AgentListProps) {
                   )}
                 </div>
                 
-                <div className="grid grid-cols-3 gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs min-w-0 px-2"
-                    onClick={() => {
-                      // Navigate to agent details or edit
-                      window.open(`/dashboard/agents/${agent.name}`, '_blank');
-                    }}
-                  >
-                    <Eye className="h-3 w-3 mr-1" />
-                    View
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs min-w-0 px-2"
-                    onClick={() => {
-                      // Navigate to edit agent
-                      window.open(`/dashboard/agents/${agent.name}/edit`, '_blank');
-                    }}
-                  >
-                    <Edit className="h-3 w-3 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeleteAgent(agent.name, agent.display_name)}
-                    className="text-red-600 hover:text-red-700 text-xs min-w-0 px-2"
-                  >
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Delete
-                  </Button>
-                </div>
+                
               </div>
             ))}
           </div>
