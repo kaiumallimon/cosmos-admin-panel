@@ -33,6 +33,10 @@ Key highlights:
 
 - Node.js (recommend >= 18) and a package manager (`npm`, `pnpm`, or `yarn`).
 - A Supabase project (for auth and database). Create a `.env.local` with the following values:
+- **Backend Service**: The chat functionality requires a Python FastAPI backend service running on `http://127.0.0.1:8000`. This service should provide the following endpoints:
+  - `GET /api/v1/chats/` - List chat threads
+  - `GET /api/v1/chats/{thread_id}` - Get chat history for a specific thread
+  - `POST /api/v1/chats/structured` - Send a new message
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
@@ -59,6 +63,31 @@ Available scripts (from `package.json`):
 - `lint` — Run ESLint.
 
 Open `http://localhost:3000` to view the app.
+
+**Note**: To use the chat functionality, ensure your backend service is running on `http://127.0.0.1:8000`. If the backend service is not available, the chat features will show appropriate error messages.
+
+### Backend Service Requirements
+
+**Important**: This admin panel requires a FastAPI backend service running on `http://127.0.0.1:8000` for chat functionality. 
+
+If you see "Chat service is currently unavailable" errors:
+
+1. Ensure your FastAPI backend service is running on port 8000
+2. The backend should expose endpoints like:
+   - `GET /api/v1/chats/` - for chat threads
+   - `GET /api/v1/chats/{threadId}` - for chat history
+   - `POST /api/v1/chats/structured` - for sending messages
+
+To start the backend service (if you have the Python backend code):
+```bash
+# Navigate to your backend directory
+cd path/to/your/backend
+
+# Start the FastAPI server
+uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+If the backend service is not available, the chat features will show appropriate error messages and allow users to retry once the service is restored.
 
 ## Deployment
 

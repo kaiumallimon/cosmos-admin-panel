@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { signOutAndRedirect } from "@/lib/auth";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -27,7 +27,8 @@ import {
     FileIcon,
     FileTextIcon,
     PlusIcon,
-    Code2Icon
+    Code2Icon,
+    MessageCircle
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -42,7 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [mounted, setMounted] = React.useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-    React.useEffect(() => {
+    useEffect(() => {
         setMounted(true);
     }, []);
 
@@ -217,7 +218,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 <div className="my-4 h-px bg-border"></div>
 
-                {/* Management Section */}
+
+                {/* User Management Section */}
                 <div>
                     <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
                         User Management
@@ -232,6 +234,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             >
                                 <UsersIcon className="h-4 w-4 shrink-0" />
                                 <span className="font-medium truncate">Users</span>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="my-4 h-px bg-border"></div>
+
+                {/* Chat Section */}
+                <div>
+                    <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
+                        Chat
+                    </div>
+                    <div>
+                        <div>
+                            <Link
+                                href="/chat"
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/chat" || pathname.startsWith("/chat") ? "bg-primary text-primary-foreground font-semibold" : ""
+                                    }`}
+                            >
+                                <MessageCircle className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Chat</span>
                             </Link>
                         </div>
                     </div>
