@@ -114,14 +114,14 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
     useEffect(() => {
         if (chatHistory && chatHistory.messages) {
             const currentMessageCount = chatHistory.messages.length;
-            
+
             // Only auto-scroll if:
             // 1. We're loading messages for the first time, OR
             // 2. New messages were added (count increased)
             if (prevMessageCount.current === 0 || currentMessageCount > prevMessageCount.current) {
                 scrollToBottom();
             }
-            
+
             prevMessageCount.current = currentMessageCount;
         }
     }, [chatHistory]);
@@ -176,7 +176,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
             });
 
             console.log('Response status:', response.status, 'Response ok:', response.ok);
-            
+
             if (!response.ok) {
                 // Try to get the error message from the response
                 let errorMessage = `Failed to load chat history`;
@@ -251,7 +251,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
             }
 
             const data: SendMessageResponse = await response.json();
-            
+
             // If it's a new thread, update the URL and fetch threads
             if (data.metadata.is_new_thread) {
                 setCurrentThreadId(data.metadata.thread_id);
@@ -280,6 +280,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
     const startNewChat = () => {
         setCurrentThreadId(null);
         setChatHistory(null);
+        prevMessageCount.current = 0; // Reset message count
         router.push('/chat');
     };
 
@@ -299,6 +300,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
             fetchChatHistory(currentThreadId);
         } else {
             setChatHistory(null);
+            prevMessageCount.current = 0; // Reset message count when no thread
         }
     }, [currentThreadId]);
 
@@ -309,7 +311,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 
     return (
         <ProtectedRoute>
-            <div className="flex h-screen bg-gray-50">
+            <div className="flex h-screen bg-white">
                 {/* Sidebar with chat threads */}
                 <div className="w-64 border-r bg-white flex flex-col">
                     <div className="p-4 border-b">
@@ -317,16 +319,16 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                             <Link href="/dashboard">
                                 <Button
                                     variant="outline"
-                                    className="w-full justify-start"> 
-                                    <ArrowLeft className="mr-2 h-4 w-4" /> 
+                                    className="w-full justify-start">
+                                    <ArrowLeft className="mr-2 h-4 w-4" />
                                     Dashboard
                                 </Button>
                             </Link>
 
-                            <Button 
+                            <Button
                                 onClick={startNewChat}
-                                className="w-full justify-start"> 
-                                <Plus className="mr-2 h-4 w-4" /> 
+                                className="w-full justify-start">
+                                <Plus className="mr-2 h-4 w-4" />
                                 New Chat
                             </Button>
                         </div>
@@ -334,7 +336,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 
                     <div className="flex-1 p-4">
                         <h3 className="font-semibold text-sm text-gray-600 mb-3">Chat History</h3>
-                        
+
                         <ScrollArea className="h-full">
                             <div className="flex flex-col gap-1">
                                 {isLoading ? (
@@ -347,9 +349,9 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                                         <div className="text-red-500 text-sm mb-2">
                                             {error}
                                         </div>
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm" 
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
                                             onClick={fetchChatThreads}
                                             className="w-full"
                                         >
@@ -362,11 +364,10 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                                         <Link
                                             key={thread.thread_id}
                                             href={`/chat/${thread.thread_id}`}
-                                            className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 block ${
-                                                currentThreadId === thread.thread_id 
-                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                                            className={`px-3 py-2 rounded-lg text-sm transition-colors duration-200 block ${currentThreadId === thread.thread_id
+                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                                     : 'hover:bg-gray-100 text-gray-700'
-                                            }`}
+                                                }`}
                                         >
                                             <div className="truncate">{CapitalizeFirstCharacter(thread.title)}</div>
                                         </Link>
@@ -382,7 +383,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                 </div>
 
                 {/* Main chat area */}
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col bg-gray-50">
                     {currentThreadId && chatHistory ? (
                         <>
                             {/* Chat header */}
@@ -392,7 +393,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                             </div>
 
                             {/* Messages area */}
-                            <ScrollArea ref={scrollAreaRef} className="flex-1 px-6 py-4">
+                            <ScrollArea ref={scrollAreaRef} className="flex-1 px-6 py-4 bg-gray-50">
                                 {isLoadingChat ? (
                                     <div className="flex items-center justify-center h-full">
                                         <div className="flex items-center gap-2 text-gray-500">
@@ -404,20 +405,19 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                                     <div className="space-y-6 max-w-4xl mx-auto">
                                         {chatHistory.messages.map((message, index) => (
                                             <div key={message.message_id} className="flex gap-4">
-                                                <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                                                    message.type === 'human' 
-                                                        ? 'bg-blue-500 text-white' 
+                                                <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.type === 'human'
+                                                        ? 'bg-blue-500 text-white'
                                                         : 'bg-green-500 text-white'
-                                                }`}>
-                                                    {message.type === 'human' ? 
-                                                        <User className="h-4 w-4" /> : 
+                                                    }`}>
+                                                    {message.type === 'human' ?
+                                                        <User className="h-4 w-4" /> :
                                                         <Bot className="h-4 w-4" />
                                                     }
                                                 </div>
                                                 <div className="flex-1 space-y-2">
                                                     <div className="flex items-center gap-2">
                                                         <span className="font-medium text-gray-800">
-                                                            {message.type === 'human' ? 'You' : 
+                                                            {message.type === 'human' ? 'You' :
                                                                 (message.agent_name || 'Assistant')}
                                                         </span>
                                                         {message.agent_name && message.type === 'ai' && (
@@ -431,6 +431,87 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                                                             {message.content}
                                                         </div>
                                                     </div>
+
+                                                    {/* Questions Display */}
+                                                    {(() => {
+                                                        try {
+                                                            // Try to parse the entire message content as JSON first
+                                                            let parsedResponse;
+                                                            try {
+                                                                parsedResponse = JSON.parse(message.content);
+                                                            } catch {
+                                                                // If content isn't JSON, try llm_response
+                                                                parsedResponse = JSON.parse(message.llm_response || '{}');
+                                                            }
+                                                            const questions = parsedResponse.questions;
+
+                                                            if (questions && Array.isArray(questions) && questions.length > 0) {
+                                                                return (
+                                                                    <div className="mt-4 space-y-4">
+                                                                        <h4 className="font-medium text-gray-900 mb-3">Questions Found:</h4>
+                                                                        {questions.map((question: any, qIndex: number) => (
+                                                                            <div key={question.id || qIndex} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                                                                                {/* Description */}
+                                                                                {question.has_description && question.description_content && question.description_content !== 'N/A' && (
+                                                                                    <div className="mb-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
+                                                                                        <h5 className="font-medium text-blue-900 mb-2">Description:</h5>
+                                                                                        <p className="text-blue-800 text-sm">{question.description_content}</p>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {/* Image */}
+                                                                                {question.has_image && question.image_url && question.image_url !== 'N/A' && (
+                                                                                    <div className="mb-3">
+                                                                                        <img
+                                                                                            src={question.image_url}
+                                                                                            alt={`Question ${question.question_number} ${question.sub_question}`}
+                                                                                            className="max-w-full h-auto rounded border"
+                                                                                            onError={(e) => {
+                                                                                                const target = e.target as HTMLImageElement;
+                                                                                                target.style.display = 'none';
+                                                                                            }}
+                                                                                        />
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {/* Question */}
+                                                                                <div className="space-y-2">
+                                                                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                                                        <span className="bg-gray-100 px-2 py-1 rounded">Q{question.question_number}{question.sub_question && question.sub_question !== '-' ? question.sub_question : ''}</span>
+                                                                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">{question.course_code}</span>
+                                                                                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">{question.exam_type}</span>
+                                                                                        <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">{question.marks} marks</span>
+                                                                                    </div>
+                                                                                    <p className="text-gray-800 whitespace-pre-wrap">{question.question_text}</p>
+
+                                                                                    {/* Additional Info */}
+                                                                                    <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t">
+                                                                                        <span>Course: {question.course_title}</span>
+                                                                                        <span>Term: {question.semester_term}</span>
+                                                                                        {question.pdf_url && question.pdf_url !== 'N/A' && (
+                                                                                            <a
+                                                                                                href={question.pdf_url}
+                                                                                                target="_blank"
+                                                                                                rel="noopener noreferrer"
+                                                                                                className="text-blue-600 hover:text-blue-800 underline"
+                                                                                            >
+                                                                                                View PDF
+                                                                                            </a>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                );
+                                                            }
+                                                        } catch (error) {
+                                                            // If parsing fails, don't show questions
+                                                            return null;
+                                                        }
+                                                        return null;
+                                                    })()}
+
                                                     {message.metadata && Object.keys(message.metadata).length > 0 && (
                                                         <details className="text-xs text-gray-500">
                                                             <summary className="cursor-pointer hover:text-gray-700">Metadata</summary>
@@ -463,21 +544,35 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                             {/* Message input */}
                             <div className="border-t bg-white p-4">
                                 <div className="max-w-4xl mx-auto">
-                                    <div className="flex gap-3">
-                                        <Input
+                                    <div className="flex gap-3 items-end">
+                                        <textarea
                                             value={messageInput}
                                             onChange={(e) => setMessageInput(e.target.value)}
                                             onKeyPress={handleKeyPress}
-                                            placeholder="Type your message..."
+                                            placeholder="Type your message... (Shift+Enter for new line, Enter to send)"
                                             disabled={isSending}
-                                            className="flex-1"
+                                            className="flex-1 min-h-11 max-h-32 resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                            rows={1}
+                                            style={{
+                                                height: 'auto',
+                                                minHeight: '44px'
+                                            }}
+                                            onInput={(e) => {
+                                                const target = e.target as HTMLTextAreaElement;
+                                                target.style.height = 'auto';
+                                                target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                                            }}
                                         />
-                                        <Button 
+                                        <Button
                                             onClick={sendMessage}
                                             disabled={!messageInput.trim() || isSending}
-                                            size="icon"
+                                            className="bg-orange-500 hover:bg-orange-600 text-white h-11"
                                         >
-                                            <Send className="h-4 w-4" />
+                                            {isSending ? (
+                                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Send className="h-4 w-4" />
+                                            )}
                                         </Button>
                                     </div>
                                 </div>
@@ -500,21 +595,35 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                                 </Button>
                                 {/* Quick input for new chat */}
                                 <div className="pt-4">
-                                    <div className="flex gap-3">
-                                        <Input
+                                    <div className="flex gap-3 items-end">
+                                        <textarea
                                             value={messageInput}
                                             onChange={(e) => setMessageInput(e.target.value)}
                                             onKeyPress={handleKeyPress}
-                                            placeholder="Ask me anything..."
+                                            placeholder="Ask me anything... (Shift+Enter for new line, Enter to send)"
                                             disabled={isSending}
-                                            className="flex-1"
+                                            className="flex-1 min-h-11 max-h-32 resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                            rows={1}
+                                            style={{
+                                                height: 'auto',
+                                                minHeight: '44px'
+                                            }}
+                                            onInput={(e) => {
+                                                const target = e.target as HTMLTextAreaElement;
+                                                target.style.height = 'auto';
+                                                target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                                            }}
                                         />
-                                        <Button 
+                                        <Button
                                             onClick={sendMessage}
                                             disabled={!messageInput.trim() || isSending}
-                                            size="icon"
+                                            className="bg-orange-500 hover:bg-orange-600 text-white h-11"
                                         >
-                                            <Send className="h-4 w-4" />
+                                            {isSending ? (
+                                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Send className="h-4 w-4" />
+                                            )}
                                         </Button>
                                     </div>
                                 </div>
