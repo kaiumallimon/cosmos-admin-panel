@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
 import { getCollection } from '@/lib/mongodb';
+import { getCourseNameSpace, deleteVector } from '@/lib/pinecone-service';
 
 interface QuestionPart {
   _id?: any;
@@ -137,16 +138,57 @@ async function deleteHandler(req: AuthenticatedRequest) {
 
         const questionPartsCollection = await getCollection<QuestionPart>('question_parts');
         
-        // Delete the question from MongoDB
-        const result = await questionPartsCollection.deleteOne({ id: questionId });
+        // First, get the question to retrieve vector_id and course info
+        const questionToDelete = await questionPartsCollection.findOne({ id: questionId });
 
-        if (result.deletedCount === 0) {
+        if (!questionToDelete) {
             return NextResponse.json({ error: 'Question not found' }, { status: 404 });
         }
 
-        return NextResponse.json({ 
-            message: 'Question deleted successfully' 
-        }, { status: 200 });
+        try {
+            // Delete from Pinecone first (if vector_id exists)
+            if (questionToDelete.vector_id) {
+                const { index, namespace } = await getCourseNameSpace(questionToDelete.short);
+                const pineconeResult = await deleteVector(index, namespace, questionToDelete.vector_id);
+                
+                if (!pineconeResult.success) {
+                    console.warn('Failed to delete from Pinecone:', pineconeResult.message);
+                    // Continue with MongoDB deletion even if Pinecone fails
+                }
+            }
+
+            // Delete from MongoDB
+            const result = await questionPartsCollection.deleteOne({ id: questionId });
+
+            if (result.deletedCount === 0) {
+                return NextResponse.json({ error: 'Question not found in database' }, { status: 404 });
+            }
+
+            return NextResponse.json({ 
+                message: 'Question deleted successfully from both MongoDB and Pinecone',
+                deletedId: questionId,
+                vectorId: questionToDelete.vector_id || null
+            }, { status: 200 });
+
+        } catch (pineconeError: any) {
+            // If Pinecone deletion fails, we should still try to delete from MongoDB
+            console.error('Pinecone deletion error:', pineconeError);
+            
+            // Delete from MongoDB anyway
+            const result = await questionPartsCollection.deleteOne({ id: questionId });
+
+            if (result.deletedCount === 0) {
+                return NextResponse.json({ error: 'Question not found in database' }, { status: 404 });
+            }
+
+            return NextResponse.json({ 
+                message: 'Question deleted from MongoDB, but Pinecone deletion failed',
+                warning: 'Vector may still exist in Pinecone',
+                deletedId: questionId,
+                vectorId: questionToDelete.vector_id || null,
+                pineconeError: pineconeError.message
+            }, { status: 200 });
+        }
 
     } catch (error: any) {
         console.error('Delete question error:', error);
