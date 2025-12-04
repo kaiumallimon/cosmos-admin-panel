@@ -1,33 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+import { withAuth } from '@/lib/api-middleware';
+import { getCollection } from '@/lib/mongodb';
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+interface QuestionPart {
+  _id?: any;
+  id: number;
+  course_title: string;
+  short: string;
+  course_code: string;
+  semester_term: string;
+  exam_type: string;
+  question_number: string;
+  sub_question: string;
+  marks: number;
+  total_question_mark: number;
+  contribution_percentage: number;
+  has_image: boolean;
+  image_type: string | null;
+  image_url: string | null;
+  has_description: boolean;
+  description_content: string | null;
+  question: string;
+  created_at: Date;
+  vector_id: string;
+  pdf_url: string | null;
+}
+
+export const PUT = withAuth(async (req, { params }: { params: Promise<{ id: string }> }) => {
     try {
         const { id } = await params;
         const formData = await req.json();
+        const questionId = parseInt(id);
 
         // Remove id from formData to avoid conflicts
         const { id: _, ...updateData } = formData;
+        
+        // Add updated_at timestamp
+        const updateDocument = {
+            ...updateData,
+            updated_at: new Date()
+        };
 
-        // Update the question in Supabase
-        const { data, error } = await supabase
-            .from('question_parts')
-            .update(updateData)
-            .eq('id', id)
-            .select()
-            .single();
+        const questionPartsCollection = await getCollection<QuestionPart>('question_parts');
+        
+        // Update the question in MongoDB
+        const result = await questionPartsCollection.updateOne(
+            { id: questionId },
+            { $set: updateDocument }
+        );
 
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
-        }
-
-        if (!data) {
+        if (result.matchedCount === 0) {
             return NextResponse.json({ error: 'Question not found' }, { status: 404 });
         }
 
+        // Fetch the updated document
+        const updatedQuestion = await questionPartsCollection.findOne({ id: questionId });
+
         return NextResponse.json({ 
             message: 'Question updated successfully', 
-            data 
+            data: updatedQuestion 
         }, { status: 200 });
 
     } catch (error: any) {
@@ -36,18 +67,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             error: error.message || 'Internal server error' 
         }, { status: 500 });
     }
-}
+});
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
-
+        const questionId = parseInt(id);
+        
+        const questionPartsCollection = await getCollection<QuestionPart>('question_parts');
+        
         // Fetch the specific question
-        const { data, error } = await supabase
-            .from('question_parts')
-            .select('*')
-            .eq('id', id)
-            .single();
+        const data = await questionPartsCollection.findOne({ id: questionId });
 
         if (error) {
             return NextResponse.json({ error: error.message }, { status: 500 });

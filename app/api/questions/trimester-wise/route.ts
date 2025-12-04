@@ -1,43 +1,54 @@
-import { supabase } from '@/lib/supabaseClient'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server';
+import { getCollection } from '@/lib/mongodb';
+
+interface QuestionPart {
+  _id?: any;
+  id: number;
+  course_title: string;
+  short: string;
+  course_code: string;
+  semester_term: string;
+  exam_type: string;
+  question_number: string;
+  sub_question: string;
+  marks: number;
+  total_question_mark: number;
+  contribution_percentage: number;
+  has_image: boolean;
+  image_type: string | null;
+  image_url: string | null;
+  has_description: boolean;
+  description_content: string | null;
+  question: string;
+  created_at: Date;
+  vector_id: string;
+  pdf_url: string | null;
+}
 
 export async function GET(req: NextRequest) {
-  const term = req.nextUrl.searchParams.get('term') // exam_type, e.g. "final"
-  const course_code = req.nextUrl.searchParams.get('course_code') // e.g. "CSE-1111"
+  try {
+    const term = req.nextUrl.searchParams.get('term'); // exam_type, e.g. "final"
+    const course_code = req.nextUrl.searchParams.get('course_code'); // e.g. "CSE-1111"
 
-  console.log("Received exam_type parameter:", term)
-  console.log("Received course_code parameter:", course_code)
+    console.log("Received exam_type parameter:", term);
+    console.log("Received course_code parameter:", course_code);
 
-  // First, let's check what data exists in the question_parts table
-  const { data: allData, error: allError } = await supabase
-    .from('question_parts')
-    .select('semester_term, short, exam_type, course_code')
-    .limit(10)
+    const questionPartsCollection = await getCollection<QuestionPart>('question_parts');
+    
+    // Build filter query
+    const filter: any = {};
+    if (term) filter.exam_type = term;
+    if (course_code) filter.course_code = course_code;
 
-  console.log("Sample data from question_parts:", allData, allError)
+    // Get unique semester terms with the applied filters
+    const data = await questionPartsCollection
+      .find(filter, { projection: { semester_term: 1, short: 1, exam_type: 1, course_code: 1 } })
+      .toArray();
 
-  // Build the query dynamically
-  let query = supabase
-    .from('question_parts')
-    .select('semester_term, short, exam_type, course_code')
+    console.log("Fetched semester terms:", data);
 
-  // Apply filters if provided
-  if (term) query = query.eq('exam_type', term)
-  if (course_code) query = query.eq('course_code', course_code)
-
-  const { data, error } = await query
-
-  console.log("Fetched semester terms:", data, error)
-  
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  // Use only question_parts table data
-  const combinedData = data || []
-
-  // Filter out nulls and extract unique semester terms
-  const uniqueTerms = [...new Set(combinedData.map(item => item.semester_term).filter(Boolean))]
+    // Filter out nulls and extract unique semester terms
+    const uniqueTerms = [...new Set(data.map(item => item.semester_term).filter(Boolean))]
 
   // Sort numerically descending (e.g., 20242 > 20241)
   const sortedTerms = uniqueTerms.sort((a, b) => Number(b) - Number(a))
