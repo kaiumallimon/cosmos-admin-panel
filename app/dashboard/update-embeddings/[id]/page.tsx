@@ -203,8 +203,8 @@ export default function EmbeddCoursePage() {
           </div>
 
           {/* Centered Embedding Card */}
-          <Card className="w-full p-6 mt-8 bg-background flex flex-col items-center justify-center text-center border border-gray-300 dark:border-gray-600 rounded-md hover:border-orange-500 transition-colors duration-300 hover:bg-orange-500/5">
-            <p className="p-4 text-black/80 text-sm md:text-base text-left">
+          <Card className="w-full p-6 mt-8 bg-background flex flex-col items-center justify-center text-center hover:border-orange-500 transition-colors duration-300 hover:bg-orange-500/5">
+            <p className="p-4 text-gray-800 dark:text-gray-200 text-sm md:text-base text-left">
               Update Embedding is a bulk operation that replaces existing embeddings for all questions in this course. This process may take several minutes depending on the number of questions. Please ensure you have a stable internet connection and do not navigate away from this page until the process is complete. Otherwise, you may need to restart the update process from the beginning.
             </p>
 
