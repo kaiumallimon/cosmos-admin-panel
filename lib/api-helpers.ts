@@ -1,16 +1,17 @@
-import { supabase } from './supabaseClient';
+import { AUTH_STORAGE_KEY } from './auth-client';
 
-export const getCurrentSessionToken = async (): Promise<string | null> => {
+// Helper function to get access token from localStorage
+const getTokenFromStorage = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  
   try {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const authData = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!authData) return null;
     
-    if (error || !session) {
-      return null;
-    }
-    
-    return session.access_token;
+    const parsed = JSON.parse(authData);
+    return parsed.accessToken || null;
   } catch (error) {
-    console.error('Error getting session token:', error);
+    console.error('Error getting token from localStorage:', error);
     return null;
   }
 };
@@ -22,8 +23,8 @@ const getTokenFromCookie = (): string | null => {
   const cookies = document.cookie.split(';');
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=');
-    if (name === 'token') {
-      return value;
+    if (name === 'accessToken') {
+      return decodeURIComponent(value);
     }
   }
   return null;
@@ -34,24 +35,20 @@ export const makeAuthenticatedRequest = async (
   options: RequestInit = {}
 ): Promise<Response> => {
   // Try to get token from different sources in order of preference
-  let token = localStorage.getItem('token') || getTokenFromCookie();
+  let token = getTokenFromStorage() || getTokenFromCookie();
   
-  // Fallback to Supabase session token if other methods fail
-  if (!token) {
-    token = await getCurrentSessionToken();
-  }
-  
-  if (!token) {
-    throw new Error('No authentication token available. Please log in again.');
-  }
-  
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
-    ...options.headers,
+    ...options.headers as Record<string, string>,
   };
   
+  // Add Authorization header if token is available
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
   return fetch(url, {
+    credentials: 'include', // Always include cookies for fallback auth
     ...options,
     headers,
   });

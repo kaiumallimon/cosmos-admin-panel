@@ -5,10 +5,10 @@ export interface AuthenticatedRequest extends NextRequest {
   user?: User;
 }
 
-export async function withAuth(
+export function withAuth(
   handler: (req: AuthenticatedRequest) => Promise<NextResponse>
-) {
-  return async (req: NextRequest) => {
+): (req: NextRequest) => Promise<NextResponse> {
+  return async (req: NextRequest): Promise<NextResponse> => {
     try {
       // Get access token from cookies or Authorization header
       const authHeader = req.headers.get('Authorization');
@@ -45,7 +45,7 @@ export async function withAuth(
       const authenticatedReq = req as AuthenticatedRequest;
       authenticatedReq.user = user;
       
-      return await handler(authenticatedReq);
+      return handler(authenticatedReq);
     } catch (error) {
       console.error('Auth middleware error:', error);
       return NextResponse.json(
@@ -56,10 +56,10 @@ export async function withAuth(
   };
 }
 
-export async function withOptionalAuth(
+export function withOptionalAuth(
   handler: (req: AuthenticatedRequest) => Promise<NextResponse>
-) {
-  return async (req: NextRequest) => {
+): (req: NextRequest) => Promise<NextResponse> {
+  return async (req: NextRequest): Promise<NextResponse> => {
     try {
       // Get access token from cookies or Authorization header
       const authHeader = req.headers.get('Authorization');
@@ -78,11 +78,11 @@ export async function withOptionalAuth(
         }
       }
       
-      return await handler(authenticatedReq);
+      return handler(authenticatedReq);
     } catch (error) {
       console.error('Optional auth middleware error:', error);
       // Continue without authentication on error
-      return await handler(req as AuthenticatedRequest);
+      return handler(req as AuthenticatedRequest);
     }
   };
 }

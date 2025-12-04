@@ -4,11 +4,11 @@ declare global {
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
-const MONGODB_URI = process.env.MONGODB_URI!;
+const MONGODB_URI = process.env.MONGODB_URI;
 const MONGODB_DB = process.env.MONGODB_DB || 'cosmos-admin';
 
 if (!MONGODB_URI) {
-  throw new Error('Please add your MongoDB URI to .env.local');
+  throw new Error('MONGODB_URI environment variable is required. Please create a .env.local file with MONGODB_URI=your_mongodb_connection_string');
 }
 
 let client: MongoClient;

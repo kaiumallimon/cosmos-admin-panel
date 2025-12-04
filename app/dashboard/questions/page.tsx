@@ -17,6 +17,7 @@ import { useMobileMenu } from "@/components/mobile-menu-context";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { StatsCard } from "@/components/dashboard/stats-card";
+import { makeAuthenticatedRequest } from "@/lib/api-helpers";
 
 export default function QuestionsCoursePage() {
   const [courses, setCourses] = useState<any[]>([]);
@@ -32,19 +33,21 @@ export default function QuestionsCoursePage() {
         setLoading(true);
         setError(null);
 
-        const [coursesRes, questionsRes] = await Promise.all([
-          fetch(`/api/courses`),
-          fetch(`/api/questions/count`),
-        ]);
+        const dashboardRes = await makeAuthenticatedRequest(`/api/dashboard/questions/stats`);
 
-        if (!coursesRes.ok) throw new Error("Failed to fetch courses");
-        if (!questionsRes.ok) throw new Error("Failed to fetch questions count");
+        console.log('Dashboard API response status:', dashboardRes.status, dashboardRes.statusText);
 
-        const coursesData = await coursesRes.json();
-        const questionsData = await questionsRes.json();
+        if (!dashboardRes.ok) {
+          const errorText = await dashboardRes.text();
+          console.error('Dashboard API error response:', errorText);
+          throw new Error(`Failed to fetch dashboard data: ${dashboardRes.status} ${errorText}`);
+        }
 
-        setCourses(coursesData.data || []);
-        setTotalQuestions(questionsData.count || 0);
+        const dashboardData = await dashboardRes.json();
+        console.log('Dashboard API response data:', dashboardData);
+
+        setCourses(dashboardData.data.courses || []);
+        setTotalQuestions(dashboardData.data.totalQuestions || 0);
       } catch (err) {
         console.error(err);
         setError("Failed to load data");
@@ -63,8 +66,8 @@ export default function QuestionsCoursePage() {
       .join(" ");
   }
 
-  function toUpperCase(str: string) {
-    return str.toUpperCase();
+  function toUpperCase(str: string | undefined) {
+    return str ? str.toUpperCase() : '';
   }
 
   if (loading) {
@@ -162,7 +165,7 @@ export default function QuestionsCoursePage() {
               onClick={()=>router.push("/dashboard/questions/" + course.course_code)}>
               <CardHeader>
                 <h1 className="opacity-75">{course.course_code}</h1>
-                <h1 className="font-bold text-base">{toTitleCase(course.course_title)} ({toUpperCase(course.short)})</h1>
+                <h1 className="font-bold text-base">{toTitleCase(course.course_title)}{course.short ? ` (${toUpperCase(course.short)})` : ''}</h1>
               </CardHeader>
             </Card>
           ))}

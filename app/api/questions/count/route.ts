@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { withAuth } from '@/lib/api-middleware';
 import { getCollection } from '@/lib/mongodb';
 
 interface QuestionPart {
@@ -25,7 +26,7 @@ interface QuestionPart {
   pdf_url: string | null;
 }
 
-export async function GET() {
+export const GET = withAuth(async (req) => {
   try {
     const questionPartsCollection = await getCollection<QuestionPart>('question_parts');
     const count = await questionPartsCollection.countDocuments();
@@ -38,4 +39,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});

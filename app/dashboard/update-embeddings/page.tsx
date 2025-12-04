@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { FrostedHeader } from "@/components/custom/frosted-header";
 import { useMobileMenu } from "@/components/mobile-menu-context";
+import { makeAuthenticatedRequest } from "@/lib/api-helpers";
 
 import {
   Breadcrumb,
@@ -23,6 +24,7 @@ import { Code2Icon } from "lucide-react";
 
 export default function EmbeddingsCoursePage() {
   const [courses, setCourses] = useState<any[]>([]);
+  const [totalCourses, setTotalCourses] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,21 +32,27 @@ export default function EmbeddingsCoursePage() {
   const { toggleMobileMenu } = useMobileMenu();
 
   // ─────────────────────────────────────────────
-  // Fetch Courses
+  // Fetch Courses using efficient dashboard API
   // ─────────────────────────────────────────────
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
+        setError(null);
 
-        const res = await fetch(`/api/courses`);
-        if (!res.ok) {
-          const err = await res.json().catch(() => null);
-          throw new Error(err?.error ?? res.statusText);
+        const dashboardRes = await makeAuthenticatedRequest(`/api/dashboard/questions/stats`);
+
+        if (!dashboardRes.ok) {
+          const errorText = await dashboardRes.text();
+          console.error('Dashboard API error response:', errorText);
+          throw new Error(`Failed to fetch dashboard data: ${dashboardRes.status} ${errorText}`);
         }
 
-        const json = await res.json();
-        setCourses(json.data || []);
+        const dashboardData = await dashboardRes.json();
+        console.log('Dashboard API response data:', dashboardData);
+
+        setCourses(dashboardData.data.courses || []);
+        setTotalCourses(dashboardData.data.totalUniqueCourses || 0);
       } catch (err) {
         console.error(err);
         setError("Failed to load courses");
@@ -156,7 +164,7 @@ export default function EmbeddingsCoursePage() {
             <Card>
               <CardHeader>
                 <p className="text-sm text-muted-foreground">Total Courses</p>
-                <p className="text-2xl font-semibold">{courses.length}</p>
+                <p className="text-2xl font-semibold">{totalCourses}</p>
               </CardHeader>
             </Card>
 
