@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, signInWithEmail, signOut, getCurrentUser, logoutUser, AUTH_STORAGE_KEY } from '@/lib/auth';
+import { User, logoutUser, AUTH_STORAGE_KEY } from '@/lib/auth-client';
 
 interface AuthState {
   user: User;
@@ -25,11 +25,19 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password: string) => {
         try {
           set({ isLoading: true });
-          console.log("Auth store: Starting Supabase login process...");
+          console.log("Auth store: Starting MongoDB login process...");
           
-          const result = await signInWithEmail(email, password);
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+          });
           
-          if (result.success && result.user) {
+          const result = await response.json();
+          
+          if (response.ok && result.success && result.user) {
             console.log("Auth store: Login successful, setting user:", result.user);
             
             // Update Zustand state
@@ -42,16 +50,6 @@ export const useAuthStore = create<AuthState>()(
             // Set session cookie for middleware access
             document.cookie = `auth-session=${JSON.stringify({ user: result.user })}; path=/; max-age=3600; SameSite=Lax`;
             console.log("Auth store: Set session cookie");
-
-            // Also set `token` cookie (used by middleware) to the Supabase access token if available.
-            // If the token wasn't returned, fall back to the user id to avoid immediate redirect loops.
-            try {
-              const tokenValue = (result as any).token ?? result.user.id;
-              document.cookie = `token=${tokenValue}; path=/; max-age=3600; SameSite=Lax`;
-              console.log("Auth store: Set token cookie");
-            } catch (e) {
-              console.warn('Auth store: Could not set token cookie', e);
-            }
             
             return { success: true };
           } else {
@@ -70,8 +68,10 @@ export const useAuthStore = create<AuthState>()(
         try {
           console.log("Auth store: Starting logout process...");
           
-          // Sign out from Supabase
-          await signOut();
+          // Call logout API
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+          });
           
           // Clear local state
           const user = logoutUser();
@@ -96,17 +96,58 @@ export const useAuthStore = create<AuthState>()(
       initializeAuth: async () => {
         try {
           console.log("Auth store: Initializing auth...");
-          const currentUser = await getCurrentUser();
           
-          if (currentUser && currentUser.role === 'admin') {
-            console.log("Auth store: Found authenticated admin user:", currentUser.email);
-            set({ user: currentUser });
+          const response = await fetch('/api/auth/me', {
+            method: 'GET',
+            credentials: 'include',
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.user && result.user.role === 'admin') {
+              console.log("Auth store: Found authenticated admin user:", result.user.email);
+              set({ user: result.user });
+              
+              // Update localStorage and cookie
+              localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: result.user }));
+              document.cookie = `auth-session=${JSON.stringify({ user: result.user })}; path=/; max-age=3600; SameSite=Lax`;
+            } else {
+              console.log("Auth store: No authenticated admin user found");
+              const user = logoutUser();
+              set({ user });
+            }
+          } else if (response.status === 401) {
+            // Token might be expired, try to refresh
+            const refreshResponse = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              credentials: 'include',
+            });
             
-            // Update localStorage and cookie
-            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: currentUser }));
-            document.cookie = `auth-session=${JSON.stringify({ user: currentUser })}; path=/; max-age=3600; SameSite=Lax`;
-          } else {
+            if (refreshResponse.ok) {
+              // Retry getting user after refresh
+              const retryResponse = await fetch('/api/auth/me', {
+                method: 'GET',
+                credentials: 'include',
+              });
+              
+              if (retryResponse.ok) {
+                const retryResult = await retryResponse.json();
+                if (retryResult.success && retryResult.user && retryResult.user.role === 'admin') {
+                  console.log("Auth store: Found authenticated admin user after refresh:", retryResult.user.email);
+                  set({ user: retryResult.user });
+                  
+                  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: retryResult.user }));
+                  document.cookie = `auth-session=${JSON.stringify({ user: retryResult.user })}; path=/; max-age=3600; SameSite=Lax`;
+                  return;
+                }
+              }
+            }
+            
             console.log("Auth store: No authenticated admin user found");
+            const user = logoutUser();
+            set({ user });
+          } else {
+            console.log("Auth store: Error checking authentication");
             const user = logoutUser();
             set({ user });
           }
