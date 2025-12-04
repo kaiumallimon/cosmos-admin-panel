@@ -1,46 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { connectToDatabase } from '@/lib/mongodb';
+import { Course, CourseUpdateRequest } from '@/lib/course-types';
+import { withAuth } from '@/lib/api-middleware';
+import { ObjectId } from 'mongodb';
 
 // GET - Fetch a single course by ID
-export async function GET(
+async function getCourse(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const { data: course, error } = await supabase
-      .from('courses')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { db } = await connectToDatabase();
+    const collection = db.collection<Course>('courses');
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Course not found' }, { status: 404 });
-      }
-      console.error('Error fetching course:', error);
-      return NextResponse.json({ error: 'Failed to fetch course' }, { status: 500 });
+    const course = await collection.findOne({ id });
+
+    if (!course) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    return NextResponse.json(course);
+    return NextResponse.json({
+      ...course,
+      _id: course._id?.toString(),
+    });
   } catch (error) {
     console.error('Error in GET /api/course-management/courses/[id]:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
+export const GET = withAuth(getCourse);
+
 // PUT - Update a course
-export async function PUT(
+async function updateCourse(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
+    const body: CourseUpdateRequest = await request.json();
     const { title, code, credit, department } = body;
 
     // Validate required fields
-    if (!title || !code || !credit) {
+    if (!title || !code || credit === undefined) {
       return NextResponse.json(
         { error: 'Title, code, and credit are required' },
         { status: 400 }
@@ -55,58 +58,68 @@ export async function PUT(
       );
     }
 
-    // Update the course
-    const { data: course, error } = await supabase
-      .from('courses')
-      .update({
-        title: title.trim(),
-        code: code.trim().toUpperCase(),
-        credit,
-        department: department?.trim() || null,
-      })
-      .eq('id', id)
-      .select()
-      .single();
+    const { db } = await connectToDatabase();
+    const collection = db.collection<Course>('courses');
 
-    if (error) {
-      // Handle unique constraint violation for course code
-      if (error.code === '23505' && error.message.includes('courses_code_key')) {
-        return NextResponse.json(
-          { error: 'Course code already exists' },
-          { status: 409 }
-        );
-      }
-      
-      if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Course not found' }, { status: 404 });
-      }
-      
-      console.error('Error updating course:', error);
-      return NextResponse.json({ error: 'Failed to update course' }, { status: 500 });
+    const trimmedCode = code.trim().toUpperCase();
+    
+    // Check if course code already exists for a different course
+    const existingCourse = await collection.findOne({ 
+      code: trimmedCode,
+      id: { $ne: id }
+    });
+    if (existingCourse) {
+      return NextResponse.json(
+        { error: 'Course code already exists' },
+        { status: 409 }
+      );
     }
 
-    return NextResponse.json(course);
+    // Update the course
+    const updateData = {
+      title: title.trim(),
+      code: trimmedCode,
+      credit,
+      department: department?.trim() || '',
+      updated_at: new Date(),
+    };
+
+    const result = await collection.findOneAndUpdate(
+      { id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      ...result,
+      _id: result._id?.toString(),
+    });
   } catch (error) {
     console.error('Error in PUT /api/course-management/courses/[id]:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
+export const PUT = withAuth(updateCourse);
+
 // DELETE - Delete a course
-export async function DELETE(
+async function deleteCourse(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const { error } = await supabase
-      .from('courses')
-      .delete()
-      .eq('id', id);
+    const { db } = await connectToDatabase();
+    const collection = db.collection<Course>('courses');
 
-    if (error) {
-      console.error('Error deleting course:', error);
-      return NextResponse.json({ error: 'Failed to delete course' }, { status: 500 });
+    const result = await collection.deleteOne({ id });
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
     return NextResponse.json({ message: 'Course deleted successfully' });
@@ -115,3 +128,5 @@ export async function DELETE(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export const DELETE = withAuth(deleteCourse);

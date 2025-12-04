@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Course, CourseCreateRequest, CourseResponse } from "@/lib/course-types";
 import { v4 as uuidv4 } from 'uuid';
-import { withAuth } from "@/middleware/auth";
+import { withAuth } from "@/lib/api-middleware";
 
 // GET - Fetch all courses with stats
 async function getCourses() {

@@ -30,6 +30,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BookOpen, Building, Edit, Eye, MoreHorizontal, Plus, Search, Trash2, User, Users, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { makeAuthenticatedJsonRequest } from "@/lib/api-helpers";
+import { handleApiError, retryOperation } from "@/lib/error-handling";
+import { toast } from "sonner";
 
 interface Course {
     id: string;
@@ -74,12 +77,24 @@ export default function CoursesPage() {
 
     const fetchCourses = async () => {
         setLoading(true);
+        setError(null);
         try {
-            const res = await fetch('/api/course-management/courses');
-            const data: CourseResponse = await res.json();
-            setCourseResponse(data);
-        } catch (error) {
-            setError('Failed to fetch courses');
+            const result = await retryOperation(
+                () => makeAuthenticatedJsonRequest('/api/course-management/courses'),
+                3,
+                1000,
+                'Loading courses'
+            );
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to fetch courses');
+            }
+            
+            setCourseResponse(result.data);
+        } catch (error: any) {
+            const errorMessage = error.message || 'Failed to fetch courses';
+            setError(errorMessage);
+            handleApiError(errorMessage, 'Loading courses');
         } finally {
             setLoading(false);
         }
@@ -112,24 +127,32 @@ export default function CoursesPage() {
         setFormError(null);
 
         try {
-            const res = await fetch('/api/course-management/courses', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
+            const loadingToast = toast.loading('Creating course...');
+            
+            const result = await retryOperation(
+                () => makeAuthenticatedJsonRequest('/api/course-management/courses', {
+                    method: 'POST',
+                    body: JSON.stringify(formData),
+                }),
+                2,
+                1000,
+                'Creating course'
+            );
+            
+            toast.dismiss(loadingToast);
 
-            const data = await res.json();
-
-            if (!res.ok) {
-                setFormError(data.error || 'Failed to create course');
+            if (!result.success) {
+                setFormError(result.error || 'Failed to create course');
                 return;
             }
 
+            toast.success('Course created successfully!', { duration: 4000 });
             setAddDialogOpen(false);
             resetForm();
             fetchCourses();
-        } catch (error) {
-            setFormError('An error occurred while creating the course');
+        } catch (error: any) {
+            const errorMessage = error.message || 'An error occurred while creating the course';
+            setFormError(errorMessage);
         } finally {
             setFormLoading(false);
         }
@@ -142,25 +165,33 @@ export default function CoursesPage() {
         setFormError(null);
 
         try {
-            const res = await fetch(`/api/course-management/courses/${selectedCourse.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
+            const loadingToast = toast.loading('Updating course...');
+            
+            const result = await retryOperation(
+                () => makeAuthenticatedJsonRequest(`/api/course-management/courses/${selectedCourse.id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(formData),
+                }),
+                2,
+                1000,
+                'Updating course'
+            );
+            
+            toast.dismiss(loadingToast);
 
-            const data = await res.json();
-
-            if (!res.ok) {
-                setFormError(data.error || 'Failed to update course');
+            if (!result.success) {
+                setFormError(result.error || 'Failed to update course');
                 return;
             }
 
+            toast.success('Course updated successfully!', { duration: 4000 });
             setEditDialogOpen(false);
             resetForm();
             setSelectedCourse(null);
             fetchCourses();
-        } catch (error) {
-            setFormError('An error occurred while updating the course');
+        } catch (error: any) {
+            const errorMessage = error.message || 'An error occurred while updating the course';
+            setFormError(errorMessage);
         } finally {
             setFormLoading(false);
         }
@@ -172,21 +203,30 @@ export default function CoursesPage() {
         setFormLoading(true);
 
         try {
-            const res = await fetch(`/api/course-management/courses/${selectedCourse.id}`, {
-                method: 'DELETE',
-            });
+            const loadingToast = toast.loading(`Deleting course "${selectedCourse.title}"...`);
+            
+            const result = await retryOperation(
+                () => makeAuthenticatedJsonRequest(`/api/course-management/courses/${selectedCourse.id}`, {
+                    method: 'DELETE',
+                }),
+                2,
+                1000,
+                'Deleting course'
+            );
+            
+            toast.dismiss(loadingToast);
 
-            if (!res.ok) {
-                const data = await res.json();
-                alert(data.error || 'Failed to delete course');
+            if (!result.success) {
+                handleApiError(result.error || 'Failed to delete course', 'Delete course');
                 return;
             }
 
+            toast.success(`Course "${selectedCourse.title}" deleted successfully!`, { duration: 4000 });
             setDeleteDialogOpen(false);
             setSelectedCourse(null);
             fetchCourses();
-        } catch (error) {
-            alert('An error occurred while deleting the course');
+        } catch (error: any) {
+            handleApiError(error.message || 'An error occurred while deleting the course', 'Delete course');
         } finally {
             setFormLoading(false);
         }
@@ -211,7 +251,94 @@ export default function CoursesPage() {
     if (loading) {
         return (
             <ProtectedRoute>
-                <div>Loading...</div>
+                <div className="min-h-screen bg-background">
+                    {/* Header Skeleton */}
+                    <div className="bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm border-b border-border sticky top-0 z-40">
+                        <div className="flex items-center justify-between px-6 py-4">
+                            <Skeleton className="h-8 w-48" />
+                            <Skeleton className="h-10 w-10 rounded-md" />
+                        </div>
+                    </div>
+
+                    <div className="p-6">
+                        {/* Breadcrumb Skeleton */}
+                        <div className="flex items-center space-x-2 mb-6">
+                            <Skeleton className="h-4 w-20" />
+                            <Skeleton className="h-4 w-4" />
+                            <Skeleton className="h-4 w-32" />
+                        </div>
+
+                        {/* Stats Cards Skeleton */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mb-6">
+                            {[...Array(2)].map((_, i) => (
+                                <Card key={i} className="p-6">
+                                    <div className="flex items-center space-x-4">
+                                        <Skeleton className="h-12 w-12 rounded-lg" />
+                                        <div className="space-y-2">
+                                            <Skeleton className="h-4 w-24" />
+                                            <Skeleton className="h-8 w-16" />
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+
+                        {/* Main Card Skeleton */}
+                        <Card>
+                            <CardHeader className="pb-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-2">
+                                        <Skeleton className="h-6 w-40" />
+                                        <Skeleton className="h-4 w-64" />
+                                    </div>
+                                    <Skeleton className="h-10 w-32" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {/* Search and Filter Skeleton */}
+                                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                                    <Skeleton className="h-10 flex-1" />
+                                    <Skeleton className="h-10 w-full sm:w-[180px]" />
+                                </div>
+
+                                {/* Table Skeleton */}
+                                <div className="bg-white dark:bg-card rounded-lg border shadow-sm overflow-hidden">
+                                    <div className="p-6 space-y-4">
+                                        {/* Table Header Skeleton */}
+                                        <div className="flex items-center space-x-4 pb-4 border-b">
+                                            <Skeleton className="h-4 w-24" />
+                                            <Skeleton className="h-4 w-16" />
+                                            <Skeleton className="h-4 w-16" />
+                                            <Skeleton className="h-4 w-24" />
+                                            <Skeleton className="h-4 w-20" />
+                                            <Skeleton className="h-4 w-20" />
+                                            <Skeleton className="h-4 w-16 ml-auto" />
+                                        </div>
+                                        
+                                        {/* Table Rows Skeleton */}
+                                        {[...Array(5)].map((_, i) => (
+                                            <div key={i} className="flex items-center space-x-4 py-3">
+                                                <div className="flex items-center space-x-3">
+                                                    <Skeleton className="h-10 w-10 rounded-full" />
+                                                    <div className="space-y-2">
+                                                        <Skeleton className="h-4 w-32" />
+                                                        <Skeleton className="h-3 w-20" />
+                                                    </div>
+                                                </div>
+                                                <Skeleton className="h-4 w-16" />
+                                                <Skeleton className="h-6 w-20 rounded-full" />
+                                                <Skeleton className="h-6 w-16 rounded-full" />
+                                                <Skeleton className="h-4 w-20" />
+                                                <Skeleton className="h-4 w-20" />
+                                                <Skeleton className="h-8 w-8 rounded ml-auto" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
             </ProtectedRoute>
         );
     }
@@ -341,19 +468,7 @@ export default function CoursesPage() {
                                             Try Again
                                         </Button>
                                     </div>
-                                ) : loading ? (
-                                    <div className="p-6 space-y-4">
-                                        {[...Array(5)].map((_, i) => (
-                                            <div key={i} className="flex items-center space-x-4">
-                                                <Skeleton className="h-12 w-12 rounded-full" />
-                                                <div className="space-y-2 flex-1">
-                                                    <Skeleton className="h-4 w-[250px]" />
-                                                    <Skeleton className="h-4 w-[200px]" />
-                                                </div>
-                                                <Skeleton className="h-8 w-24" />
-                                            </div>
-                                        ))}
-                                    </div>
+
                                 ) : filteredCourses.length === 0 ? (
                                     <div className="p-12 text-center">
                                         <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
