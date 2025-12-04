@@ -28,6 +28,7 @@ import {
   BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -158,23 +159,90 @@ export default function QuestionsPage() {
             return;
         }
 
+        // Show loading toast
+        const loadingToast = toast.loading("Deleting question from MongoDB and Pinecone...");
+
         try {
             const response = await fetch(`/api/questions/${questionId}`, {
                 method: 'DELETE',
             });
 
-            if (response.ok) {
-                // Update local state by removing the deleted question
+            const result = await response.json();
+
+            if (response.ok && result.transaction === 'completed' && !result.criticalError) {
+                // Update local state immediately for better UX
                 setQuestions(prev => prev.filter(q => q.id !== questionId));
                 
-                console.log("Question deleted successfully");
+                // Show success toast with details
+                toast.success("Question deleted successfully!", {
+                    description: `Q${questionToDelete?.question_number}${questionToDelete?.sub_question ? `.${questionToDelete.sub_question}` : ""} removed from both MongoDB and Pinecone`,
+                    duration: 5000
+                });
+
+                // Verify deletion by refreshing data after a short delay
+                setTimeout(async () => {
+                    try {
+                        const verifyResponse = await fetch(`/api/questions/${questionId}`, {
+                            method: 'GET',
+                        });
+                        
+                        if (verifyResponse.ok) {
+                            // Question still exists! Update UI to reflect reality
+                            console.warn("Question still exists after deletion - refreshing data");
+                            toast.warning("Deletion verification failed", {
+                                description: "Question may still exist - refreshing data",
+                                duration: 3000
+                            });
+                            fetchQuestions();
+                        }
+                        // If 404, question is properly deleted (expected)
+                    } catch (verifyError) {
+                        // Network error during verification, refresh to be safe
+                        console.warn("Could not verify deletion:", verifyError);
+                        fetchQuestions();
+                    }
+                }, 2000);
+            } else if (response.ok && result.criticalError) {
+                // Critical error - don't update local state, force refresh
+                toast.error("Critical Error: Data Inconsistency!", {
+                    description: result.message || "Manual intervention required - refreshing data...",
+                    duration: 10000
+                });
+                
+                // Force refresh the data to show actual server state
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else if (response.ok && result.transaction !== 'completed') {
+                // Partial failure - don't update local state
+                toast.error("Deletion Failed", {
+                    description: result.error || "Transaction was not completed successfully",
+                    duration: 5000
+                });
+                
+                // Refresh data to ensure UI matches server state
+                fetchQuestions();
             } else {
-                const errorData = await response.json();
-                alert(`Failed to delete question: ${errorData.error}`);
+                // Standard error responses
+                toast.error("Failed to delete question", {
+                    description: result.error || "An unexpected error occurred",
+                    duration: 5000
+                });
             }
         } catch (error) {
             console.error("Delete error:", error);
-            alert("An error occurred while deleting the question");
+            toast.error("Network Error", {
+                description: "Failed to communicate with the server - data may be inconsistent",
+                duration: 5000
+            });
+            
+            // Refresh data to ensure UI matches server state after network error
+            setTimeout(() => {
+                fetchQuestions();
+            }, 1000);
+        } finally {
+            // Dismiss loading toast
+            toast.dismiss(loadingToast);
         }
     };
 

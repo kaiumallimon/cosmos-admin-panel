@@ -145,49 +145,82 @@ async function deleteHandler(req: AuthenticatedRequest) {
             return NextResponse.json({ error: 'Question not found' }, { status: 404 });
         }
 
-        try {
-            // Delete from Pinecone first (if vector_id exists)
-            if (questionToDelete.vector_id) {
+        // Transaction-style deletion: Ensure both operations can succeed before committing either
+        // Step 1: Pre-validate both operations without committing
+        let pineconeService = null;
+        if (questionToDelete.vector_id) {
+            try {
                 const { index, namespace } = await getCourseNameSpace(questionToDelete.short);
-                const pineconeResult = await deleteVector(index, namespace, questionToDelete.vector_id);
+                pineconeService = { index, namespace, vectorId: questionToDelete.vector_id };
+            } catch (pineconeError: any) {
+                return NextResponse.json({ 
+                    error: 'Failed to connect to Pinecone: ' + pineconeError.message,
+                    transaction: 'aborted'
+                }, { status: 500 });
+            }
+        }
+
+        // Step 2: Verify MongoDB connection is working
+        try {
+            await questionPartsCollection.findOne({ id: questionId });
+        } catch (mongoError: any) {
+            return NextResponse.json({ 
+                error: 'MongoDB connection failed: ' + mongoError.message,
+                transaction: 'aborted'
+            }, { status: 500 });
+        }
+
+        // Step 3: Execute both deletions - if either fails, the whole operation fails
+        try {
+            let pineconeResult = { success: true, message: 'No vector to delete' };
+            
+            // Delete from Pinecone first (if vector exists)
+            if (pineconeService) {
+                pineconeResult = await deleteVector(
+                    pineconeService.index, 
+                    pineconeService.namespace, 
+                    pineconeService.vectorId
+                );
                 
                 if (!pineconeResult.success) {
-                    console.warn('Failed to delete from Pinecone:', pineconeResult.message);
-                    // Continue with MongoDB deletion even if Pinecone fails
+                    throw new Error(`Pinecone deletion failed: ${pineconeResult.message}`);
                 }
             }
 
-            // Delete from MongoDB
-            const result = await questionPartsCollection.deleteOne({ id: questionId });
-
-            if (result.deletedCount === 0) {
-                return NextResponse.json({ error: 'Question not found in database' }, { status: 404 });
+            // Delete from MongoDB - if this fails after Pinecone succeeds, we have a problem
+            const mongoResult = await questionPartsCollection.deleteOne({ id: questionId });
+            
+            if (mongoResult.deletedCount === 0) {
+                // This is bad - Pinecone was deleted but MongoDB deletion failed
+                if (pineconeService) {
+                    console.error(`CRITICAL: Vector ${pineconeService.vectorId} deleted from Pinecone but MongoDB deletion failed for question ${questionId}`);
+                    return NextResponse.json({ 
+                        error: 'Transaction consistency error: Pinecone deletion succeeded but MongoDB failed',
+                        criticalError: true,
+                        message: 'Data inconsistency detected - manual intervention required',
+                        questionId: questionId,
+                        vectorId: pineconeService.vectorId
+                    }, { status: 500 });
+                } else {
+                    return NextResponse.json({ error: 'Question not found in database' }, { status: 404 });
+                }
             }
 
+            // Success: Both operations completed
             return NextResponse.json({ 
                 message: 'Question deleted successfully from both MongoDB and Pinecone',
                 deletedId: questionId,
-                vectorId: questionToDelete.vector_id || null
-            }, { status: 200 });
-
-        } catch (pineconeError: any) {
-            // If Pinecone deletion fails, we should still try to delete from MongoDB
-            console.error('Pinecone deletion error:', pineconeError);
-            
-            // Delete from MongoDB anyway
-            const result = await questionPartsCollection.deleteOne({ id: questionId });
-
-            if (result.deletedCount === 0) {
-                return NextResponse.json({ error: 'Question not found in database' }, { status: 404 });
-            }
-
-            return NextResponse.json({ 
-                message: 'Question deleted from MongoDB, but Pinecone deletion failed',
-                warning: 'Vector may still exist in Pinecone',
-                deletedId: questionId,
                 vectorId: questionToDelete.vector_id || null,
-                pineconeError: pineconeError.message
+                transaction: 'completed'
             }, { status: 200 });
+
+        } catch (error: any) {
+            console.error('Delete transaction error:', error);
+            return NextResponse.json({ 
+                error: 'Transaction failed: ' + error.message,
+                transaction: 'failed',
+                deletedId: null
+            }, { status: 500 });
         }
 
     } catch (error: any) {
