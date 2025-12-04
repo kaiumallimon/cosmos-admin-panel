@@ -242,7 +242,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="my-4 h-px bg-border"></div>
 
                 {/* Chat Section */}
-                <div>
+                {/* <div>
                     <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
                         Chat
                     </div>
@@ -261,7 +261,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
                 </div>
 
-                <div className="my-4 h-px bg-border"></div>
+                <div className="my-4 h-px bg-border"></div> */}
 
                 {/* System Section */}
                 <div>
