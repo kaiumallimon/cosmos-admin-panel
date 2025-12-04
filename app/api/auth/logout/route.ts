@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { signOut, ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from '@/lib/auth';
+import { signOut, ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from '@/lib/auth-server-only';
 
 export async function POST(request: NextRequest) {
   try {

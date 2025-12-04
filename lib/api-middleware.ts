@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, ACCESS_TOKEN_COOKIE, User } from './auth';
+import { getCurrentUser, ACCESS_TOKEN_COOKIE, User } from './auth-server-only';
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: User;

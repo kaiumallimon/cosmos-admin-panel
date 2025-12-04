@@ -1,6 +1,6 @@
 // Server-side authentication helpers that can use next/headers
 import { cookies } from 'next/headers';
-import { getCurrentUser, ACCESS_TOKEN_COOKIE, User } from './auth';
+import { getCurrentUser, ACCESS_TOKEN_COOKIE, User } from './auth-server-only';
 
 export async function getCurrentUserServer(): Promise<User | null> {
   try {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, ACCESS_TOKEN_COOKIE } from '@/lib/auth';
+import { getCurrentUser, ACCESS_TOKEN_COOKIE } from '@/lib/auth-server-only';
 
 export async function GET(request: NextRequest) {
   try {
