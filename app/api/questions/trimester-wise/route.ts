@@ -48,17 +48,24 @@ export async function GET(req: NextRequest) {
     console.log("Fetched semester terms:", data);
 
     // Filter out nulls and extract unique semester terms
-    const uniqueTerms = [...new Set(data.map(item => item.semester_term).filter(Boolean))]
+    const uniqueTerms = [...new Set(data.map(item => item.semester_term).filter(Boolean))];
 
-  // Sort numerically descending (e.g., 20242 > 20241)
-  const sortedTerms = uniqueTerms.sort((a, b) => Number(b) - Number(a))
+    // Sort numerically descending (e.g., 20242 > 20241)
+    const sortedTerms = uniqueTerms.sort((a, b) => Number(b) - Number(a));
 
-  return NextResponse.json({
-    semester_terms: sortedTerms,
-    count: sortedTerms.length,
-    debug: {
-      question_parts_count: data?.length || 0,
-      sample_data: allData?.slice(0, 3)
-    }
-  })
+    return NextResponse.json({
+      semester_terms: sortedTerms,
+      count: sortedTerms.length,
+      debug: {
+        question_parts_count: data?.length || 0,
+        sample_data: data?.slice(0, 3)
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching trimester terms:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }
