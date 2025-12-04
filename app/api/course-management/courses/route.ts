@@ -1,44 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+import { connectToDatabase } from "@/lib/mongodb";
+import { Course, CourseCreateRequest, CourseResponse } from "@/lib/course-types";
+import { v4 as uuidv4 } from 'uuid';
+import { withAuth } from "@/middleware/auth";
 
 // GET - Fetch all courses with stats
-export async function GET() {
+async function getCourses() {
     try {
-        // Get all courses
-        const { data: courses, error: coursesError } = await supabase
-            .from('courses')
-            .select('*')
-            .order('created_at', { ascending: false });
+        const { db } = await connectToDatabase();
+        const collection = db.collection<Course>('courses');
 
-        if (coursesError) {
-            console.error('Error fetching courses:', coursesError);
-            return NextResponse.json({ error: 'Failed to fetch courses' }, { status: 500 });
-        }
+        // Get all courses sorted by creation date (most recent first)
+        const courses = await collection
+            .find({})
+            .sort({ created_at: -1 })
+            .toArray();
 
-        // Calculate stats
-        const totalCourses = courses?.length || 0;
-        const departments = new Set(courses?.map(course => course.department).filter(Boolean));
+        // Calculate stats efficiently
+        const totalCourses = courses.length;
+        const departments = new Set(courses.map(course => course.department).filter(Boolean));
         const totalDepartments = departments.size;
 
-        return NextResponse.json({
-            courses: courses || [],
+        const response: CourseResponse = {
+            courses: courses.map(course => ({
+                ...course,
+                _id: course._id?.toString(),
+            })),
             totalCourses,
             totalDepartments,
-        });
+        };
+
+        return NextResponse.json(response);
     } catch (error) {
         console.error('Error in GET /api/course-management/courses:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
+export const GET = withAuth(getCourses);
+
 // POST - Create a new course
-export async function POST(request: NextRequest) {
+async function createCourse(request: NextRequest) {
     try {
-        const body = await request.json();
+        const body: CourseCreateRequest = await request.json();
         const { title, code, credit, department } = body;
 
         // Validate required fields
-        if (!title || !code || !credit) {
+        if (!title || !code || credit === undefined) {
             return NextResponse.json(
                 { error: 'Title, code, and credit are required' },
                 { status: 400 }
@@ -53,36 +61,44 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Insert the new course
-        const { data: course, error } = await supabase
-            .from('courses')
-            .insert([
-                {
-                    title: title.trim(),
-                    code: code.trim().toUpperCase(),
-                    credit,
-                    department: department?.trim() || null,
-                },
-            ])
-            .select()
-            .single();
+        const { db } = await connectToDatabase();
+        const collection = db.collection<Course>('courses');
 
-        if (error) {
-            // Handle unique constraint violation for course code
-            if (error.code === '23505' && error.message.includes('courses_code_key')) {
-                return NextResponse.json(
-                    { error: 'Course code already exists' },
-                    { status: 409 }
-                );
-            }
-            
-            console.error('Error creating course:', error);
-            return NextResponse.json({ error: 'Failed to create course' }, { status: 500 });
+        const trimmedCode = code.trim().toUpperCase();
+        
+        // Check if course code already exists
+        const existingCourse = await collection.findOne({ code: trimmedCode });
+        if (existingCourse) {
+            return NextResponse.json(
+                { error: 'Course code already exists' },
+                { status: 409 }
+            );
         }
 
-        return NextResponse.json(course, { status: 201 });
+        // Create new course
+        const now = new Date();
+        const newCourse: Course = {
+            id: uuidv4(),
+            title: title.trim(),
+            code: trimmedCode,
+            credit,
+            department: department?.trim() || '',
+            created_at: now,
+            updated_at: now,
+        };
+
+        const result = await collection.insertOne(newCourse);
+
+        const createdCourse = {
+            ...newCourse,
+            _id: result.insertedId.toString(),
+        };
+
+        return NextResponse.json(createdCourse, { status: 201 });
     } catch (error) {
         console.error('Error in POST /api/course-management/courses:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+
+export const POST = withAuth(createCourse);

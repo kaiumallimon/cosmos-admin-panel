@@ -26,10 +26,11 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Create response
+    // Create response with access token for client-side storage
     const response = NextResponse.json({
       success: true,
       message: 'Token refreshed successfully',
+      accessToken: result.tokens?.accessToken, // Include access token for localStorage update
     });
     
     // Set new tokens as cookies

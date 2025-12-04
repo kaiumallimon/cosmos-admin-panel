@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { makeAuthenticatedRequest } from "@/lib/api-helpers";
+import { makeAuthenticatedJsonRequest } from "@/lib/api-helpers";
+import { handleApiError, retryOperation } from "@/lib/error-handling";
 import { generateAgentName, validateAgentName, formatJsonForDisplay, validateJsonString } from "@/lib/agent-utils";
 import { ExistingAgentsList } from "@/components/agents/existing-agents-list";
 import { AgentTemplates, type AgentTemplate } from "@/components/agents/agent-templates";
@@ -271,15 +272,24 @@ export default function CreateAgentPage() {
         }))
       };
 
-      const response = await makeAuthenticatedRequest('/api/agents/comprehensive/create', {
-        method: 'POST',
-        body: JSON.stringify(processedData)
-      });
+      const loadingToast = toast.loading(`Creating agent "${formData.display_name}"...`);
 
-      const result = await response.json();
+      const result = await retryOperation(
+        () => makeAuthenticatedJsonRequest('/api/agents/comprehensive/create', {
+          method: 'POST',
+          body: JSON.stringify(processedData)
+        }),
+        2,
+        1000,
+        'Creating agent'
+      );
 
-      if (result.success) {
-        toast.success(`Agent "${formData.display_name}" created successfully!`);
+      toast.dismiss(loadingToast);
+
+      if (result.success && result.data?.success) {
+        toast.success(`Agent "${formData.display_name}" created successfully!`, {
+          duration: 4000
+        });
         // Reset form
         setFormData({
           name: '',
@@ -296,11 +306,12 @@ export default function CreateAgentPage() {
         setShowCreateForm(false);
         window.scrollTo(0, 0);
       } else {
-        toast.error(result.message || 'Failed to create agent');
+        const errorMessage = result.data?.message || result.error || 'Failed to create agent';
+        handleApiError(errorMessage, 'Create agent');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating agent:', error);
-      toast.error('Failed to create agent. Please try again.');
+      handleApiError(error.message || 'Failed to create agent. Please try again.', 'Create agent');
     } finally {
       setIsLoading(false);
     }

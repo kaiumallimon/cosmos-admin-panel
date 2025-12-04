@@ -1,57 +1,55 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
+import { getCollection } from '@/lib/mongodb';
+import { Agent, AgentTool, AgentConfiguration, FewShotExample, AgentWithRelations } from '@/lib/agent-types';
 
-const EXTERNAL_API_BASE_URL = 'https://cosmos-its-production-v1.onrender.com';
-
-export async function GET(request: NextRequest) {
+// GET /api/agents/comprehensive - Fetch all agents with related data (legacy endpoint)
+async function getHandler(req: AuthenticatedRequest) {
   try {
-    // Get the authorization token from the request headers
-    const authHeader = request.headers.get('authorization');
+    const url = new URL(req.url);
+    const includeInactive = url.searchParams.get('include_inactive') === 'true';
+
+    const agentsCollection = await getCollection<Agent>('agents');
+    const agentToolsCollection = await getCollection<AgentTool>('agent_tools');
+    const agentConfigurationsCollection = await getCollection<AgentConfiguration>('agent_configurations');
+    const fewShotExamplesCollection = await getCollection<FewShotExample>('few_shot_examples');
+
+    // Build query based on includeInactive parameter
+    const query = includeInactive ? {} : { is_active: true };
     
-    if (!authHeader) {
-      return NextResponse.json(
-        { success: false, message: 'Authorization header is required' },
-        { status: 401 }
-      );
+    // Fetch agents with query
+    const agents = await agentsCollection.find(query).toArray();
+
+    // Enhance agents with related data
+    const agentsWithRelations: AgentWithRelations[] = [];
+    
+    for (const agent of agents) {
+      // Fetch agent tools
+      const agentTools = await agentToolsCollection.find({ agent_id: agent.id }).toArray();
+      
+      // Fetch agent configurations
+      const agentConfigurations = await agentConfigurationsCollection.find({ agent_id: agent.id }).toArray();
+      
+      // Fetch few shot examples using agent name
+      const fewShotExamples = await fewShotExamplesCollection.find({ agent_name: agent.name }).toArray();
+      
+      agentsWithRelations.push({
+        ...agent,
+        agent_tools: agentTools,
+        agent_configurations: agentConfigurations,
+        few_shot_examples: fewShotExamples
+      });
     }
 
-    // Get query parameters
-    const { searchParams } = new URL(request.url);
-    const includeInactive = searchParams.get('include_inactive') || 'false';
-
-    // Build the query string
-    const queryString = new URLSearchParams({
-      include_inactive: includeInactive
-    }).toString();
-
-    // Forward the request to the external API
-    const externalResponse = await fetch(
-      `${EXTERNAL_API_BASE_URL}/api/v1/agents/comprehensive/?${queryString}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': authHeader,
-        },
-      }
-    );
-
-    const responseData = await externalResponse.json();
-    
-    // Log the external API response for debugging
-    console.log('External API Response:', responseData);
-    console.log('External API Status:', externalResponse.status);
-
-    // Return the response with the same status code
-    return NextResponse.json(responseData, { status: externalResponse.status });
-
-  } catch (error) {
-    console.error('Error fetching comprehensive agents:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Internal server error while fetching agents',
-        errors: ['Failed to process request']
+    // Return in legacy format for compatibility
+    return NextResponse.json({
+      success: true,
+      data: {
+        agents: agentsWithRelations
       },
-      { status: 500 }
-    );
-  }
-}
+      message: 'Agents fetched successfully'
+    });
+
+  } catch (error: any) {
+    console.error('Error fetching comprehensive agents:', error);
+      message: 'Failed to fetch agents: ' + error.message \n    }, { status: 500 });\n  }\n}\n\nexport const GET = withAuth(getHandler);

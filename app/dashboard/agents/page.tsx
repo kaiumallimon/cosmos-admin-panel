@@ -42,6 +42,13 @@ interface Agent {
     few_shot_examples?: FewShotExample[];
 }
 
+// Utility function to truncate text with ellipsis
+const truncateText = (text: string, maxLength: number = 80): string => {
+    if (!text) return "No description";
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + "...";
+};
+
 export default function AgentsPage() {
     const [agents, setAgents] = useState<Agent[]>([]);
     const [loading, setLoading] = useState(false);
@@ -129,8 +136,10 @@ export default function AgentsPage() {
     
     const handleEditAgent = (agentId: string) => router.push(`/dashboard/agents/${agentId}/edit`);
 
-    if (loading) return <ProtectedRoute><div className="min-h-screen flex items-center justify-center">Loading...</div></ProtectedRoute>;
-    if (error) return <ProtectedRoute><div className="min-h-screen flex items-center justify-center text-red-500">{error}</div></ProtectedRoute>;
+    if (loading) return <ProtectedRoute><div className="fixed inset-0 flex items-center justify-center bg-background/80">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-500 mx-auto mb-4"></div>
+            </div></ProtectedRoute>;
+    if (error) return <ProtectedRoute><div className="fixed inset-0 flex items-center justify-center text-red-500">{error}</div></ProtectedRoute>;
 
     return (
         <ProtectedRoute>
@@ -145,7 +154,8 @@ export default function AgentsPage() {
                             <BreadcrumbItem><BreadcrumbPage>Agents</BreadcrumbPage></BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
-
+                </div>
+                <div className="">
                     {/* Stats Cards */}
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 p-4 sm:p-6">
                         {statsArray.map((stat, index) => (
@@ -164,7 +174,7 @@ export default function AgentsPage() {
                     </div>
 
                     {/* Agents Table */}
-                    <div className="mt-5">
+                    <div className="mt-5 px-6">
                         {agents.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground">No agents found.</div>
                         ) : (
@@ -192,7 +202,9 @@ export default function AgentsPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="max-w-md">
-                                                        <p className="text-sm line-clamp-2">{agent.description || "No description"}</p>
+                                                        <p className="text-sm" title={agent.description || "No description"}>
+                                                            {truncateText(agent.description, 80)}
+                                                        </p>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
@@ -202,7 +214,14 @@ export default function AgentsPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                     {agent.agent_tools && agent.agent_tools.length > 0
-                                                        ? agent.agent_tools.map(tool => tool.tool_name).join(', ')
+                                                        ? (() => {
+                                                            const toolsText = agent.agent_tools.map(tool => tool.tool_name).join(', ');
+                                                            return (
+                                                                <span title={toolsText}>
+                                                                    {truncateText(toolsText, 50)}
+                                                                </span>
+                                                            );
+                                                          })()
                                                         : 'No tools'}
                                                 </TableCell>
                                                 <TableCell>{agent.few_shot_examples?.length || 0}</TableCell>

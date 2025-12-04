@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { makeAuthenticatedRequest } from "@/lib/api-helpers";
+import { makeAuthenticatedJsonRequest } from "@/lib/api-helpers";
+import { handleApiError, retryOperation } from "@/lib/error-handling";
 import { Loader2, Users, Plus, RefreshCw, Eye, Edit, Trash2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,44 +37,46 @@ export function ExistingAgentsList({ onCreateNewAgent }: AgentListProps) {
       setIsLoading(true);
       setError(null);
       
-      const response = await makeAuthenticatedRequest(
-        `/api/agents/comprehensive/?include_inactive=${includeInactive}`, 
-        { method: 'GET' }
+      const result = await retryOperation(
+        () => makeAuthenticatedJsonRequest('/api/agents', { method: 'GET' }),
+        3,
+        1000,
+        'Loading agents'
       );
       
-      const result = await response.json();
-      console.log('API Response:', result); // Debug log
-      
-      if (result.success) {
-        // Handle different possible response structures
-        let agentsData: Agent[] = [];
-        
-        if (Array.isArray(result.data)) {
-          agentsData = result.data;
-        } else if (Array.isArray(result.data?.agents)) {
-          agentsData = result.data.agents;
-        } else if (Array.isArray(result.agents)) {
-          agentsData = result.agents;
-        } else if (result.data && typeof result.data === 'object') {
-          // If data is an object but not an array, wrap it in an array
-          agentsData = [result.data];
-        }
-        
-        console.log('Processed agents data:', agentsData); // Debug log
-        setAgents(agentsData);
-        setError(null);
-      } else {
-        console.warn('API returned error or no data:', result);
-        const errorMessage = result.message || 'Failed to load agents';
-        setError(errorMessage);
-        toast.error(errorMessage);
-        setAgents([]);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch agents');
       }
-    } catch (error) {
-      console.error('Error fetching agents:', error);
-      const errorMessage = 'Failed to load agents. Please check your connection.';
+
+      const agentsData = result.data;
+      console.log('API Response:', agentsData); // Debug log
+      
+      // Filter agents based on includeInactive setting
+      const filteredAgents = includeInactive 
+        ? agentsData 
+        : agentsData.filter((agent: Agent) => agent.is_active);
+
+      // Add counts from related data
+      const processedAgents = filteredAgents.map((agent: any) => ({
+        id: agent.id,
+        name: agent.name,
+        display_name: agent.display_name,
+        description: agent.description,
+        is_active: agent.is_active,
+        created_at: agent.created_at,
+        updated_at: agent.updated_at,
+        tools_count: agent.agent_tools?.length || 0,
+        configurations_count: agent.agent_configurations?.length || 0,
+        few_shot_examples_count: agent.few_shot_examples?.length || 0
+      }));
+      
+      console.log('Processed agents data:', processedAgents); // Debug log
+      setAgents(processedAgents);
+      setError(null);
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to load agents';
       setError(errorMessage);
-      toast.error(errorMessage);
+      handleApiError(errorMessage, 'Loading agents');
       setAgents([]);
     } finally {
       setIsLoading(false);
@@ -90,22 +93,35 @@ export function ExistingAgentsList({ onCreateNewAgent }: AgentListProps) {
     }
 
     try {
-      const response = await makeAuthenticatedRequest(
-        `/api/agents/comprehensive/${encodeURIComponent(agentName)}`,
-        { method: 'DELETE' }
+      // Find the agent by name to get the ID
+      const agent = agents.find(a => a.name === agentName);
+      if (!agent) {
+        handleApiError('Agent not found', 'Delete agent');
+        return;
+      }
+
+      const loadingToast = toast.loading(`Deleting agent "${displayName}"...`);
+
+      const result = await retryOperation(
+        () => makeAuthenticatedJsonRequest(`/api/agents/${agent.id}`, { method: 'DELETE' }),
+        2,
+        1000,
+        'Deleting agent'
       );
 
-      const result = await response.json();
+      toast.dismiss(loadingToast);
 
-      if (result.success) {
-        toast.success(`Agent "${displayName}" deleted successfully`);
-        fetchAgents(); // Refresh the list
-      } else {
-        toast.error(result.message || 'Failed to delete agent');
+      if (!result.success) {
+        handleApiError(result.error || 'Failed to delete agent', 'Delete agent');
+        return;
       }
-    } catch (error) {
-      console.error('Error deleting agent:', error);
-      toast.error('Failed to delete agent');
+
+      toast.success(`Agent "${displayName}" deleted successfully`, {
+        duration: 4000
+      });
+      fetchAgents(); // Refresh the list
+    } catch (error: any) {
+      handleApiError(error.message || 'Failed to delete agent', 'Delete agent');
     }
   };
 

@@ -17,7 +17,8 @@ import { useMobileMenu } from "@/components/mobile-menu-context";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { StatsCard } from "@/components/dashboard/stats-card";
-import { makeAuthenticatedRequest } from "@/lib/api-helpers";
+import { makeAuthenticatedJsonRequest } from "@/lib/api-helpers";
+import { handleApiError, retryOperation } from "@/lib/error-handling";
 
 export default function QuestionsCoursePage() {
   const [courses, setCourses] = useState<any[]>([]);
@@ -33,24 +34,27 @@ export default function QuestionsCoursePage() {
         setLoading(true);
         setError(null);
 
-        const dashboardRes = await makeAuthenticatedRequest(`/api/dashboard/questions/stats`);
+        const result = await retryOperation(
+          () => makeAuthenticatedJsonRequest('/api/dashboard/questions/stats'),
+          3,
+          1000,
+          'Loading questions data'
+        );
 
-        console.log('Dashboard API response status:', dashboardRes.status, dashboardRes.statusText);
-
-        if (!dashboardRes.ok) {
-          const errorText = await dashboardRes.text();
-          console.error('Dashboard API error response:', errorText);
-          throw new Error(`Failed to fetch dashboard data: ${dashboardRes.status} ${errorText}`);
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to fetch dashboard data');
         }
 
-        const dashboardData = await dashboardRes.json();
+        const dashboardData = result.data;
         console.log('Dashboard API response data:', dashboardData);
 
         setCourses(dashboardData.data.courses || []);
         setTotalQuestions(dashboardData.data.totalQuestions || 0);
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
-        setError("Failed to load data");
+        const errorMessage = err.message || "Failed to load data";
+        setError(errorMessage);
+        handleApiError(errorMessage, 'Loading questions data');
       } finally {
         setLoading(false);
       }

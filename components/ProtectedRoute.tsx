@@ -48,14 +48,14 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         };
     }, [initializeAuth, isAuthenticated, router]);
 
-   if (checking) {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-background/80">
-  <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-500 mx-auto mb-4"></div>
-</div>
+    if (checking) {
+        return (
+            <div className="fixed inset-0 flex items-center justify-center bg-background/80">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-500 mx-auto mb-4"></div>
+            </div>
 
-  );
-}
+        );
+    }
 
 
     return <>{children}</>;

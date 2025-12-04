@@ -1,61 +1,71 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
+import { getCollection } from '@/lib/mongodb';
+import { Agent, CreateAgentRequest } from '@/lib/agent-types';
+import { v4 as uuidv4 } from 'uuid';
 
-const EXTERNAL_API_BASE_URL = 'https://cosmos-its-production-v1.onrender.com';
-
-export async function POST(request: NextRequest) {
+// POST /api/agents/comprehensive/create - Create a new agent (legacy endpoint)
+async function postHandler(req: AuthenticatedRequest) {
   try {
-    // Get the authorization token from the request headers
-    const authHeader = request.headers.get('authorization');
+    const body: CreateAgentRequest = await req.json();
     
-    if (!authHeader) {
-      return NextResponse.json(
-        { success: false, message: 'Authorization header is required' },
-        { status: 401 }
-      );
-    }
-
-    // Get the request body
-    const body = await request.json();
-
     // Validate required fields
     if (!body.name || !body.display_name || !body.description || !body.system_prompt) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Missing required fields: name, display_name, description, system_prompt are required',
-          errors: ['Missing required fields']
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        success: false,
+        message: 'Missing required fields: name, display_name, description, system_prompt are required',
+        errors: ['Missing required fields']
+      }, { status: 400 });
     }
 
-    // Forward the request to the external API
-    const externalResponse = await fetch(
-      `${EXTERNAL_API_BASE_URL}/api/v1/agents/comprehensive/create`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify(body),
-      }
-    );
+    const agentsCollection = await getCollection<Agent>('agents');
+    
+    // Check if agent name already exists
+    const existingAgent = await agentsCollection.findOne({ name: body.name });
+    if (existingAgent) {
+      return NextResponse.json({
+        success: false,
+        message: 'Agent with this name already exists',
+        errors: ['Agent name must be unique']
+      }, { status: 409 });
+    }
 
-    const responseData = await externalResponse.json();
+    // Create new agent
+    const newAgent: Agent = {
+      id: uuidv4(),
+      name: body.name,
+      display_name: body.display_name,
+      description: body.description,
+      system_prompt: body.system_prompt,
+      question_processing_prompt: body.question_processing_prompt || null,
+      is_active: body.is_active ?? true,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
 
-    // Return the response with the same status code
-    return NextResponse.json(responseData, { status: externalResponse.status });
+    const result = await agentsCollection.insertOne(newAgent);
+    
+    if (!result.insertedId) {
+      return NextResponse.json({
+        success: false,
+        message: 'Failed to create agent'
+      }, { status: 500 });
+    }
 
-  } catch (error) {
-    console.error('Error creating comprehensive agent:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Internal server error while creating agent',
-        errors: ['Failed to process request']
-      },
-      { status: 500 }
-    );
+    // Return in legacy format for compatibility
+    return NextResponse.json({
+      success: true,
+      data: newAgent,
+      message: 'Agent created successfully'
+    }, { status: 201 });
+
+  } catch (error: any) {
+    console.error('Error creating agent:', error);
+    return NextResponse.json({
+      success: false,
+      message: 'Failed to create agent: ' + error.message
+    }, { status: 500 });
   }
 }
+
+export const POST = withAuth(postHandler);
