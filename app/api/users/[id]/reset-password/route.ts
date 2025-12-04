@@ -1,60 +1,71 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseClient";
+import { connectToDatabase } from "@/lib/mongodb";
+import { Account, ResetPasswordRequest } from "@/lib/user-types";
+import { withAuth } from "@/lib/api-middleware";
+import bcrypt from 'bcryptjs';
 
-export async function POST(
+async function resetPassword(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = await params;
-    const { newPassword } = await req.json();
+    const { id } = await params;
+    const body: ResetPasswordRequest = await req.json();
+    const { newPassword } = body;
 
+    // Validate password
     if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 6) {
       return NextResponse.json({
         error: 'Password must be at least 6 characters long'
       }, { status: 400 });
     }
 
-    // Verify the user exists in our accounts table
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('accounts')
-      .select('id, email')
-      .eq('id', resolvedParams.id)
-      .single();
+    const { db } = await connectToDatabase();
+    const accountsCollection = db.collection<Account>('accounts');
 
-    if (userError || !user) {
+    // Verify the user exists
+    const user = await accountsCollection.findOne({ id });
+    if (!user) {
       return NextResponse.json({
         error: 'User not found'
       }, { status: 404 });
     }
 
-    // Reset password using Supabase Admin API
-    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
-      resolvedParams.id,
-      {
-        password: newPassword.trim()
+    // Hash new password
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(newPassword.trim(), saltRounds);
+
+    // Update password in database
+    const result = await accountsCollection.updateOne(
+      { id },
+      { 
+        $set: { 
+          password: hashedPassword,
+          updated_at: new Date()
+        }
       }
     );
 
-    if (error) {
-      console.error('Password reset error:', error);
+    if (result.matchedCount === 0) {
       return NextResponse.json({
-        error: `Failed to reset password: ${error.message}`
-      }, { status: 500 });
+        error: 'User not found'
+      }, { status: 404 });
     }
 
     return NextResponse.json({
       message: 'Password reset successfully',
       data: {
-        id: data.user.id,
-        email: data.user.email
+        id: user.id,
+        email: user.email
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error resetting password:', error);
     return NextResponse.json({
-      error: 'Internal server error'
+      error: error.message || 'Internal server error'
     }, { status: 500 });
   }
 }
+
+export const POST = withAuth(resetPassword);

@@ -1,124 +1,39 @@
 'use client';
 
-import { Button } from "@/components/ui/button";
-import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
-import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/auth";
-import { Label } from "@radix-ui/react-label";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useEffect } from "react";
 
 export default function Home() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-
   const router = useRouter();
-  const login = useAuthStore((state) => state.login);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated); 
 
-  // Redirect to dashboard if already authenticated
-  useEffect(()=>{
+  // Redirect based on authentication status
+  useEffect(() => {
     try {
-      if(isAuthenticated()){
+      if (isAuthenticated()) {
+        // If user is authenticated, redirect to dashboard
         router.push('/dashboard');
+      } else {
+        // If user is not authenticated, redirect to login page
+        router.push('/login');
       }
     } catch (e) {
-      // swallow errors during initial render/hydration
+      // If there's an error checking auth, default to login
       console.warn('Auth redirect check failed', e);
+      router.push('/login');
     }
-  },[isAuthenticated, router]);
+  }, [isAuthenticated, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if(!email || !password){
-      toast.error("Please enter both email and password.");
-      return;
-    }
-
-    setLoading(true);
-    try{
-      const result= await login(email,password);
-
-      if(result.success){
-        toast.success("Login successful!");
-        router.push('/dashboard');
-      }else{
-        toast.error("Login failed. " + result.error);
-      }
-    }catch(error){
-      toast.error("Login failed. " + error);
-    }finally{
-      setLoading(false);
-    }
-  };
-
+  // Show a loading spinner while redirecting
   return (
-    <div className="fixed overflow-hidden w-full h-full">
-      <DottedGlowBackground
-        className="pointer-events-none mask-radial-to-90% mask-radial-at-center"
-        opacity={1}
-        gap={12}
-        radius={1.3}
-        colorLightVar="--color-orange-500"
-        glowColorLightVar="--color-orange-500"
-        colorDarkVar="--color-orange-500"
-        glowColorDarkVar="--color-orange-500"
-        backgroundOpacity={0}
-        speedMin={0.3}
-        speedMax={2}
-        speedScale={2}
-      />
-
-      {/* centered login form with card style */}
-      <div className="relative z-10 flex items-center justify-center h-full px-4 ">
-        <div className="bg-transparent backdrop-blur-sm border rounded-lg">
-          <div className="p-12 min-w-[300px]">
-            <Link href="/" className="flex justify-center text-2xl font-bold mb-4 text-center text-orange-500">COSMOS-ITS</Link>
-            <h3 className="text-md  mb-6 text-center text-gray-500">Sign in with your administrator info</h3>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <div>
-                <Label htmlFor="email" className="block text-sm font-medium mb-1">
-                  Email
-                </Label>
-                <Input
-                  type="email"
-                  id="email"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="password" className="block text-sm font-medium mb-1">
-                  Password
-                </Label>
-                <Input
-                  type="password"
-                  id="password"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="********"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-300 transition-colors duration-300"
-                loading={loading}
-                disabled={loading}
-              >
-                {loading ? 'Signing in...' : 'Sign In'}
-              </Button>
-            </form>
-          </div>
+    <div className="fixed overflow-hidden w-full h-full bg-background">
+      <div className="relative z-10 flex items-center justify-center h-full px-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting...</p>
         </div>
       </div>
-
     </div>
   );
 }

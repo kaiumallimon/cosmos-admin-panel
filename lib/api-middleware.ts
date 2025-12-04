@@ -5,10 +5,16 @@ export interface AuthenticatedRequest extends NextRequest {
   user?: User;
 }
 
-export function withAuth(
-  handler: (req: AuthenticatedRequest) => Promise<NextResponse>
-): (req: NextRequest) => Promise<NextResponse> {
-  return async (req: NextRequest): Promise<NextResponse> => {
+// Type for handlers with no params
+type SingleParamHandler = (req: AuthenticatedRequest) => Promise<NextResponse>;
+
+// Type for handlers with params (like [id] routes)
+type TwoParamHandler = (req: AuthenticatedRequest, context: any) => Promise<NextResponse>;
+
+export function withAuth<T = any>(
+  handler: SingleParamHandler | TwoParamHandler
+): (req: NextRequest, context?: T) => Promise<NextResponse> {
+  return async (req: NextRequest, context?: T): Promise<NextResponse> => {
     try {
       // Get access token from cookies or Authorization header
       const authHeader = req.headers.get('Authorization');
@@ -45,7 +51,12 @@ export function withAuth(
       const authenticatedReq = req as AuthenticatedRequest;
       authenticatedReq.user = user;
       
-      return handler(authenticatedReq);
+      // Check if handler expects two parameters (for routes with params)
+      if (context !== undefined) {
+        return (handler as TwoParamHandler)(authenticatedReq, context);
+      } else {
+        return (handler as SingleParamHandler)(authenticatedReq);
+      }
     } catch (error) {
       console.error('Auth middleware error:', error);
       return NextResponse.json(

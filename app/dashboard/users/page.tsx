@@ -69,6 +69,9 @@ import { useMobileMenu } from "@/components/mobile-menu-context";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { makeAuthenticatedJsonRequest } from "@/lib/api-helpers";
+import { handleApiError, retryOperation } from "@/lib/error-handling";
+import { toast } from "sonner";
 
 interface User {
   id: string;
@@ -149,29 +152,31 @@ export default function UsersPage() {
         ...(departmentFilter && departmentFilter !== 'all' && { department: departmentFilter }),
       });
 
-      const response = await fetch(`/api/users?${params}`);
-      const data = await response.json();
+      const result = await retryOperation(
+        () => makeAuthenticatedJsonRequest(`/api/users?${params}`),
+        3,
+        1000,
+        'Loading users'
+      );
 
-      if (response.ok) {
-        setUsers(data.data || []);
-        setTotalPages(data.pagination?.totalPages || 1);
+      if (result.success) {
+        setUsers(result.data.data || []);
+        setTotalPages(result.data.pagination?.totalPages || 1);
       } else {
-        console.error('Users API error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: data.error || 'Unknown error',
-          data
-        });
-        // Show user-friendly error
+        console.error('Users API error:', result.error);
         setUsers([]);
         setTotalPages(1);
-        setError(data.error || 'Failed to load users');
+        const errorMessage = result.error || 'Failed to load users';
+        setError(errorMessage);
+        handleApiError(errorMessage, 'Loading users');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading users:', error);
       setUsers([]);
       setTotalPages(1);
-      setError('Network error: Unable to load users');
+      const errorMessage = error.message || 'Network error: Unable to load users';
+      setError(errorMessage);
+      handleApiError(errorMessage, 'Loading users');
     } finally {
       setLoading(false);
     }
@@ -179,15 +184,19 @@ export default function UsersPage() {
 
   const loadStats = async () => {
     try {
-      const response = await fetch('/api/users/stats');
-      const data = await response.json();
+      const result = await retryOperation(
+        () => makeAuthenticatedJsonRequest('/api/users/stats'),
+        2,
+        1000,
+        'Loading stats'
+      );
 
-      if (response.ok) {
-        setStats(data.data);
+      if (result.success) {
+        setStats(result.data.data);
       } else {
-        console.error('Stats API error:', data);
+        console.error('Stats API error:', result.error);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading stats:', error);
     }
   };
@@ -196,16 +205,28 @@ export default function UsersPage() {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
-      });
+      const loadingToast = toast.loading('Deleting user...');
+      
+      const result = await retryOperation(
+        () => makeAuthenticatedJsonRequest(`/api/users/${userId}`, {
+          method: 'DELETE',
+        }),
+        2,
+        1000,
+        'Deleting user'
+      );
 
-      if (response.ok) {
+      toast.dismiss(loadingToast);
+
+      if (result.success) {
+        toast.success('User deleted successfully', { duration: 4000 });
         loadUsers();
         loadStats();
+      } else {
+        handleApiError(result.error || 'Failed to delete user', 'Delete user');
       }
-    } catch (error) {
-      console.error('Error deleting user:', error);
+    } catch (error: any) {
+      handleApiError(error.message || 'Failed to delete user', 'Delete user');
     }
   };
 

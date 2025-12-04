@@ -1,81 +1,111 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseClient";
+import { connectToDatabase } from "@/lib/mongodb";
+import { Account, Profile, UserWithProfile, CreateUserRequest, UserListResponse } from "@/lib/user-types";
+import { v4 as uuidv4 } from 'uuid';
+import { withAuth } from "@/lib/api-middleware";
+import bcrypt from 'bcryptjs';
 
-export async function GET(req: NextRequest) {
+async function getUsers(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get('page') || '1');
-        const limit = parseInt(searchParams.get('limit') || '10');
+        const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100); // Max 100 per page
         const search = searchParams.get('search') || '';
         const role = searchParams.get('role') || '';
         const department = searchParams.get('department') || '';
 
-        // Calculate offset for pagination
-        const offset = (page - 1) * limit;
+        // Validate pagination parameters
+        if (page < 1 || limit < 1) {
+            return NextResponse.json(
+                { error: 'Invalid pagination parameters' },
+                { status: 400 }
+            );
+        }
 
-        // Build the query
-        let query = supabaseAdmin
-            .from('accounts')
-            .select(`
-                *,
-                profile:profile(*)
-            `);
+        const { db } = await connectToDatabase();
+        const accountsCollection = db.collection<Account>('accounts');
+        const profileCollection = db.collection<Profile>('profile');
 
-        // Apply non-search filters to query
+        // Build aggregation pipeline for efficient search and join
+        const pipeline: any[] = [];
+
+        // Match stage for accounts
+        const accountMatch: any = {};
         if (role) {
-            query = query.eq('role', role);
+            accountMatch.role = role;
+        }
+        if (Object.keys(accountMatch).length > 0) {
+            pipeline.push({ $match: accountMatch });
         }
 
-        // Apply department filter if provided
+        // Lookup profiles
+        pipeline.push({
+            $lookup: {
+                from: 'profile',
+                localField: 'id',
+                foreignField: 'id',
+                as: 'profile'
+            }
+        });
+
+        // Unwind profile (make it an object instead of array)
+        pipeline.push({
+            $unwind: {
+                path: '$profile',
+                preserveNullAndEmptyArrays: true
+            }
+        });
+
+        // Match stage for profile filters
+        const profileMatch: any = {};
         if (department) {
-            query = query.eq('profile.department', department);
+            profileMatch['profile.department'] = department;
         }
-
-        // Build count query - we'll filter the results after getting them for search
-        let countQuery = supabaseAdmin
-            .from('accounts')
-            .select('*', { count: 'exact', head: true });
-
-        // Apply non-search filters to count query
-        if (role) {
-            countQuery = countQuery.eq('role', role);
-        }
-
-        if (department) {
-            countQuery = countQuery.eq('profile.department', department);
-        }
-
-        // Get all data first, then filter and paginate in memory for search
-        const { data: allData, error: dataError } = await query
-            .order('created_at', { ascending: false });
-
-        if (dataError) {
-            return NextResponse.json({ error: dataError.message }, { status: 500 });
-        }
-
-        let filteredData = allData || [];
-
-        // Apply search filter in memory for profile fields
         if (search) {
-            const searchTerm = search.toLowerCase();
-            filteredData = filteredData.filter(user => {
-                const emailMatch = user.email?.toLowerCase().includes(searchTerm);
-                const nameMatch = user.profile?.full_name?.toLowerCase().includes(searchTerm);
-                const studentIdMatch = user.profile?.student_id?.toLowerCase().includes(searchTerm);
-                return emailMatch || nameMatch || studentIdMatch;
-            });
+            // Use text search or regex for flexible search
+            const searchRegex = { $regex: search, $options: 'i' };
+            profileMatch.$or = [
+                { email: searchRegex },
+                { 'profile.full_name': searchRegex },
+                { 'profile.student_id': searchRegex }
+            ];
+        }
+        if (Object.keys(profileMatch).length > 0) {
+            pipeline.push({ $match: profileMatch });
         }
 
-        // Calculate pagination on filtered data
-        const total = filteredData.length;
+        // Sort by creation date (newest first)
+        pipeline.push({ $sort: { created_at: -1 } });
+
+        // Facet for pagination and total count
+        pipeline.push({
+            $facet: {
+                users: [
+                    { $skip: (page - 1) * limit },
+                    { $limit: limit }
+                ],
+                totalCount: [
+                    { $count: 'count' }
+                ]
+            }
+        });
+
+        const [result] = await accountsCollection.aggregate(pipeline).toArray();
+        
+        const users = result.users || [];
+        const total = result.totalCount[0]?.count || 0;
         const totalPages = Math.ceil(total / limit);
-        const startIndex = offset;
-        const endIndex = startIndex + limit;
-        const paginatedData = filteredData.slice(startIndex, endIndex);
         const hasMore = page < totalPages;
 
-        return NextResponse.json({
-            data: paginatedData,
+        const response: UserListResponse = {
+            data: users.map((user: any) => ({
+                ...user,
+                _id: user._id?.toString(),
+                profile: user.profile ? {
+                    ...user.profile,
+                    _id: user.profile._id?.toString()
+                } : undefined
+            })),
             pagination: {
                 page,
                 limit,
@@ -83,7 +113,9 @@ export async function GET(req: NextRequest) {
                 totalPages,
                 hasMore
             }
-        });
+        };
+
+        return NextResponse.json(response);
 
     } catch (error) {
         console.error('Error fetching users:', error);
@@ -91,16 +123,18 @@ export async function GET(req: NextRequest) {
     }
 }
 
-export async function POST(req: NextRequest) {
+export const GET = withAuth(getUsers);
+
+async function createUser(req: NextRequest) {
     try {
-        const body = await req.json();
+        const body: CreateUserRequest = await req.json();
         const { 
             email, 
             password,
             full_name,
             role = 'user',
-            phone,
-            gender,
+            phone = '',
+            gender = '',
             student_id,
             department,
             batch,
@@ -114,120 +148,132 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
 
-        // Check if user already exists in accounts table
-        const { data: existingAccounts } = await supabaseAdmin
-            .from('accounts')
-            .select('id, email')
-            .eq('email', email);
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return NextResponse.json({ 
+                error: 'Invalid email format' 
+            }, { status: 400 });
+        }
 
-        if (existingAccounts && existingAccounts.length > 0) {
+        // Validate password strength
+        if (password.length < 6) {
+            return NextResponse.json({ 
+                error: 'Password must be at least 6 characters long' 
+            }, { status: 400 });
+        }
+
+        const { db } = await connectToDatabase();
+        const accountsCollection = db.collection<Account>('accounts');
+        const profileCollection = db.collection<Profile>('profile');
+
+        // Check if user already exists
+        const existingAccount = await accountsCollection.findOne({ 
+            email: { $regex: new RegExp(`^${email}$`, 'i') } 
+        });
+        if (existingAccount) {
             return NextResponse.json({ 
                 error: 'A user with this email already exists' 
             }, { status: 409 });
         }
 
-        // Create user in Supabase Auth (without email confirmation)
-        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-            email,
-            password,
-            email_confirm: true, // Skip email confirmation
-            user_metadata: {
-                full_name
-            }
-        });
-
-        if (authError) {
-            console.error('Auth creation error:', authError);
-            
-            // Handle specific auth errors
-            if (authError.message.includes('already_registered')) {
+        // Check if student_id already exists (if provided)
+        if (student_id) {
+            const existingProfile = await profileCollection.findOne({ student_id });
+            if (existingProfile) {
                 return NextResponse.json({ 
-                    error: 'A user with this email already exists in the authentication system' 
+                    error: 'A user with this student ID already exists' 
                 }, { status: 409 });
             }
-            
-            return NextResponse.json({ 
-                error: `Failed to create user account: ${authError.message}` 
-            }, { status: 400 });
         }
 
-        if (!authData.user) {
-            return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
-        }
-
-        // Create account record using upsert to handle any potential conflicts
-        const { data: accountData, error: accountError } = await supabaseAdmin
-            .from('accounts')
-            .upsert({
-                id: authData.user.id,
-                email,
-                role,
-                updated_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-
-        if (accountError) {
-            console.error('Account creation error:', accountError);
-            
-            // Clean up auth user if account creation fails
-            await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-            
-            return NextResponse.json({ 
-                error: `Failed to create account: ${accountError.message}` 
-            }, { status: 500 });
-        }
-
-        // Create profile record with correct role mapping
-        const profileRole = role === 'user' ? 'student' : role; // Map 'user' to 'student' for profile table
+        // Hash password
+        const saltRounds = 12;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
         
-        const { data: profileData, error: profileError } = await supabaseAdmin
-            .from('profile')
-            .insert({
-                id: authData.user.id,
-                email,
-                full_name,
-                phone,
-                gender,
-                role: profileRole,
-                student_id,
-                department,
-                batch,
-                program,
-                current_trimester
-            })
-            .select()
-            .single();
+        const userId = uuidv4();
+        const now = new Date();
 
-        if (profileError) {
-            console.error('Profile creation error:', profileError);
+        // Create account record
+        const newAccount: Account = {
+            id: userId,
+            email: email.toLowerCase(),
+            password: hashedPassword,
+            role,
+            created_at: now,
+            updated_at: now
+        };
+
+        // Create profile record
+        const profileRole = role === 'user' ? 'student' : role;
+        const newProfile: Profile = {
+            id: userId,
+            email: email.toLowerCase(),
+            full_name,
+            phone: phone || '',
+            gender: gender || '',
+            role: profileRole,
+            student_id: student_id || null,
+            department: department || null,
+            batch: batch || null,
+            program: program || null,
+            current_trimester: current_trimester || null,
+            completed_credits: 0,
+            cgpa: null,
+            trimester_credits: 0,
+            avatar_url: '',
+            created_at: now
+        };
+
+        // Use transaction to ensure both records are created or none
+        const session = db.client.startSession();
+        
+        try {
+            await session.withTransaction(async () => {
+                await accountsCollection.insertOne(newAccount, { session });
+                await profileCollection.insertOne(newProfile, { session });
+            });
             
-            // Clean up account and auth user if profile creation fails
-            await supabaseAdmin.from('accounts').delete().eq('id', authData.user.id);
-            await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+            return NextResponse.json({
+                message: 'User created successfully',
+                data: {
+                    ...newAccount,
+                    _id: newAccount._id?.toString(),
+                    password: undefined, // Don't return password
+                    profile: {
+                        ...newProfile,
+                        _id: newProfile._id?.toString()
+                    }
+                }
+            }, { status: 201 });
             
-            // Handle specific database errors
-            if (profileError.message.includes('duplicate key') || profileError.code === '23505') {
+        } catch (transactionError: any) {
+            console.error('Transaction error:', transactionError);
+            
+            // Handle duplicate key errors
+            if (transactionError.code === 11000) {
+                const duplicateField = Object.keys(transactionError.keyPattern || {})[0];
+                const fieldMessages: { [key: string]: string } = {
+                    email: 'A user with this email already exists',
+                    student_id: 'A user with this student ID already exists'
+                };
+                
                 return NextResponse.json({ 
-                    error: 'A profile with this information already exists' 
+                    error: fieldMessages[duplicateField] || 'Duplicate data detected' 
                 }, { status: 409 });
             }
             
-            return NextResponse.json({ 
-                error: `Failed to create user profile: ${profileError.message}` 
-            }, { status: 500 });
+            throw transactionError;
+        } finally {
+            await session.endSession();
         }
 
-        return NextResponse.json({
-            message: 'User created successfully',
-            data: {
-                ...accountData,
-                profile: profileData
-            }
-        });
-
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating user:', error);
-        return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
+        return NextResponse.json({ 
+            error: error.message || 'Failed to create user' 
+        }, { status: 500 });
     }
 }
+
+export const POST = withAuth(createUser);

@@ -30,14 +30,14 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
                 // If user is not authenticated, redirect to login
                 if (mounted) {
                     if (!isAuthenticated) {
-                        router.replace("/");
+                        router.replace("/login");
                     } else {
                         setChecking(false);
                     }
                 }
             } catch (error) {
                 console.warn("ProtectedRoute: auth check failed", error);
-                if (mounted) router.replace("/");
+                if (mounted) router.replace("/login");
             }
         };
 
