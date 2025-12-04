@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from '@/lib/api-middleware';
+import { NextResponse } from "next/server";
+import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
 import { getCollection } from '@/lib/mongodb';
 
 interface QuestionPart {
@@ -26,9 +26,20 @@ interface QuestionPart {
   pdf_url: string | null;
 }
 
-export const PUT = withAuth(async (req, { params }: { params: Promise<{ id: string }> }) => {
+async function putHandler(req: AuthenticatedRequest) {
     try {
-        const { id } = await params;
+        // Extract the id from the URL pathname
+        const url = new URL(req.url);
+        const pathSegments = url.pathname.split('/');
+        const id = pathSegments[pathSegments.length - 1];
+        
+        if (!id) {
+            return NextResponse.json(
+                { error: "Question ID is required" },
+                { status: 400 }
+            );
+        }
+        
         const formData = await req.json();
         const questionId = parseInt(id);
 
@@ -67,21 +78,30 @@ export const PUT = withAuth(async (req, { params }: { params: Promise<{ id: stri
             error: error.message || 'Internal server error' 
         }, { status: 500 });
     }
-});
+}
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PUT = withAuth(putHandler);
+
+async function getHandler(req: AuthenticatedRequest) {
     try {
-        const { id } = await params;
+        // Extract the id from the URL pathname
+        const url = new URL(req.url);
+        const pathSegments = url.pathname.split('/');
+        const id = pathSegments[pathSegments.length - 1];
+        
+        if (!id) {
+            return NextResponse.json(
+                { error: "Question ID is required" },
+                { status: 400 }
+            );
+        }
+        
         const questionId = parseInt(id);
         
         const questionPartsCollection = await getCollection<QuestionPart>('question_parts');
         
         // Fetch the specific question
         const data = await questionPartsCollection.findOne({ id: questionId });
-
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
-        }
 
         if (!data) {
             return NextResponse.json({ error: 'Question not found' }, { status: 404 });
@@ -97,18 +117,31 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const GET = withAuth(getHandler);
+
+async function deleteHandler(req: AuthenticatedRequest) {
     try {
-        const { id } = await params;
+        // Extract the id from the URL pathname
+        const url = new URL(req.url);
+        const pathSegments = url.pathname.split('/');
+        const id = pathSegments[pathSegments.length - 1];
+        
+        if (!id) {
+            return NextResponse.json(
+                { error: "Question ID is required" },
+                { status: 400 }
+            );
+        }
+        
+        const questionId = parseInt(id);
 
-        // Delete the question from Supabase
-        const { error } = await supabase
-            .from('question_parts')
-            .delete()
-            .eq('id', id);
+        const questionPartsCollection = await getCollection<QuestionPart>('question_parts');
+        
+        // Delete the question from MongoDB
+        const result = await questionPartsCollection.deleteOne({ id: questionId });
 
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
+        if (result.deletedCount === 0) {
+            return NextResponse.json({ error: 'Question not found' }, { status: 404 });
         }
 
         return NextResponse.json({ 
@@ -122,3 +155,5 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         }, { status: 500 });
     }
 }
+
+export const DELETE = withAuth(deleteHandler);
