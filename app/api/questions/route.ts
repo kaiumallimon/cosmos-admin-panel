@@ -1,6 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+import { withAuth } from '@/lib/api-middleware';
+import { getCollection } from '@/lib/mongodb';
 
+interface QuestionPart {
+  _id?: any;
+  id: number;
+  course_title: string;
+  short: string;
+  course_code: string;
+  semester_term: string;
+  exam_type: string;
+  question_number: string;
+  sub_question: string;
+  marks: number;
+  total_question_mark: number;
+  contribution_percentage: number;
+  has_image: boolean;
+  image_type: string | null;
+  image_url: string | null;
+  has_description: boolean;
+  description_content: string | null;
+  question: string;
+  created_at: Date;
+  vector_id: string;
+  pdf_url: string | null;
+}
+
+// GET route without auth protection for public access
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
@@ -10,40 +36,29 @@ export async function GET(req: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '10');
 
-        if (!course_code || !exam_type || !semester_term) {
-            return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
-        }
+        const questionPartsCollection = await getCollection<QuestionPart>('question_parts');
+        
+        // Build filter query - make parameters optional
+        const filter: any = {};
+        if (course_code) filter.course_code = course_code;
+        if (exam_type) filter.exam_type = exam_type;
+        if (semester_term) filter.semester_term = semester_term;
 
-        // Calculate offset for pagination
-        const offset = (page - 1) * limit;
+        // Calculate skip for pagination
+        const skip = (page - 1) * limit;
 
         // Get total count for pagination metadata
-        const { count, error: countError } = await supabase
-            .from('question_parts')
-            .select('*', { count: 'exact', head: true })
-            .eq('course_code', course_code)
-            .eq('exam_type', exam_type)
-            .eq('semester_term', semester_term);
-
-        if (countError) {
-            return NextResponse.json({ error: countError.message }, { status: 500 });
-        }
+        const total = await questionPartsCollection.countDocuments(filter);
 
         // Get paginated data
-        const { data, error } = await supabase
-            .from('question_parts')
-            .select('*')
-            .eq('course_code', course_code)
-            .eq('exam_type', exam_type)
-            .eq('semester_term', semester_term)
-            .order('created_at', { ascending: true })
-            .range(offset, offset + limit - 1);
+        const data = await questionPartsCollection
+            .find(filter)
+            .sort({ created_at: -1 }) // descending order
+            .skip(skip)
+            .limit(limit)
+            .toArray();
 
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
-        }
-
-        const totalPages = Math.ceil((count || 0) / limit);
+        const totalPages = Math.ceil(total / limit);
         const hasMore = page < totalPages;
 
         return NextResponse.json({ 
@@ -51,13 +66,14 @@ export async function GET(req: NextRequest) {
             pagination: {
                 page,
                 limit,
-                total: count || 0,
+                total,
                 totalPages,
                 hasMore
             }
         }, { status: 200 });
 
     } catch (error) {
+        console.error('Get questions error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
