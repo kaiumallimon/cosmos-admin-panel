@@ -3,7 +3,6 @@ import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
 import { getCollection } from '@/lib/mongodb';
 import { Agent, AgentTool, AgentConfiguration, FewShotExample, AgentWithRelations, UpdateAgentRequest } from '@/lib/agent-types';
 import { v4 as uuidv4 } from 'uuid';
-import { supabaseAdmin } from '@/lib/supabaseClient';
 
 // GET /api/agents/[id] - Fetch a single agent with related data
 async function getHandler(req: AuthenticatedRequest, { params }: { params: Promise<{ id: string }> }) {
