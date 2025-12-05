@@ -26,6 +26,7 @@ import {
   Globe
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { apiClient } from "@/lib/api-client";
 
 interface DashboardAnalytics {
   overview: {
@@ -98,17 +99,12 @@ export default function DashboardHome() {
         setLoading(true);
         setError(null);
 
-        const analyticsRes = await fetch('/api/dashboard/analytics');
+        const analyticsResult = await apiClient.request('/api/dashboard/analytics');
 
-        if (analyticsRes.ok) {
-          const analyticsData = await analyticsRes.json();
-          if (analyticsData.success) {
-            setAnalytics(analyticsData.data);
-          } else {
-            throw new Error('Failed to fetch analytics data');
-          }
+        if (analyticsResult.success && analyticsResult.data?.success) {
+          setAnalytics(analyticsResult.data.data);
         } else {
-          throw new Error('Failed to fetch analytics');
+          throw new Error('Failed to fetch analytics data');
         }
 
       } catch (err) {

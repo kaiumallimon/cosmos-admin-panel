@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { SystemLog, SystemLogListResponse, SystemLogSummary } from "@/lib/system-log-types";
+import { apiClient } from "@/lib/api-client";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { DashboardAreaChart, DashboardPieChart, DashboardBarChart } from "@/components/dashboard/chart-components";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb";
@@ -97,11 +98,10 @@ export default function SystemLogsPage() {
 
   const fetchSystemStats = async () => {
     try {
-      const response = await fetch('/api/system-logs/stats?days=30');
-      const data = await response.json();
+      const result = await apiClient.request('/api/system-logs/stats?days=30');
 
-      if (data.success) {
-        setStats(data.data);
+      if (result.success && result.data?.success) {
+        setStats(result.data.data);
       }
     } catch (err) {
       console.error('Failed to fetch system stats:', err);

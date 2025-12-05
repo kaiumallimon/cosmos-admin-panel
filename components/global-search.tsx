@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api-client';
 import { 
   CommandDialog, 
   CommandInput, 
@@ -90,14 +91,13 @@ export default function GlobalSearch({
       console.log('Starting search for:', searchQuery);
       setLoading(true);
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=50`);
-        if (response.ok) {
-          const data: SearchResponse = await response.json();
-          console.log('Search response:', data);
-          setResults(data.results);
-          setSearchTime(data.searchTime);
+        const result = await apiClient.request<SearchResponse>(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=50`);
+        if (result.success && result.data) {
+          console.log('Search response:', result.data);
+          setResults(result.data.results);
+          setSearchTime(result.data.searchTime);
         } else {
-          console.error('Search failed:', response.statusText);
+          console.error('Search failed:', result.error);
           setResults([]);
         }
       } catch (error) {
