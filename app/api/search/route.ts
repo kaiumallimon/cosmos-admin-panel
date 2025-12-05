@@ -175,10 +175,38 @@ async function searchHandler(req: AuthenticatedRequest) {
             return;
           }
           
+          // Determine which field matched the search
+          const searchLower = query.toLowerCase();
+          let matchedField = '';
+          let displayText = '';
+          
+          if (question.question && question.question.toLowerCase().includes(searchLower)) {
+            matchedField = 'question';
+            displayText = question.question;
+          } else if (question.description_content && question.description_content.toLowerCase().includes(searchLower)) {
+            matchedField = 'description';
+            displayText = question.description_content;
+          } else {
+            // Default to question if available, otherwise description
+            if (question.question) {
+              matchedField = 'question';
+              displayText = question.question;
+            } else if (question.description_content) {
+              matchedField = 'description';
+              displayText = question.description_content;
+            } else {
+              displayText = question.course_title || 'No question text available';
+            }
+          }
+          
+          // Create a preview (first 120 characters)
+          const preview = displayText ? displayText.substring(0, 120) + (displayText.length > 120 ? '...' : '') : '';
+          const matchIndicator = matchedField ? `[${matchedField.toUpperCase()}]` : '';
+          
           const questionResult = {
             id: question.id?.toString() || question._id?.toString() || `q-${Date.now()}-${Math.random()}`,
-            title: `${question.course_code || 'Unknown'} - ${question.question_number}${question.sub_question ? '-' + question.sub_question : ''}`,
-            description: `${question.question ? question.question.substring(0, 100) + (question.question.length > 100 ? '...' : '') : question.course_title || 'Unknown Course'} | ${question.exam_type || 'Unknown'} | ${question.marks || 0} marks | ${trimesterCode}`,
+            title: `${question.short || question.course_code || 'Unknown'} - ${question.semester_term || 'Unknown'} - ${question.question_number}${question.sub_question ? '-' + question.sub_question : ''}`,
+            description: `${matchIndicator} ${preview} | ${question.exam_type || 'Unknown'} | ${question.marks || 0} marks | ${trimesterCode}`,
             type: 'question' as const,
             url: `/dashboard/questions/${question.course_code}/${examType}/trimester/${trimesterCode}`,
             metadata: {
@@ -194,7 +222,9 @@ async function searchHandler(req: AuthenticatedRequest) {
               sub_question: question.sub_question,
               question: question.question,
               short: question.short,
-              description_content: question.description_content
+              description_content: question.description_content,
+              matched_field: matchedField,
+              full_matched_text: displayText
             }
           };
           
