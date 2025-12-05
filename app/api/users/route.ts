@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Account, Profile, UserWithProfile, CreateUserRequest, UserListResponse } from "@/lib/user-types";
 import { v4 as uuidv4 } from 'uuid';
-import { withAuth } from "@/lib/api-middleware";
+import { withAuth, AuthenticatedRequest } from "@/lib/api-middleware-with-logging";
 import bcrypt from 'bcryptjs';
 import { validateEmailAddress } from "@/lib/email-validator";
 import { generateSecurePassword } from "@/lib/token-utils";
 import { sendEmail, generateWelcomeEmailHTML } from "@/lib/email-service";
 import { createAccountSafe, normalizeEmail } from "@/lib/account-utils";
 
-async function getUsers(req: NextRequest) {
+async function getUsers(req: AuthenticatedRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get('page') || '1');
@@ -129,7 +129,7 @@ async function getUsers(req: NextRequest) {
 
 export const GET = withAuth(getUsers);
 
-async function createUser(req: NextRequest) {
+async function createUser(req: AuthenticatedRequest) {
     try {
         const body: CreateUserRequest = await req.json();
         const { 

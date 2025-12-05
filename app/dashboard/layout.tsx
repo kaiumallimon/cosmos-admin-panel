@@ -27,7 +27,8 @@ import {
     FileIcon,
     FileTextIcon,
     PlusIcon,
-    Code2Icon
+    Code2Icon,
+    Activity
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -255,6 +256,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             >
                                 <SettingsIcon className="h-4 w-4 shrink-0" />
                                 <span className="font-medium truncate">Settings</span>
+                            </Link>
+                        </div>
+                        <div className="mt-1">
+                            <Link
+                                href="/dashboard/system-logs"
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/system-logs" || pathname.startsWith("/dashboard/system-logs/") ? "bg-primary text-primary-foreground font-semibold" : ""
+                                    }`}
+                            >
+                                <Activity className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">System Logs</span>
                             </Link>
                         </div>
                         <div className="mt-1">
