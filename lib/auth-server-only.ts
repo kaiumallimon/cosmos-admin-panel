@@ -122,8 +122,10 @@ export function verifyRefreshToken(token: string): TokenPayload | null {
 export async function createAccount(email: string, password: string, role: 'admin' | 'user' = 'user'): Promise<Account> {
   const accountsCollection = await getCollection<Account>('accounts');
   
-  // Check if user already exists
-  const existingAccount = await accountsCollection.findOne({ email });
+  // Check if user already exists (case-insensitive)
+  const existingAccount = await accountsCollection.findOne({ 
+    email: { $regex: new RegExp(`^${email}$`, 'i') } 
+  });
   if (existingAccount) {
     throw new Error('Account with this email already exists');
   }
@@ -131,7 +133,7 @@ export async function createAccount(email: string, password: string, role: 'admi
   const hashedPassword = await hashPassword(password);
   const account: Account = {
     id: uuidv4(),
-    email,
+    email: email.toLowerCase(),
     password: hashedPassword,
     role,
     created_at: new Date(),
@@ -144,7 +146,9 @@ export async function createAccount(email: string, password: string, role: 'admi
 
 export async function findAccountByEmail(email: string): Promise<Account | null> {
   const accountsCollection = await getCollection<Account>('accounts');
-  return accountsCollection.findOne({ email });
+  return accountsCollection.findOne({ 
+    email: { $regex: new RegExp(`^${email}$`, 'i') } 
+  });
 }
 
 export async function findAccountById(id: string): Promise<Account | null> {
@@ -240,7 +244,7 @@ export async function signInWithEmail(email: string, password: string): Promise<
     // Fetch profile data (if exists)
     let profileData: Profile | undefined;
     try {
-      const profilesCollection = await getCollection<Profile>('profiles');
+      const profilesCollection = await getCollection<Profile>('profile');
       profileData = await profilesCollection.findOne({ id: account.id }) || undefined;
     } catch (error) {
       console.error("Auth: Profile fetch error:", error);
@@ -348,7 +352,7 @@ export const getCurrentUser = async (accessToken: string): Promise<User | null> 
     // Fetch profile data
     let profileData: Profile | undefined;
     try {
-      const profilesCollection = await getCollection<Profile>('profiles');
+      const profilesCollection = await getCollection<Profile>('profile');
       profileData = await profilesCollection.findOne({ id: account.id }) || undefined;
     } catch (error) {
       console.error("Auth: Profile fetch error:", error);

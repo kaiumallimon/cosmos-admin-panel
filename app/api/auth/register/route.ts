@@ -3,7 +3,8 @@ import { createAccount } from '@/lib/auth-server-only';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, role = 'user' } = await request.json();
+    const { email: rawEmail, password, role = 'user' } = await request.json();
+    const email = rawEmail?.toLowerCase().trim();
     
     if (!email || !password) {
       return NextResponse.json(

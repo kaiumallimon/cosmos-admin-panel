@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { validateEmailAddress } from "@/lib/email-validator";
 import { generateSecurePassword } from "@/lib/token-utils";
 import { sendEmail, generateWelcomeEmailHTML } from "@/lib/email-service";
+import { createAccountSafe, normalizeEmail } from "@/lib/account-utils";
 
 async function getUsers(req: NextRequest) {
     try {
@@ -144,17 +145,25 @@ async function createUser(req: NextRequest) {
             current_trimester
         } = body;
 
-        if (!email || !full_name) {
+        // Use comprehensive validation and duplicate checking
+        let normalizedData;
+        try {
+            normalizedData = await createAccountSafe({
+                email,
+                password: 'temp', // Will be replaced with generated password
+                role: role as 'admin' | 'user',
+                full_name,
+                student_id,
+                phone,
+                gender,
+                department,
+                batch,
+                program,
+                current_trimester
+            });
+        } catch (validationError: any) {
             return NextResponse.json({ 
-                error: 'Email and full name are required' 
-            }, { status: 400 });
-        }
-
-        // Validate email using comprehensive validator
-        const emailValidation = validateEmailAddress(email);
-        if (!emailValidation.isValid) {
-            return NextResponse.json({ 
-                error: emailValidation.error || 'Invalid email address' 
+                error: validationError.message 
             }, { status: 400 });
         }
 
@@ -164,26 +173,6 @@ async function createUser(req: NextRequest) {
         const { db } = await connectToDatabase();
         const accountsCollection = db.collection<Account>('accounts');
         const profileCollection = db.collection<Profile>('profile');
-
-        // Check if user already exists
-        const existingAccount = await accountsCollection.findOne({ 
-            email: { $regex: new RegExp(`^${email}$`, 'i') } 
-        });
-        if (existingAccount) {
-            return NextResponse.json({ 
-                error: 'A user with this email already exists' 
-            }, { status: 409 });
-        }
-
-        // Check if student_id already exists (if provided)
-        if (student_id) {
-            const existingProfile = await profileCollection.findOne({ student_id });
-            if (existingProfile) {
-                return NextResponse.json({ 
-                    error: 'A user with this student ID already exists' 
-                }, { status: 409 });
-            }
-        }
 
         // Hash the generated password
         const saltRounds = 12;
@@ -195,27 +184,27 @@ async function createUser(req: NextRequest) {
         // Create account record
         const newAccount: Account = {
             id: userId,
-            email: email.toLowerCase(),
+            email: normalizedData.email,
             password: hashedPassword,
-            role,
+            role: normalizedData.role,
             created_at: now,
             updated_at: now
         };
 
         // Create profile record
-        const profileRole = role === 'user' ? 'student' : role;
+        const profileRole = normalizedData.role === 'user' ? 'student' : normalizedData.role;
         const newProfile: Profile = {
             id: userId,
-            email: email.toLowerCase(),
-            full_name,
-            phone: phone || '',
-            gender: gender || '',
+            email: normalizedData.email,
+            full_name: normalizedData.full_name,
+            phone: normalizedData.phone || '',
+            gender: normalizedData.gender || '',
             role: profileRole,
-            student_id: student_id || null,
-            department: department || null,
-            batch: batch || null,
-            program: program || null,
-            current_trimester: current_trimester || null,
+            student_id: normalizedData.student_id || null,
+            department: normalizedData.department || null,
+            batch: normalizedData.batch || null,
+            program: normalizedData.program || null,
+            current_trimester: normalizedData.current_trimester || null,
             completed_credits: 0,
             cgpa: null,
             trimester_credits: 0,
@@ -234,15 +223,15 @@ async function createUser(req: NextRequest) {
             
             // Send welcome email with credentials
             try {
-                const emailHTML = generateWelcomeEmailHTML(email.toLowerCase(), generatedPassword, full_name);
+                const emailHTML = generateWelcomeEmailHTML(normalizedData.email, generatedPassword, normalizedData.full_name);
                 const emailSent = await sendEmail({
-                    to: email.toLowerCase(),
+                    to: normalizedData.email,
                     subject: 'Welcome to COSMOS-ITS Admin Panel - Your Login Credentials',
                     htmlContent: emailHTML
                 });
                 
                 if (!emailSent) {
-                    console.warn('Failed to send welcome email to:', email);
+                    console.warn('Failed to send welcome email to:', normalizedData.email);
                     // Don't fail the user creation if email fails
                 }
             } catch (emailError) {
