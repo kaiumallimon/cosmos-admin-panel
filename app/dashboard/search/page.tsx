@@ -1,436 +1,353 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { FrostedHeader } from "@/components/custom/frosted-header";
+import { useMobileMenu } from "@/components/mobile-menu-context";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  SearchIcon,
-  FilterIcon,
-  BookOpenIcon,
-  HelpCircleIcon,
-  FileTextIcon,
-  VideoIcon,
-  UsersIcon,
-  ClockIcon,
-  TrendingUpIcon,
+import { 
+  Search, 
+  Users, 
+  BookOpen, 
+  GraduationCap, 
+  Bot, 
+  Activity, 
+  Navigation,
+  Clock,
+  ExternalLink,
+  Filter
 } from "lucide-react";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface SearchResult {
   id: string;
   title: string;
-  type: "course" | "question" | "file" | "user";
   description: string;
-  category: string;
-  relevanceScore: number;
-  metadata: {
-    [key: string]: any;
-  };
+  type: 'user' | 'question' | 'course' | 'agent' | 'system-log' | 'navigation';
+  url?: string;
+  metadata?: any;
+  relevance?: number;
 }
 
-export default function SearchPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [selectedType, setSelectedType] = useState("all");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [isLoading, setIsLoading] = useState(false);
+interface SearchResponse {
+  results: SearchResult[];
+  totalResults: number;
+  searchTime: number;
+}
 
-  // Mock search results
-  const mockResults: SearchResult[] = [
-    {
-      id: "1",
-      title: "Advanced React Development",
-      type: "course",
-      description: "Master advanced React concepts including hooks, context, and performance optimization.",
-      category: "Development",
-      relevanceScore: 95,
-      metadata: {
-        instructor: "John Doe",
-        duration: "8 weeks",
-        students: 156,
-        status: "active"
-      }
-    },
-    {
-      id: "2",
-      title: "React Hooks Basics",
-      type: "question",
-      description: "Which hook is used to manage state in functional components?",
-      category: "React Development",
-      relevanceScore: 88,
-      metadata: {
-        difficulty: "easy",
-        points: 5,
-        type: "multiple-choice"
-      }
-    },
-    {
-      id: "3",
-      title: "React Hooks Tutorial.mp4",
-      type: "file",
-      description: "Comprehensive video tutorial on React hooks usage and best practices",
-      category: "Video Lessons",
-      relevanceScore: 82,
-      metadata: {
-        size: "45MB",
-        duration: "2h 15m",
-        downloads: 234
-      }
-    },
-    {
-      id: "4",
-      title: "John Doe",
-      type: "user",
-      description: "Senior React Developer and Course Instructor",
-      category: "Instructors",
-      relevanceScore: 75,
-      metadata: {
-        courses: 3,
-        students: 450,
-        rating: 4.8
-      }
+const typeIcons = {
+  user: Users,
+  question: BookOpen,
+  course: GraduationCap,
+  agent: Bot,
+  'system-log': Activity,
+  navigation: Navigation
+};
+
+const typeColors = {
+  user: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+  question: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800',
+  course: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+  agent: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200 dark:border-orange-800',
+  'system-log': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800',
+  navigation: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 border-gray-200 dark:border-gray-800'
+};
+
+function SearchContent() {
+  const { toggleMobileMenu } = useMobileMenu();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTime, setSearchTime] = useState(0);
+  const [query, setQuery] = useState(searchParams.get('q') || '');
+  const [selectedType, setSelectedType] = useState<string>('');
+
+  useEffect(() => {
+    if (query.trim()) {
+      performSearch(query, selectedType);
+    } else {
+      setResults([]);
     }
-  ];
+  }, [query, selectedType]);
 
-  const searchTypes = ["all", "course", "question", "file", "user"];
-  const categories = ["all", "Development", "Design", "Data Science", "Marketing", "Video Lessons", "Resources"];
-
-  const handleSearch = async () => {
-    if (!searchTerm.trim()) return;
-    
-    setIsLoading(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      const filtered = mockResults.filter(result => {
-        const matchesSearch = result.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             result.description.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesType = selectedType === "all" || result.type === selectedType;
-        const matchesCategory = selectedCategory === "all" || result.category === selectedCategory;
-        return matchesSearch && matchesType && matchesCategory;
-      });
-      
-      setSearchResults(filtered.sort((a, b) => b.relevanceScore - a.relevanceScore));
-      setIsLoading(false);
-    }, 1000);
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "course": return BookOpenIcon;
-      case "question": return HelpCircleIcon;
-      case "file": return FileTextIcon;
-      case "user": return UsersIcon;
-      default: return SearchIcon;
+  const performSearch = async (searchQuery: string, type?: string) => {
+    setLoading(true);
+    try {
+      const url = `/api/search?q=${encodeURIComponent(searchQuery)}${type ? `&type=${type}` : ''}&limit=50`;
+      const response = await fetch(url);
+      if (response.ok) {
+        const data: SearchResponse = await response.json();
+        setResults(data.results);
+        setSearchTime(data.searchTime);
+      } else {
+        console.error('Search failed:', response.statusText);
+        setResults([]);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      setResults([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getTypeBadgeVariant = (type: string) => {
-    switch (type) {
-      case "course": return "default";
-      case "question": return "secondary";
-      case "file": return "outline";
-      case "user": return "destructive";
-      default: return "outline";
+  const handleResultClick = (result: SearchResult) => {
+    if (result.url) {
+      router.push(result.url);
     }
   };
 
-  const renderMetadata = (result: SearchResult) => {
-    switch (result.type) {
-      case "course":
-        return (
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>Instructor: <span className="font-medium">{result.metadata.instructor}</span></span>
-            <span>Duration: <span className="font-medium">{result.metadata.duration}</span></span>
-            <span>Students: <span className="font-medium">{result.metadata.students}</span></span>
-          </div>
-        );
-      case "question":
-        return (
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>Difficulty: <span className="font-medium capitalize">{result.metadata.difficulty}</span></span>
-            <span>Points: <span className="font-medium">{result.metadata.points}</span></span>
-            <span>Type: <span className="font-medium">{result.metadata.type}</span></span>
-          </div>
-        );
-      case "file":
-        return (
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>Size: <span className="font-medium">{result.metadata.size}</span></span>
-            {result.metadata.duration && (
-              <span>Duration: <span className="font-medium">{result.metadata.duration}</span></span>
-            )}
-            <span>Downloads: <span className="font-medium">{result.metadata.downloads}</span></span>
-          </div>
-        );
-      case "user":
-        return (
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>Courses: <span className="font-medium">{result.metadata.courses}</span></span>
-            <span>Students: <span className="font-medium">{result.metadata.students}</span></span>
-            <span>Rating: <span className="font-medium">{result.metadata.rating}/5</span></span>
-          </div>
-        );
-      default:
-        return null;
+  const groupedResults = results.reduce((acc, result) => {
+    if (!acc[result.type]) {
+      acc[result.type] = [];
     }
-  };
+    acc[result.type].push(result);
+    return acc;
+  }, {} as Record<string, SearchResult[]>);
 
-  const stats = [
-    {
-      title: "Total Searches",
-      value: "1,247",
-      change: "+22%",
-      trend: "up",
-      icon: SearchIcon,
-    },
-    {
-      title: "Popular Content",
-      value: "React Courses",
-      change: "Trending",
-      trend: "up",
-      icon: TrendingUpIcon,
-    },
-    {
-      title: "Search Accuracy",
-      value: "94.2%",
-      change: "+3.1%",
-      trend: "up",
-      icon: FilterIcon,
-    },
-    {
-      title: "Avg. Response",
-      value: "0.8s",
-      change: "-0.2s",
-      trend: "down",
-      icon: ClockIcon,
-    },
+  const typeOptions = [
+    { value: '', label: 'All Types' },
+    { value: 'user', label: 'Users' },
+    { value: 'question', label: 'Questions' },
+    { value: 'course', label: 'Courses' },
+    { value: 'agent', label: 'AI Agents' },
+    { value: 'system-log', label: 'System Logs' },
+    { value: 'navigation', label: 'Navigation' }
   ];
 
   return (
     <ProtectedRoute>
-      <div className="flex-1 space-y-6 p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Search & Discovery</h1>
-            <p className="text-muted-foreground mt-1">
-              Find courses, questions, files, and users across your platform.
-            </p>
-          </div>
-        </div>
+      <div className="min-h-screen bg-background">
+        <FrostedHeader 
+          title="Search Results" 
+          subtitle={query ? `Results for "${query}"` : "Enter a search query to get started"}
+          onMobileMenuToggle={toggleMobileMenu}
+          showSearch={true}
+        />
 
-        {/* Stats Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, index) => (
-            <Card key={index} className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </p>
-                  <p className="text-2xl font-bold mt-2">{stat.value}</p>
+        <div className="p-6 space-y-6">
+          {/* Search Stats and Filters */}
+          {(results.length > 0 || loading) && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    {!loading && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        <span>{results.length} results in {searchTime}ms</span>
+                      </div>
+                    )}
+                    {loading && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Search className="h-4 w-4 animate-pulse" />
+                        <span>Searching...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <select
+                      value={selectedType}
+                      onChange={(e) => setSelectedType(e.target.value)}
+                      className="px-3 py-1 text-sm bg-background border border-border rounded-md"
+                    >
+                      {typeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <stat.icon className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-              <div className="flex items-center mt-4">
-                <span className={`text-sm font-medium ${
-                  stat.trend === "up" ? "text-green-500" : stat.trend === "down" ? "text-red-500" : "text-blue-500"
-                }`}>
-                  {stat.change}
-                </span>
-                <span className="text-sm text-muted-foreground ml-2">
-                  {stat.trend === "up" || stat.trend === "down" ? "from last month" : ""}
-                </span>
-              </div>
+              </CardContent>
             </Card>
-          ))}
-        </div>
+          )}
 
-        {/* Search Interface */}
-        <Card className="p-6">
-          <div className="space-y-4">
-            {/* Main Search Bar */}
-            <div className="flex gap-4">
-              <div className="relative flex-1">
-                <SearchIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search for courses, questions, files, or users..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                  className="pl-10 h-12 text-base"
-                />
-              </div>
-              <Button 
-                onClick={handleSearch} 
-                disabled={!searchTerm.trim() || isLoading}
-                className="h-12 px-8"
-              >
-                {isLoading ? "Searching..." : "Search"}
-              </Button>
-            </div>
-
-            {/* Filters */}
-            <div className="flex gap-4">
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Content Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {searchTypes.map((type) => (
-                    <SelectItem key={type} value={type} className="capitalize">
-                      {type === "all" ? "All Types" : `${type}s`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category} className="capitalize">
-                      {category === "all" ? "All Categories" : category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" onClick={handleSearch} disabled={isLoading}>
-                <FilterIcon className="h-4 w-4 mr-2" />
-                Apply Filters
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        {/* Search Results */}
-        {searchResults.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">
-                Search Results ({searchResults.length})
-              </h2>
-              <div className="text-sm text-muted-foreground">
-                Sorted by relevance
-              </div>
-            </div>
-
-            <div className="grid gap-4">
-              {searchResults.map((result) => {
-                const TypeIcon = getTypeIcon(result.type);
-                return (
-                  <Card key={result.id} className="p-6 hover:shadow-md transition-shadow cursor-pointer">
-                    <div className="flex items-start gap-4">
-                      <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-                        <TypeIcon className="h-6 w-6 text-primary" />
+          {/* Loading State */}
+          {loading && (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {Array(6).fill(0).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="space-y-2 flex-1">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-3 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
                       </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-lg">{result.title}</h3>
-                          <Badge variant={getTypeBadgeVariant(result.type)} className="capitalize">
-                            {result.type}
-                          </Badge>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <span>Relevance:</span>
-                            <span className="font-medium text-primary">{result.relevanceScore}%</span>
-                          </div>
-                        </div>
-
-                        <p className="text-muted-foreground mb-3">{result.description}</p>
-
-                        {renderMetadata(result)}
-
-                        <div className="flex items-center gap-2 mt-3">
-                          <Badge variant="outline" className="text-xs">
-                            {result.category}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
                     </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* No Query State */}
+          {!query && !loading && (
+            <Card>
+              <CardContent className="pt-12 pb-12 text-center">
+                <Search className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Start Searching</h3>
+                <p className="text-muted-foreground mb-6">
+                  Use the search bar above or press <kbd className="px-2 py-1 text-xs bg-muted rounded border">Cmd+K</kbd> to search across:
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 max-w-2xl mx-auto text-left">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="h-4 w-4 text-blue-500" />
+                    <span>Users & Profiles</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <BookOpen className="h-4 w-4 text-green-500" />
+                    <span>Question Bank</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <GraduationCap className="h-4 w-4 text-purple-500" />
+                    <span>Courses</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Bot className="h-4 w-4 text-orange-500" />
+                    <span>AI Agents</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Activity className="h-4 w-4 text-red-500" />
+                    <span>System Logs</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Navigation className="h-4 w-4 text-gray-500" />
+                    <span>Navigation</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* No Results State */}
+          {query && !loading && results.length === 0 && (
+            <Card>
+              <CardContent className="pt-12 pb-12 text-center">
+                <Search className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No results found</h3>
+                <p className="text-muted-foreground mb-4">
+                  No results found for <strong>"{query}"</strong>
+                  {selectedType && (
+                    <span> in <strong>{typeOptions.find(t => t.value === selectedType)?.label}</strong></span>
+                  )}
+                </p>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>Try:</p>
+                  <p>• Checking your spelling</p>
+                  <p>• Using different keywords</p>
+                  <p>• Removing filters</p>
+                  <p>• Searching for partial matches</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Search Results */}
+          {!loading && results.length > 0 && (
+            <div className="space-y-6">
+              {Object.entries(groupedResults).map(([type, typeResults]) => {
+                const Icon = typeIcons[type as keyof typeof typeIcons];
+                const typeName = type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' ');
+                
+                return (
+                  <Card key={type}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Icon className="h-5 w-5" />
+                        {typeName}
+                        <Badge variant="secondary" className="ml-auto">
+                          {typeResults.length}
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {typeResults.map((result) => (
+                          <div
+                            key={result.id}
+                            onClick={() => handleResultClick(result)}
+                            className="flex items-start gap-3 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer group"
+                          >
+                            <div className={cn(
+                              "shrink-0 h-10 w-10 rounded-full flex items-center justify-center border",
+                              typeColors[result.type as keyof typeof typeColors]
+                            )}>
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="text-sm font-medium line-clamp-1 group-hover:text-primary transition-colors">
+                                  {result.title}
+                                </h4>
+                                {result.url && (
+                                  <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-0.5" />
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                {result.description}
+                              </p>
+                              <Badge 
+                                variant="outline" 
+                                className={cn(
+                                  "text-xs mt-2 h-5",
+                                  typeColors[result.type as keyof typeof typeColors]
+                                )}
+                              >
+                                {typeName}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
                   </Card>
                 );
               })}
             </div>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!searchResults.length && searchTerm && !isLoading && (
-          <div className="text-center py-12">
-            <SearchIcon className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No results found</h3>
-            <p className="text-muted-foreground mb-4">
-              Try adjusting your search terms or filters.
-            </p>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p><strong>Search tips:</strong></p>
-              <ul className="list-disc list-inside space-y-1 max-w-md mx-auto">
-                <li>Use specific keywords related to your content</li>
-                <li>Try different content types (courses, questions, files)</li>
-                <li>Check for typos in your search term</li>
-                <li>Use broader category filters</li>
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {/* Initial State */}
-        {!searchResults.length && !searchTerm && (
-          <div className="text-center py-12">
-            <SearchIcon className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Start Your Search</h3>
-            <p className="text-muted-foreground mb-4">
-              Enter keywords to find courses, questions, files, or users.
-            </p>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p><strong>Popular searches:</strong></p>
-              <div className="flex flex-wrap justify-center gap-2 mt-2">
-                {["React", "JavaScript", "CSS", "Python", "Design", "Database"].map((term) => (
-                  <Button
-                    key={term}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSearchTerm(term);
-                      setTimeout(handleSearch, 100);
-                    }}
-                  >
-                    {term}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {isLoading && (
-          <div className="text-center py-12">
-            <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Searching across all content...</p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <ProtectedRoute>
+        <div className="min-h-screen bg-background">
+          <div className="p-6 space-y-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {Array(6).fill(0).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="space-y-2 flex-1">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-3 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    }>
+      <SearchContent />
+    </Suspense>
   );
 }

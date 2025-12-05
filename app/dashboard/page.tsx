@@ -141,6 +141,7 @@ export default function DashboardHome() {
           title="Dashboard" 
           subtitle="Welcome to your dashboard overview." 
           onMobileMenuToggle={toggleMobileMenu}
+          showSearch={true}
         />
 
         <div className="p-6 space-y-6">

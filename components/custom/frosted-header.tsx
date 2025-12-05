@@ -1,8 +1,9 @@
 "use client";
 
 import React, { ReactNode } from "react";
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import GlobalSearch from "@/components/global-search";
 
 interface FrostedHeaderProps {
   title: string;
@@ -10,6 +11,7 @@ interface FrostedHeaderProps {
   children?: ReactNode;
   className?: string;
   onMobileMenuToggle?: () => void;
+  showSearch?: boolean;
 }
 
 /**
@@ -20,6 +22,7 @@ interface FrostedHeaderProps {
  * - children: optional extra content (buttons, icons)
  * - className: additional Tailwind classes
  * - onMobileMenuToggle: function to toggle mobile menu (shows menu icon on mobile when provided)
+ * - showSearch: whether to show the global search bar (default: true)
  */
 export const FrostedHeader: React.FC<FrostedHeaderProps> = ({ 
   title, 
@@ -27,6 +30,7 @@ export const FrostedHeader: React.FC<FrostedHeaderProps> = ({
   children, 
   className = "", 
   onMobileMenuToggle,
+  showSearch = true,
 }) => {
   
   return (
@@ -35,7 +39,7 @@ export const FrostedHeader: React.FC<FrostedHeaderProps> = ({
     >
       <div className="flex items-center justify-between gap-4">
         {/* Left side - Mobile menu button + Title */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="flex items-center gap-3 min-w-0 flex-1 lg:flex-initial lg:min-w-0">
           {/* Mobile menu button - only visible on mobile when onMobileMenuToggle is provided */}
           {onMobileMenuToggle && (
             <Button
@@ -50,7 +54,7 @@ export const FrostedHeader: React.FC<FrostedHeaderProps> = ({
           )}
           
           {/* Title section */}
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">
               {title}
             </h1>
@@ -62,8 +66,37 @@ export const FrostedHeader: React.FC<FrostedHeaderProps> = ({
           </div>
         </div>
         
-        {/* Right side - Additional children */}
-        {children && <div className="flex items-center gap-2 shrink-0">{children}</div>}
+        {/* Center - Search (hidden on mobile, visible on larger screens) */}
+        {showSearch && (
+          <div className="hidden lg:flex flex-1 justify-center max-w-md">
+            <GlobalSearch className="w-full" />
+          </div>
+        )}
+        
+        {/* Right side - Search (mobile) + Additional children */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Mobile search - only visible on small screens */}
+          {showSearch && (
+            <div className="lg:hidden">
+              <GlobalSearch 
+                trigger={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="p-2 h-8 w-8"
+                    aria-label="Search"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                }
+                className="w-8 h-8"
+              />
+            </div>
+          )}
+          
+          {/* Additional children */}
+          {children && <>{children}</>}
+        </div>
       </div>
     </div>
   );
