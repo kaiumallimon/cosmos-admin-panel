@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const SidebarContentComponent = ({ onLinkClick }: { onLinkClick?: () => void }) => (
         <div className="flex h-full flex-col overflow-hidden">
             {/* Header */}
-            <div className="w-60 border-b border-border/50 p-4 shrink-0 bg-transparent dark:bg-transparent backdrop-blur-sm">
+            <div className="border-b border-border/40 p-4 shrink-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-orange-500 to-red-500 text-sm font-bold text-white shadow-md shrink-0">
                         C
@@ -63,7 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* Content - Scrollable Area */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 mr-2 ml-0.5 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 scrollbar-hide">
                 {/* Main Navigation */}
                 <div>
                     <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
@@ -245,16 +245,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         System
                     </div>
                     <div>
-                        
-                        <div className="mt-1">
+                        <div>
                             <Link
-                                href="/dashboard/system-logs"
+                                href="/dashboard/settings"
                                 onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/system-logs" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/settings" ? "bg-primary text-primary-foreground font-semibold" : ""
                                     }`}
                             >
-                                <HelpCircleIcon className="h-4 w-4 shrink-0" />
-                                <span className="font-medium truncate">System Logs</span>
+                                <SettingsIcon className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Settings</span>
                             </Link>
                         </div>
                         <div className="mt-1">
@@ -273,7 +272,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* Footer */}
-            <div className="w-60 border-t border-border/50 p-4 shrink-0 overflow-hidden bg-transparent dark:bg-transparent backdrop-blur-sm">
+            <div className="border-t border-border/40 p-4 shrink-0 overflow-hidden">
                 {/* Theme Toggle */}
                 <div className="mb-3 overflow-hidden">
                     <div className="flex items-center justify-between min-w-0">
@@ -351,7 +350,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                         <Button
                             variant="destructive"
-                            onClick={() => signOutAndRedirect()}
+                            onClick={() => signOutAndRedirect("/")}
                             className="w-full gap-2"
                         >
                             <LogOutIcon className="h-4 w-4" />
@@ -365,15 +364,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return (
         <SidebarProvider defaultOpen={true}>
-            <div className="flex h-screen w-screen bg-transparent overflow-hidden fixed inset-0">
+            <div className="flex h-screen w-screen bg-background overflow-hidden fixed inset-0">
                 {/* Desktop Sidebar - Hidden on mobile */}
-                <div className="hidden md:flex w-60 border-r border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
+                <div className="hidden md:flex w-64 border-r border-border/40 bg-card overflow-hidden">
                     <SidebarContentComponent />
                 </div>
 
                 {/* Mobile Drawer */}
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                    <SheetContent side="left" className="p-0 w-64 bg-card/50 backdrop-blur-sm">
+                    <SheetContent side="left" className="p-0 w-64">
                         <SheetHeader className="sr-only">
                             <SheetTitle>Navigation Menu</SheetTitle>
                             <SheetDescription>

@@ -162,9 +162,15 @@ export default function GlobalSearch({
     </Button>
   );
 
+  const triggerElement = trigger ? (
+    <div onClick={() => setOpen(true)}>
+      {trigger}
+    </div>
+  ) : defaultTrigger;
+
   return (
     <>
-      {trigger || defaultTrigger}
+      {triggerElement}
       
       <CommandDialog 
         open={open} 
@@ -229,25 +235,25 @@ export default function GlobalSearch({
                         key={result.id}
                         value={`${result.title} ${result.description}`}
                         onSelect={() => handleSelect(result)}
-                        className="flex items-center gap-3 p-3 cursor-pointer"
+                        className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 cursor-pointer"
                       >
-                        <div className="shrink-0">
-                          <Icon className="h-4 w-4" />
+                        <div className="shrink-0 mt-0.5">
+                          <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="text-sm font-medium truncate">{result.title}</p>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                            <p className="text-xs sm:text-sm font-medium truncate">{result.title}</p>
                             <Badge 
                               variant="secondary" 
                               className={cn(
-                                "text-xs px-1.5 py-0.5 h-5",
+                                "text-xs px-1.5 py-0.5 h-4 sm:h-5 self-start sm:self-auto shrink-0",
                                 typeColors[result.type as keyof typeof typeColors]
                               )}
                             >
                               {typeName}
                             </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground line-clamp-1">
+                          <p className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-1">
                             {result.description}
                           </p>
                         </div>
