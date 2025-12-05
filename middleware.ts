@@ -8,9 +8,11 @@ export function middleware(req: NextRequest) {
     const isPublicPath = pathname === '/' || 
                         pathname.startsWith('/public') || 
                         pathname.startsWith('/api/auth/') || 
+                        pathname.startsWith('/api/reset-password') ||
                         pathname.startsWith('/_next/static') || 
                         pathname.startsWith('/_next/image') ||
                         pathname === '/login' || 
+                        pathname === '/reset-password' ||
                         pathname === "/favicon.ico";
 
     if (isPublicPath) return NextResponse.next();

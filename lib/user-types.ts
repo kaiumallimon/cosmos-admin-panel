@@ -42,7 +42,6 @@ export interface UserWithProfile {
 
 export interface CreateUserRequest {
   email: string;
-  password: string;
   full_name: string;
   role?: string;
   phone?: string;

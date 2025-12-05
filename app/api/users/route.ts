@@ -129,8 +129,7 @@ async function createUser(req: NextRequest) {
     try {
         const body: CreateUserRequest = await req.json();
         const { 
-            email, 
-            password,
+            email,
             full_name,
             role = 'user',
             phone = '',
@@ -142,26 +141,22 @@ async function createUser(req: NextRequest) {
             current_trimester
         } = body;
 
-        if (!email || !password || !full_name) {
+        if (!email || !full_name) {
             return NextResponse.json({ 
-                error: 'Email, password, and full name are required' 
+                error: 'Email and full name are required' 
             }, { status: 400 });
         }
 
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        // Validate email using comprehensive validator
+        const emailValidation = validateEmailAddress(email);
+        if (!emailValidation.isValid) {
             return NextResponse.json({ 
-                error: 'Invalid email format' 
+                error: emailValidation.error || 'Invalid email address' 
             }, { status: 400 });
         }
 
-        // Validate password strength
-        if (password.length < 6) {
-            return NextResponse.json({ 
-                error: 'Password must be at least 6 characters long' 
-            }, { status: 400 });
-        }
+        // Generate secure random password
+        const generatedPassword = generateSecurePassword(12);
 
         const { db } = await connectToDatabase();
         const accountsCollection = db.collection<Account>('accounts');
@@ -187,9 +182,9 @@ async function createUser(req: NextRequest) {
             }
         }
 
-        // Hash password
+        // Hash the generated password
         const saltRounds = 12;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const hashedPassword = await bcrypt.hash(generatedPassword, saltRounds);
         
         const userId = uuidv4();
         const now = new Date();
@@ -234,12 +229,30 @@ async function createUser(req: NextRequest) {
                 await profileCollection.insertOne(newProfile, { session });
             });
             
+            // Send welcome email with credentials
+            try {
+                const emailHTML = generateWelcomeEmailHTML(email.toLowerCase(), generatedPassword, full_name);
+                const emailSent = await sendEmail({
+                    to: email.toLowerCase(),
+                    subject: 'Welcome to COSMOS-ITS Admin Panel - Your Login Credentials',
+                    htmlContent: emailHTML
+                });
+                
+                if (!emailSent) {
+                    console.warn('Failed to send welcome email to:', email);
+                    // Don't fail the user creation if email fails
+                }
+            } catch (emailError) {
+                console.error('Error sending welcome email:', emailError);
+                // Don't fail the user creation if email fails
+            }
+            
             return NextResponse.json({
-                message: 'User created successfully',
+                message: 'User created successfully. Login credentials have been sent to the user\'s email address.',
                 data: {
                     ...newAccount,
                     _id: newAccount._id?.toString(),
-                    password: undefined, // Don't return password
+                    password: undefined, // Never return password
                     profile: {
                         ...newProfile,
                         _id: newProfile._id?.toString()

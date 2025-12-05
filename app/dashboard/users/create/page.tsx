@@ -30,7 +30,6 @@ import Link from "next/link";
 export default function CreateUserPage() {
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
     full_name: '',
     role: 'user',
     phone: '',
@@ -137,7 +136,12 @@ export default function CreateUserPage() {
 
               {/* Basic Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Basic Information</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Basic Information</h3>
+                  <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-1">
+                    <span className="text-xs text-blue-700 font-medium">🔐 Password will be auto-generated and emailed</span>
+                  </div>
+                </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="full_name">Full Name *</Label>
@@ -164,17 +168,6 @@ export default function CreateUserPage() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password *</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
-                      placeholder="Enter password"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="phone">Phone</Label>
                     <Input
                       id="phone"
@@ -183,9 +176,6 @@ export default function CreateUserPage() {
                       placeholder="Enter phone number"
                     />
                   </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="role">Role *</Label>
                     <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
@@ -198,6 +188,9 @@ export default function CreateUserPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="gender">Gender</Label>
                     <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>

@@ -63,7 +63,9 @@ import {
   Key,
   EyeOff,
   GraduationCap,
-  Shield
+  Shield,
+  Mail,
+  AlertTriangle
 } from "lucide-react";
 import { useMobileMenu } from "@/components/mobile-menu-context";
 import { useState, useEffect } from "react";
@@ -251,32 +253,34 @@ export default function UsersPage() {
   };
 
   const handleResetPassword = async () => {
-    if (!resetPasswordUser || !newPassword.trim()) return;
+    if (!resetPasswordUser) return;
 
     try {
       setResettingPassword(true);
-      const response = await fetch(`/api/users/${resetPasswordUser.id}/reset-password`, {
+      const response = await fetch(`/api/users/${resetPasswordUser.id}/initiate-password-reset`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          newPassword: newPassword.trim()
+          userId: resetPasswordUser.id
         }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         const userName = resetPasswordUser.name;
+        const userEmail = resetPasswordUser.email;
         setResetPasswordUser(null);
         setNewPassword('');
         setShowPassword(false);
-        // Show success message - you could replace this with a toast notification
+        // Show success message
         setTimeout(() => {
-          alert(`✅ Password reset successfully for ${userName}!`);
+          alert(`✅ Password reset link sent to ${userEmail}!\n\nThe user will receive an email with a secure reset link that expires in 3 minutes.`);
         }, 100);
       } else {
-        const data = await response.json();
-        alert(`❌ Error resetting password: ${data.error || 'Unknown error'}`);
+        alert(`❌ Error sending reset email: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error resetting password:', error);
@@ -673,75 +677,39 @@ export default function UsersPage() {
           setShowPassword(false);
         }
       }}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-orange-500" />
+              Send Password Reset Email
+            </DialogTitle>
             <DialogDescription>
-              Set a new password for <strong>{resetPasswordUser?.name}</strong> ({resetPasswordUser?.email})
+              Send a secure password reset link to <strong>{resetPasswordUser?.name}</strong>
               <br />
-              <span className="text-orange-600 font-medium">⚠️ This will immediately change the user's password and they will need to use the new password to log in.</span>
+              <span className="text-blue-600 font-medium">📧 {resetPasswordUser?.email}</span>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="newPassword">
-                  New Password
-                </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setNewPassword(generateRandomPassword())}
-                  className="text-xs"
-                >
-                  Generate Random
-                </Button>
-              </div>
-              <div className="relative">
-                <Input
-                  id="newPassword"
-                  type={showPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password (min. 6 characters)"
-                  minLength={6}
-                  className={`pr-10 ${
-                    newPassword && newPassword.length < 6 
-                      ? 'border-red-300 focus:border-red-500' 
-                      : newPassword.length >= 6 
-                      ? 'border-green-300 focus:border-green-500' 
-                      : ''
-                  }`}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </Button>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <div className={`h-2 w-2 rounded-full ${
-                  newPassword.length >= 6 ? 'bg-green-500' : 'bg-gray-300'
-                }`}></div>
-                <span className={newPassword.length >= 6 ? 'text-green-600' : 'text-muted-foreground'}>
-                  Minimum 6 characters
-                </span>
-              </div>
-              {newPassword.length >= 8 && (
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                  <span className="text-green-600">Good password length</span>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div className="text-sm text-blue-700">
+                  <h4 className="font-medium mb-2">How it works:</h4>
+                  <ul className="space-y-1 text-blue-600">
+                    <li>• A secure reset link will be sent to the user's email</li>
+                    <li>• The link expires in exactly 3 minutes for security</li>
+                    <li>• User can create their own new password</li>
+                    <li>• Link can only be used once</li>
+                  </ul>
                 </div>
-              )}
+              </div>
+            </div>
+            
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-amber-700">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm font-medium">The user will need to check their email and act quickly due to the 3-minute expiration.</span>
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -759,17 +727,18 @@ export default function UsersPage() {
             <Button 
               type="button"
               onClick={handleResetPassword}
-              disabled={resettingPassword || !newPassword.trim() || newPassword.length < 6}
+              disabled={resettingPassword}
+              className="bg-orange-500 hover:bg-orange-600"
             >
               {resettingPassword ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Resetting...
+                  Sending Email...
                 </>
               ) : (
                 <>
-                  <Key className="h-4 w-4 mr-2" />
-                  Reset Password
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Reset Email
                 </>
               )}
             </Button>
