@@ -2,7 +2,7 @@
 // Update ALL course questions embeddings using MongoDB + Pinecone
 
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from '@/lib/api-middleware';
+import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
 import { getCollection } from '@/lib/mongodb';
 import { generateEmbedding } from '@/lib/embedding-service';
 import { getCourseNameSpace, upsertVector } from '@/lib/pinecone-service';
@@ -34,7 +34,7 @@ interface QuestionPart {
 }
 
 // POST request to update embeddings for ALL questions
-export const POST = withAuth(async (req) => {
+export const POST = withAuth(async (req: AuthenticatedRequest) => {
   const results = { 
     total: 0, 
     updated: [] as any[], 
@@ -178,7 +178,7 @@ export const POST = withAuth(async (req) => {
 });
 
 // GET request to get course total questions count, mid question count, final questions count
-export const GET = withAuth(async (req) => {
+export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const { searchParams } = new URL(req.url);
     const course_code = searchParams.get("course_code");

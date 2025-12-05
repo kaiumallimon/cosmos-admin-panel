@@ -49,6 +49,13 @@ async function getHandler(req: AuthenticatedRequest, { params }: { params: Promi
       message: 'Agent details fetched successfully'
     }, { status: 500 });
   }
+  catch (error: any) {
+    console.error('Error fetching agent by name:', error);
+    return NextResponse.json({
+      success: false,
+      message: 'Internal server error: ' + error.message
+    }, { status: 500 });
+  }
 }
 
 // DELETE /api/agents/comprehensive/[name] - Delete agent by name (legacy endpoint)

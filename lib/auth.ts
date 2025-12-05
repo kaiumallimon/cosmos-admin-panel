@@ -2,6 +2,9 @@
 export type { User, Profile, TokenPayload, AuthTokens } from './auth-server-only';
 export { AUTH_STORAGE_KEY, ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from './auth-server-only';
 
+// Import User type for use in this file
+import type { User } from './auth-server-only';
+
 // Re-export server functions for API routes (these will only work on server-side)
 export {
   signInWithEmail,

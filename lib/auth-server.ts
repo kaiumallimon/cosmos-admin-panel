@@ -4,7 +4,7 @@ import { getCurrentUser, ACCESS_TOKEN_COOKIE, User } from './auth-server-only';
 
 export async function getCurrentUserServer(): Promise<User | null> {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
     
     if (!accessToken) {

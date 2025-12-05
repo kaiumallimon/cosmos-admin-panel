@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from '@/lib/api-middleware';
+import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
 import { getCollection } from '@/lib/mongodb';
 import { v4 as uuidv4 } from 'uuid';
 import { generateEmbedding } from '@/lib/embedding-service';
@@ -30,7 +30,7 @@ interface QuestionPart {
   pdf_url: string | null;
 }
 
-export const POST = withAuth(async (req) => {
+export const POST = withAuth(async (req: AuthenticatedRequest) => {
   let mongoInserted = false;
   let pineconeUpserted = false;
   let questionPart: QuestionPart | null = null;

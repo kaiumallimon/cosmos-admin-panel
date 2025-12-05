@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from '@/lib/api-middleware';
+import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
 import { getCollection } from '@/lib/mongodb';
 
 interface QuestionPart {
@@ -26,7 +26,7 @@ interface QuestionPart {
   pdf_url: string | null;
 }
 
-export const GET = withAuth(async (req) => {
+export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
     const term = req.nextUrl.searchParams.get('term'); // exam_type, e.g. "final"
     const course_code = req.nextUrl.searchParams.get('course_code'); // e.g. "CSE-1111"

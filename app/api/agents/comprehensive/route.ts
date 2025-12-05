@@ -52,4 +52,11 @@ async function getHandler(req: AuthenticatedRequest) {
 
   } catch (error: any) {
     console.error('Error fetching comprehensive agents:', error);
-      message: 'Failed to fetch agents: ' + error.message \n    }, { status: 500 });\n  }\n}\n\nexport const GET = withAuth(getHandler);
+    return NextResponse.json({
+      success: false,
+      message: 'Failed to fetch agents: ' + error.message
+    }, { status: 500 });
+  }
+}
+
+export const GET = withAuth(getHandler);
