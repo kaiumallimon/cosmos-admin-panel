@@ -26,7 +26,8 @@ import {
     FileIcon,
     FileTextIcon,
     PlusIcon,
-    Code2Icon
+    Code2Icon,
+    Activity
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -65,7 +66,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Content - Scrollable Area */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 scrollbar-hide">
                 {/* Main Navigation */}
-                <div>
+                <div className="mt-3">
                     <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
                         Overview
                     </div>
@@ -247,13 +248,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div>
                         <div>
                             <Link
-                                href="/dashboard/settings"
+                                href="/dashboard/system-logs"
                                 onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/settings" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/system-logs" ? "bg-primary text-primary-foreground font-semibold" : ""
                                     }`}
                             >
-                                <SettingsIcon className="h-4 w-4 shrink-0" />
-                                <span className="font-medium truncate">Settings</span>
+                                <Activity className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">System Logs</span>
                             </Link>
                         </div>
                         <div className="mt-1">
