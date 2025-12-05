@@ -205,7 +205,7 @@ async function searchHandler(req: AuthenticatedRequest) {
           
           const questionResult = {
             id: question.id?.toString() || question._id?.toString() || `q-${Date.now()}-${Math.random()}`,
-            title: `${question.short || question.course_code || 'Unknown'} - ${question.semester_term || 'Unknown'} - ${question.question_number}${question.sub_question ? '-' + question.sub_question : ''}`,
+            title: `${question.short || question.course_code || 'Unknown'} - ${question.semester_term || 'Unknown'} - ${question.question_number}${question.sub_question ? '(' + question.sub_question + ')' : ''}`,
             description: `${matchIndicator} ${preview} | ${question.exam_type || 'Unknown'} | ${question.marks || 0} marks | ${trimesterCode}`,
             type: 'question' as const,
             url: `/dashboard/questions/${question.course_code}/${examType}/trimester/${trimesterCode}`,
