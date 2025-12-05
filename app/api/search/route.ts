@@ -107,12 +107,12 @@ async function searchHandler(req: AuthenticatedRequest) {
               $or: [
                 // Direct question text search - primary field
                 { question: { $regex: searchRegex } },
-                // Course and metadata search
+                // Course and metadata search  
                 { course_title: { $regex: searchRegex } },
                 { course_code: { $regex: searchRegex } },
                 { semester_term: { $regex: searchRegex } },
                 { exam_type: { $regex: searchRegex } },
-                // Question details
+                // Question details from schema
                 { description_content: { $regex: searchRegex } },
                 { short: { $regex: searchRegex } },
                 { question_number: { $regex: searchRegex } },
@@ -124,6 +124,11 @@ async function searchHandler(req: AuthenticatedRequest) {
         ];
 
         const questions = await db.collection('question_parts').aggregate(questionsPipeline).toArray();
+        console.log('Questions found:', questions.length);
+        if (questions.length > 0) {
+          console.log('Sample question fields:', Object.keys(questions[0]));
+          console.log('Sample question:', JSON.stringify(questions[0], null, 2));
+        }
         
         questions.forEach(question => {
           // Extract trimester code from semester_term
@@ -160,11 +165,21 @@ async function searchHandler(req: AuthenticatedRequest) {
           // Convert exam_type to lowercase for URL
           const examType = question.exam_type?.toLowerCase() === 'final' ? 'final' : 'mid';
           
-          results.push({
-            id: question.id?.toString() || question._id?.toString(),
-            title: `${question.course_code} - ${question.question_number}${question.sub_question ? '-' + question.sub_question : ''}`,
-            description: `${question.course_title} | ${question.exam_type} | ${question.marks} marks | ${trimesterCode}`,
-            type: 'question',
+          // Skip if essential fields are missing
+          if (!question.course_code || !question.question_number) {
+            console.log('Skipping question due to missing fields:', {
+              course_code: question.course_code,
+              question_number: question.question_number,
+              availableFields: Object.keys(question)
+            });
+            return;
+          }
+          
+          const questionResult = {
+            id: question.id?.toString() || question._id?.toString() || `q-${Date.now()}-${Math.random()}`,
+            title: `${question.course_code || 'Unknown'} - ${question.question_number}${question.sub_question ? '-' + question.sub_question : ''}`,
+            description: `${question.question ? question.question.substring(0, 100) + (question.question.length > 100 ? '...' : '') : question.course_title || 'Unknown Course'} | ${question.exam_type || 'Unknown'} | ${question.marks || 0} marks | ${trimesterCode}`,
+            type: 'question' as const,
             url: `/dashboard/questions/${question.course_code}/${examType}/trimester/${trimesterCode}`,
             metadata: {
               course_code: question.course_code,
@@ -176,9 +191,15 @@ async function searchHandler(req: AuthenticatedRequest) {
               has_description: question.has_description,
               trimester_code: trimesterCode,
               question_number: question.question_number,
-              sub_question: question.sub_question
+              sub_question: question.sub_question,
+              question: question.question,
+              short: question.short,
+              description_content: question.description_content
             }
-          });
+          };
+          
+          console.log('Adding question result:', questionResult);
+          results.push(questionResult);
         });
       } catch (error) {
         console.error('Questions search error:', error);
