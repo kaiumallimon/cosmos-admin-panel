@@ -1,52 +1,482 @@
 # Cosmos Admin Panel
 
-A Next.js admin dashboard and content management UI for Cosmos ITS training content. This repository contains the admin web application, API routes, UI components, and utilities used to manage courses, questions, users, and related content.
+A comprehensive Next.js admin dashboard for educational content management, featuring AI-powered question banks, user management, course administration, and intelligent search capabilities. Built with MongoDB, Pinecone vector database, OpenAI embeddings, and JWT authentication.
 
-Key highlights:
+## 🎯 Key Features
 
-- Admin dashboard with analytics, content management, questions management, search, and user settings.
-- Server-side and edge API routes under `app/api` for auth, course and question management, and CDN/file endpoints.
-- Supabase integration for authentication and database access (`lib/supabaseClient.ts`).
-- Reusable UI components in `components/` and `components/ui/` (Radix + Tailwind-inspired utilities).
-- Built with the Next.js App Router (React Server Components + Client Components) and TypeScript.
+- **Complete User Management**: Role-based authentication (admin/user), user profiles, student data management
+- **AI-Powered Question Bank**: Vector search, semantic embeddings, intelligent question retrieval
+- **Course Management**: Full CRUD operations for courses, departments, and academic programs
+- **Intelligent Search**: Cross-collection search with command palette interface
+- **AI Agent Configuration**: Customizable AI agents with tools, configurations, and few-shot examples
+- **Analytics Dashboard**: Real-time system analytics, user statistics, and performance metrics
+- **System Logging**: Comprehensive admin action tracking and system monitoring
+- **Vector Management**: Pinecone integration for semantic search and question embeddings
 
-## Project Structure (high level)
+## 🏗️ Architecture
 
-- `app/` — Next.js application routes and pages (including `dashboard/` subsections: `analytics`, `contents`, `questions`, `search`, `settings`, `users`).
-- `app/api/` — API route handlers used by the frontend (auth, cdn, courses, questions, etc.).
-- `components/` — Shared React components and UI primitives used across the app.
-- `lib/` — Application libraries such as `supabaseClient`, `auth` helpers, and other utilities.
-- `hooks/` — Custom React hooks (e.g. `use-mobile.ts`).
-- `store/` — Client-side state stores (e.g. auth, upload) using `zustand`.
-- `public/` — Static assets.
-- `cosmos-its-training-client/` — A copy of the training client application included for reference and file copying. NOTE: this folder is provided as a vendor/reference copy and can be ignored for most development and deployments.
+### Technology Stack
+- **Frontend**: Next.js 16.0.1 with App Router, TypeScript, ShadCN/UI, Tailwind CSS
+- **Backend**: Next.js API Routes, JWT Authentication, MongoDB with Aggregation Pipeline
+- **AI/ML**: OpenAI Embeddings (text-embedding-3-small), Pinecone Vector Database
+- **UI Components**: Radix UI primitives, Command palette, Responsive design
+- **State Management**: Zustand with persistence, React hooks
+- **Authentication**: JWT with refresh tokens, role-based access control
 
-## Features
-
-- Authentication via Supabase (sign-in routes and auth helpers).
-- Course and question CRUD operations and routes for question counting and trimester-wise queries.
-- File upload and CDN routes for managing media.
-- Search and pagination components integrated in the dashboard UI.
-- Theme support and client-side state management (dark/light theme toggle, responsive layout).
-
-## Environment & Prerequisites
-
-- Node.js (recommend >= 18) and a package manager (`npm`, `pnpm`, or `yarn`).
-- A Supabase project (for auth and database). Create a `.env.local` with the following values:
-- **Backend Service**: The chat functionality requires a Python FastAPI backend service running on `http://127.0.0.1:8000`. This service should provide the following endpoints:
-  - `GET /api/v1/chats/` - List chat threads
-  - `GET /api/v1/chats/{thread_id}` - Get chat history for a specific thread
-  - `POST /api/v1/chats/structured` - Send a new message
+### Project Structure
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_public_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # only for server-side/secure tasks
+cosmos-admin/
+├── app/                          # Next.js App Router
+│   ├── globals.css              # Global styles
+│   ├── layout.tsx               # Root layout
+│   ├── page.tsx                 # Home page
+│   ├── login/                   # Authentication pages
+│   ├── dashboard/               # Admin dashboard
+│   │   ├── page.tsx            # Dashboard home
+│   │   ├── users/              # User management
+│   │   ├── courses/            # Course management
+│   │   ├── questions/          # Question bank
+│   │   ├── agents/             # AI agent configuration
+│   │   ├── system-logs/        # System monitoring
+│   │   ├── search/             # Global search
+│   │   └── update-embeddings/  # Vector management
+│   └── api/                     # API Routes
+│       ├── auth/               # Authentication endpoints
+│       ├── users/              # User management API
+│       ├── courses/            # Course management API
+│       ├── questions/          # Question bank API
+│       ├── agents/             # AI agent API
+│       ├── search/             # Search API
+│       ├── dashboard/          # Analytics API
+│       └── update-embeddings/  # Vector update API
+├── components/                  # Reusable components
+│   ├── ui/                     # ShadCN UI components
+│   ├── dashboard/              # Dashboard-specific components
+│   └── agents/                 # AI agent components
+├── lib/                        # Core utilities
+│   ├── auth*.ts               # Authentication services
+│   ├── mongodb.ts             # Database connection
+│   ├── pinecone-service.ts    # Vector database
+│   ├── embedding-service.ts   # OpenAI integration
+│   ├── *-types.ts            # TypeScript interfaces
+│   └── system-log-service.ts  # Logging service
+├── hooks/                      # Custom React hooks
+├── store/                      # State management
+└── public/                     # Static assets
 ```
 
-Adjust keys as required by your deployment and security model.
+## 🗄️ Database Schema
 
-## Install & Run
+### MongoDB Collections
+
+#### accounts
+```typescript
+interface Account {
+  id: string;
+  email: string;
+  password: string; // bcrypt hashed
+  role: 'admin' | 'user';
+  created_at: Date;
+  updated_at: Date;
+}
+```
+
+#### profile
+```typescript
+interface Profile {
+  id: string;
+  email: string;
+  full_name: string;
+  phone: string;
+  gender: string;
+  role: 'student' | 'admin';
+  student_id: string | null;
+  department: string | null;
+  batch: string | null;
+  program: string | null;
+  current_trimester: string | null;
+  completed_credits: number;
+  cgpa: number | null;
+  trimester_credits: number;
+  avatar_url: string;
+  created_at: Date;
+}
+```
+
+#### question_parts
+```typescript
+interface QuestionPart {
+  id: number;
+  course_title: string;
+  short: string; // Course short code
+  course_code: string;
+  semester_term: string;
+  exam_type: 'mid' | 'final';
+  question_number: string;
+  sub_question: string;
+  marks: number;
+  total_question_mark: number;
+  contribution_percentage: number;
+  has_image: boolean;
+  image_type: string | null;
+  image_url: string | null;
+  has_description: boolean;
+  description_content: string | null;
+  question: string;
+  created_at: Date;
+  vector_id: string; // Pinecone vector ID
+  pdf_url: string | null;
+}
+```
+
+#### courses
+```typescript
+interface Course {
+  id: string;
+  code: string;
+  title: string;
+  credit: number;
+  department: string;
+  created_at: Date;
+  updated_at: Date;
+}
+```
+
+#### agents
+```typescript
+interface Agent {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string;
+  system_prompt: string;
+  question_processing_prompt?: string;
+  is_active: boolean;
+  created_at: Date;
+  updated_at?: Date;
+}
+```
+
+#### system_logs
+```typescript
+interface SystemLog {
+  id: string;
+  timestamp: Date;
+  admin_id: string;
+  admin_email: string;
+  admin_name: string;
+  method: 'POST' | 'PUT' | 'DELETE';
+  endpoint: string;
+  resource_type: string;
+  resource_id?: string;
+  action: string;
+  description: string;
+  request_data?: any;
+  response_status: number;
+  ip_address: string;
+  user_agent: string;
+  duration_ms: number;
+  success: boolean;
+  error_message?: string;
+  metadata?: any;
+}
+```
+
+## 🚀 API Documentation
+
+### Authentication
+All API routes (except login/register) require JWT authentication via cookies.
+
+#### POST /api/auth/login
+```typescript
+// Request
+{
+  email: string;
+  password: string;
+}
+
+// Response
+{
+  success: boolean;
+  user: {
+    id: string;
+    email: string;
+    role: string;
+    profile?: Profile;
+  };
+}
+```
+
+#### POST /api/auth/refresh
+Automatically refreshes expired access tokens.
+
+### User Management
+
+#### GET /api/users
+```typescript
+// Query parameters
+{
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: 'admin' | 'user';
+}
+
+// Response
+{
+  users: UserWithProfile[];
+  totalUsers: number;
+  totalPages: number;
+  currentPage: number;
+}
+```
+
+#### POST /api/users
+```typescript
+// Request
+{
+  email: string;
+  full_name: string;
+  phone?: string;
+  gender?: string;
+  role: 'admin' | 'user';
+  student_id?: string;
+  department?: string;
+  batch?: string;
+  program?: string;
+}
+
+// Response
+{
+  message: string;
+  user: UserWithProfile;
+  generatedPassword: string;
+}
+```
+
+#### GET /api/users/[id]
+#### PUT /api/users/[id]
+#### DELETE /api/users/[id]
+
+### Question Management
+
+#### GET /api/questions
+```typescript
+// Query parameters
+{
+  page?: number;
+  limit?: number;
+  search?: string;
+  course_code?: string;
+  exam_type?: 'mid' | 'final';
+  semester_term?: string;
+}
+
+// Response
+{
+  questions: QuestionPart[];
+  totalQuestions: number;
+  totalPages: number;
+  currentPage: number;
+}
+```
+
+#### POST /api/questions/upload
+```typescript
+// Request
+{
+  course_title: string;
+  short: string;
+  course_code: string;
+  semester_term: string;
+  exam_type: 'mid' | 'final';
+  question_number: string;
+  sub_question: string;
+  marks: number;
+  total_question_mark: number;
+  has_description: boolean;
+  description_content?: string;
+  question: string;
+  has_image: boolean;
+  image_url?: string;
+}
+
+// Response
+{
+  success: true;
+  message: string;
+  data: {
+    id: number;
+    vector_id: string;
+    course_code: string;
+    namespace: string;
+    vector_dimensions: number;
+  };
+}
+```
+
+#### GET /api/questions/[id]
+#### PUT /api/questions/[id]
+#### DELETE /api/questions/[id]
+
+### Course Management
+
+#### GET /api/courses
+```typescript
+// Response
+{
+  courses: Course[];
+  totalCourses: number;
+  totalDepartments: number;
+}
+```
+
+#### POST /api/courses
+```typescript
+// Request
+{
+  code: string;
+  title: string;
+  credit: number;
+  department: string;
+}
+```
+
+### AI Agent Management
+
+#### GET /api/agents
+```typescript
+// Response
+{
+  agents: Agent[];
+  totalAgents: number;
+  activeAgents: number;
+}
+```
+
+#### POST /api/agents
+```typescript
+// Request
+{
+  name: string;
+  display_name: string;
+  description: string;
+  system_prompt: string;
+  question_processing_prompt?: string;
+  is_active: boolean;
+}
+```
+
+#### GET /api/agent-tools?agent_id=[id]
+#### POST /api/agent-tools
+#### GET /api/agent-configurations?agent_id=[id]
+#### POST /api/agent-configurations
+
+### Search
+
+#### GET /api/search
+```typescript
+// Query parameters
+{
+  q: string; // Search query
+  limit?: number;
+}
+
+// Response
+{
+  results: SearchResult[];
+  totalResults: number;
+  searchTime: number;
+}
+
+interface SearchResult {
+  id: string;
+  title: string;
+  description: string;
+  type: 'user' | 'question' | 'course' | 'agent' | 'navigation';
+  url?: string;
+  metadata?: any;
+}
+```
+
+### Vector Management
+
+#### POST /api/update-embeddings
+Updates embeddings for all questions in the database.
+
+#### POST /api/update-embeddings/[id]?course_code=[code]
+Updates embeddings for questions in a specific course.
+
+### Analytics
+
+#### GET /api/dashboard/analytics
+```typescript
+// Response
+{
+  overview: {
+    totalUsers: number;
+    totalCourses: number;
+    totalQuestions: number;
+    totalAgents: number;
+    systemOperations: number;
+    successRate: number;
+  };
+  users: {
+    roleDistribution: Record<string, number>;
+    departmentDistribution: Record<string, number>;
+    recentRegistrations: number;
+    // ... more user analytics
+  };
+  // ... other analytics sections
+}
+```
+
+### System Logs
+
+#### GET /api/system-logs
+```typescript
+// Query parameters
+{
+  page?: number;
+  limit?: number;
+  admin_id?: string;
+  resource_type?: string;
+  method?: string;
+  success?: boolean;
+  start_date?: string;
+  end_date?: string;
+}
+```
+
+## 🔧 Environment Variables
+
+### Required
+
+```env
+# Database
+MONGODB_URI=mongodb://your-mongodb-connection-string
+MONGODB_DB=cosmos-admin
+
+# Authentication
+JWT_SECRET=your-jwt-secret-key
+```
+
+### Optional (for full functionality)
+
+```env
+# AI/Vector Search
+OPENAI_API_KEY=your-openai-api-key
+PINECONE_API_KEY=your-pinecone-api-key
+
+# Email (for user notifications)
+EMAIL_HOST=your-email-host
+EMAIL_PORT=587
+EMAIL_USER=your-email-user
+EMAIL_PASSWORD=your-email-password
+```
+
+## 📦 Installation & Setup
 
 Install dependencies and run the development server:
 
@@ -100,16 +530,3 @@ If the backend service is not available, the chat features will show appropriate
 - UI primitives live in `components/ui/` and the app uses Radix primitives and small utilities for styling.
 - API handlers live inside `app/api/` and are used by frontend pages and the dashboard.
 - Use `lib/supabaseClient.ts` to access Supabase from both server and client code.
-
-## The `cosmos-its-training-client` Folder
-
-This repository includes a copy of `cosmos-its-training-client` in the root for convenience (it contains a client app used in training and some reference server code). Treat it as a read-only vendor/reference folder used for copying specific files — it is not required to run the admin application, and you may ignore it for normal development and deployment workflows.
-
-## Contributing
-
-- Open an issue for feature requests or bugs.
-- Fork the repository, make changes on a branch, and submit a PR with a clear description of changes.
-
-## License
-
-See repository settings or LICENSE file (if present).
