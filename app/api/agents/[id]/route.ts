@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
 import { getCollection } from '@/lib/mongodb';
 import { Agent, AgentTool, AgentConfiguration, FewShotExample, AgentWithRelations, UpdateAgentRequest } from '@/lib/agent-types';
+import { v4 as uuidv4 } from 'uuid';
+import { supabaseAdmin } from '@/lib/supabaseClient';
 
 // GET /api/agents/[id] - Fetch a single agent with related data
 async function getHandler(req: AuthenticatedRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -46,6 +48,8 @@ async function putHandler(req: AuthenticatedRequest, { params }: { params: Promi
     const body: UpdateAgentRequest = await req.json();
 
     const agentsCollection = await getCollection<Agent>('agents');
+    const agentToolsCollection = await getCollection<AgentTool>('agent_tools');
+    const fewShotExamplesCollection = await getCollection<FewShotExample>('few_shot_examples');
     
     // Check if agent exists
     const existingAgent = await agentsCollection.findOne({ id });
@@ -63,7 +67,12 @@ async function putHandler(req: AuthenticatedRequest, { params }: { params: Promi
 
     // Update agent
     const updateData = {
-      ...body,
+      name: body.name,
+      display_name: body.display_name,
+      description: body.description,
+      system_prompt: body.system_prompt,
+      question_processing_prompt: body.question_processing_prompt,
+      is_active: body.is_active,
       updated_at: new Date()
     };
 
@@ -76,12 +85,68 @@ async function putHandler(req: AuthenticatedRequest, { params }: { params: Promi
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
-    // Fetch updated agent
+    // Get the updated agent to get the current name for few shot examples
     const updatedAgent = await agentsCollection.findOne({ id });
+    if (!updatedAgent) {
+      return NextResponse.json({ error: 'Failed to fetch updated agent' }, { status: 500 });
+    }
+
+    // Update agent_tools if provided
+    if (body.agent_tools !== undefined) {
+      // Delete existing tools
+      await agentToolsCollection.deleteMany({ agent_id: id });
+      
+      // Insert new tools if any
+      if (body.agent_tools.length > 0) {
+        const toolsToInsert = body.agent_tools.map((tool: any) => ({
+          id: uuidv4(),
+          agent_id: id,
+          tool_name: tool.tool_name,
+          tool_description: tool.tool_description,
+          is_enabled: tool.is_enabled ?? true,
+          created_at: new Date(),
+          updated_at: new Date()
+        }));
+        await agentToolsCollection.insertMany(toolsToInsert);
+      }
+    }
+
+    // Update few_shot_examples if provided
+    if (body.few_shot_examples !== undefined) {
+      // Delete existing examples using the updated agent name
+      await fewShotExamplesCollection.deleteMany({ agent_name: updatedAgent.name });
+      
+      // Insert new examples if any
+      if (body.few_shot_examples.length > 0) {
+        const examplesToInsert = body.few_shot_examples.map((example: any) => ({
+          id: uuidv4(),
+          agent_name: updatedAgent.name,
+          example_type: example.example_type,
+          user_query: example.user_query,
+          expected_output: example.expected_output,
+          description: example.description,
+          is_active: example.is_active ?? true,
+          created_at: new Date(),
+          updated_at: new Date()
+        }));
+        await fewShotExamplesCollection.insertMany(examplesToInsert);
+      }
+    }
+
+    // Fetch complete updated agent with relations
+    const agentTools = await agentToolsCollection.find({ agent_id: id }).toArray();
+    const fewShotExamples = await fewShotExamplesCollection.find({ agent_name: updatedAgent.name }).toArray();
+
+    const agentWithRelations: AgentWithRelations = {
+      ...updatedAgent,
+      agent_tools: agentTools,
+      agent_configurations: [], // Fetch if needed
+      few_shot_examples: fewShotExamples
+    };
     
     return NextResponse.json({
       message: 'Agent updated successfully',
-      agent: updatedAgent
+      agent: agentWithRelations
     });
 
   } catch (error: any) {
@@ -148,86 +213,3 @@ export const DELETE = withAuth(async (req: AuthenticatedRequest) => {
   const id = pathSegments[pathSegments.length - 1];
   return deleteHandler(req, { params: Promise.resolve({ id }) });
 });
-    const body = await req.json();
-
-    // Update agent
-    const { data: agent, error: agentError } = await supabaseAdmin
-      .from('agents')
-      .update({
-        name: body.name,
-        display_name: body.display_name,
-        description: body.description,
-        system_prompt: body.system_prompt,
-        question_processing_prompt: body.question_processing_prompt,
-        is_active: body.is_active,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (agentError || !agent) {
-      return NextResponse.json({ error: 'Failed to update agent' }, { status: 500 });
-    }
-
-    // Update agent_tools
-    if (body.agent_tools) {
-      await supabaseAdmin.from('agent_tools').delete().eq('agent_id', id);
-      if (body.agent_tools.length > 0) {
-        const toolsToInsert = body.agent_tools.map((tool: any) => ({
-          agent_id: id,
-          tool_name: tool.tool_name,
-          tool_description: tool.tool_description,
-          is_enabled: tool.is_enabled,
-        }));
-        const { error: toolsError } = await supabaseAdmin.from('agent_tools').insert(toolsToInsert);
-        if (toolsError) throw toolsError;
-      }
-    }
-
-    // Update few_shot_examples
-    if (body.few_shot_examples) {
-      await supabaseAdmin.from('few_shot_examples').delete().eq('agent_name', agent.name);
-      if (body.few_shot_examples.length > 0) {
-        const examplesToInsert = body.few_shot_examples.map((ex: any) => ({
-          agent_name: agent.name,
-          example_type: ex.example_type,
-          user_query: ex.user_query,
-          expected_output: ex.expected_output,
-          description: ex.description,
-          is_active: ex.is_active,
-        }));
-        const { error: examplesError } = await supabaseAdmin.from('few_shot_examples').insert(examplesToInsert);
-        if (examplesError) throw examplesError;
-      }
-    }
-
-    // Fetch updated agent with related data
-    const { data: updatedAgent, error: fetchError } = await supabaseAdmin
-      .from('agents')
-      .select(`
-        *,
-        agent_tools (*)
-      `)
-      .eq('id', id)
-      .single();
-
-    // Fetch few_shot_examples separately using agent_name
-    if (updatedAgent) {
-      const { data: examplesData } = await supabaseAdmin
-        .from('few_shot_examples')
-        .select('*')
-        .eq('agent_name', updatedAgent.name);
-      updatedAgent.few_shot_examples = examplesData || [];
-    }
-
-    if (fetchError || !updatedAgent) {
-      return NextResponse.json({ error: 'Failed to fetch updated agent' }, { status: 500 });
-    }
-
-    return NextResponse.json(updatedAgent);
-  } catch (err: any) {
-    console.error(err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}

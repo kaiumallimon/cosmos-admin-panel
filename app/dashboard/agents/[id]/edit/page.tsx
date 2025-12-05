@@ -20,7 +20,6 @@ import { Plus, Trash2, Save, ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabaseClient";
 
 interface AgentTool {
     id?: string;
@@ -74,35 +73,25 @@ export default function EditAgentPage() {
     const [tools, setTools] = useState<AgentTool[]>([]);
     const [examples, setExamples] = useState<FewShotExample[]>([]);
 
-    // Fetch agent directly via Supabase client
+    // Fetch agent data via API
     useEffect(() => {
         const fetchAgent = async () => {
             setLoading(true);
             try {
-                const { data: agentData, error } = await supabase
-                    .from("agents")
-                    .select(
-                        `
-            *,
-            agent_tools (*)
-          `
-                    )
-                    .eq("id", agentId)
-                    .single();
-
-                // Fetch few_shot_examples separately using agent_name
-                let fewShotExamples = [];
-                if (agentData) {
-                    const { data: examplesData } = await supabase
-                        .from("few_shot_examples")
-                        .select("*")
-                        .eq("agent_name", agentData.name);
-                    fewShotExamples = examplesData || [];
+                const response = await fetch(`/api/agents/${agentId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch agent');
                 }
-
-                if (error || !agentData)
-                    throw new Error(error?.message || "Agent not found");
-
+                
+                const agentData = await response.json();
+                
                 setAgent(agentData);
                 setFormData({
                     name: agentData.name || "",
@@ -114,7 +103,7 @@ export default function EditAgentPage() {
                     is_active: agentData.is_active ?? true,
                 });
                 setTools(agentData.agent_tools || []);
-                setExamples(fewShotExamples || []);
+                setExamples(agentData.few_shot_examples || []);
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -162,46 +151,36 @@ export default function EditAgentPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            // Update agent
-            const { data: updatedAgent, error: agentError } = await supabase
-                .from("agents")
-                .update({
-                    ...formData,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq("id", agentId)
-                .select()
-                .single();
-
-            if (agentError || !updatedAgent)
-                throw new Error(agentError?.message || "Failed to update agent");
-
-            // Update tools
-            await supabase.from("agent_tools").delete().eq("agent_id", agentId);
-            if (tools.length > 0) {
-                const toolsToInsert = tools.map((tool) => ({
-                    ...tool,
-                    agent_id: agentId,
-                }));
-                const { error: toolsError } = await supabase
-                    .from("agent_tools")
-                    .insert(toolsToInsert);
-                if (toolsError) throw toolsError;
+            const updatePayload = {
+                ...formData,
+                agent_tools: tools.map(tool => ({
+                    tool_name: tool.tool_name,
+                    tool_description: tool.tool_description,
+                    is_enabled: tool.is_enabled
+                })),
+                few_shot_examples: examples.map(example => ({
+                    example_type: example.example_type,
+                    user_query: example.user_query,
+                    expected_output: example.expected_output,
+                    description: example.description,
+                    is_active: example.is_active
+                }))
+            };
+            
+            const response = await fetch(`/api/agents/${agentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updatePayload),
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update agent');
             }
-
-            // Update few-shot examples
-            await supabase.from("few_shot_examples").delete().eq("agent_name", updatedAgent.name);
-            if (examples.length > 0) {
-                const examplesToInsert = examples.map((ex) => ({
-                    ...ex,
-                    agent_name: updatedAgent.name,
-                }));
-                const { error: examplesError } = await supabase
-                    .from("few_shot_examples")
-                    .insert(examplesToInsert);
-                if (examplesError) throw examplesError;
-            }
-
+            
+            const result = await response.json();
             toast.success("Agent updated successfully");
             router.push("/dashboard/agents");
         } catch (err: any) {

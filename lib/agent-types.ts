@@ -94,6 +94,8 @@ export interface UpdateAgentRequest {
   system_prompt?: string;
   question_processing_prompt?: string | null;
   is_active?: boolean;
+  agent_tools?: Partial<AgentTool>[];
+  few_shot_examples?: Partial<FewShotExample>[];
 }
 
 export interface CreateAgentToolRequest {
