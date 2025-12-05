@@ -26,7 +26,7 @@ async function searchHandler(req: AuthenticatedRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get('q')?.trim();
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '150'), 300);
     const type = searchParams.get('type') || ''; // Filter by type
 
     if (!query || query.length < 2) {
@@ -59,14 +59,17 @@ async function searchHandler(req: AuthenticatedRequest) {
             $match: {
               $or: [
                 { email: { $regex: searchRegex } },
+                { 'profile.email': { $regex: searchRegex } },
                 { 'profile.full_name': { $regex: searchRegex } },
                 { 'profile.student_id': { $regex: searchRegex } },
                 { 'profile.department': { $regex: searchRegex } },
-                { 'profile.batch': { $regex: searchRegex } }
+                { 'profile.batch': { $regex: searchRegex } },
+                { 'profile.program': { $regex: searchRegex } },
+                { 'profile.phone': { $regex: searchRegex } }
               ]
             }
           },
-          { $limit: Math.ceil(limit / 4) }
+          { $limit: 50 }
         ];
 
         const users = await db.collection('accounts').aggregate(usersPipeline).toArray();
@@ -76,15 +79,17 @@ async function searchHandler(req: AuthenticatedRequest) {
           results.push({
             id: user.id,
             title: profile?.full_name || user.email,
-            description: `${user.role.charAt(0).toUpperCase() + user.role.slice(1)} - ${profile?.department || 'No department'} ${profile?.student_id ? `(${profile.student_id})` : ''}`,
+            description: `${user.email} | ${user.role.charAt(0).toUpperCase() + user.role.slice(1)} - ${profile?.department || 'No department'} ${profile?.student_id ? `(${profile.student_id})` : ''}`,
             type: 'user',
-            url: `/dashboard/users?search=${user.id}`,
+            url: `/dashboard/users/${user.id}`,
             metadata: {
               email: user.email,
               role: user.role,
               department: profile?.department,
               student_id: profile?.student_id,
-              batch: profile?.batch
+              batch: profile?.batch,
+              phone: profile?.phone,
+              program: profile?.program
             }
           });
         });
@@ -100,27 +105,67 @@ async function searchHandler(req: AuthenticatedRequest) {
           {
             $match: {
               $or: [
+                // Direct question text search - primary field
                 { question: { $regex: searchRegex } },
+                // Course and metadata search
                 { course_title: { $regex: searchRegex } },
                 { course_code: { $regex: searchRegex } },
                 { semester_term: { $regex: searchRegex } },
                 { exam_type: { $regex: searchRegex } },
-                { description_content: { $regex: searchRegex } }
+                // Question details
+                { description_content: { $regex: searchRegex } },
+                { short: { $regex: searchRegex } },
+                { question_number: { $regex: searchRegex } },
+                { sub_question: { $regex: searchRegex } }
               ]
             }
           },
-          { $limit: Math.ceil(limit / 4) }
+          { $limit: 50 }
         ];
 
         const questions = await db.collection('question_parts').aggregate(questionsPipeline).toArray();
         
         questions.forEach(question => {
+          // Extract trimester code from semester_term
+          let trimesterCode = '';
+          
+          if (question.semester_term) {
+            // First try to find a 3-digit number (like 233, 241, etc.) in semester_term
+            const directTrimesterMatch = question.semester_term.match(/\b(\d{3})\b/);
+            if (directTrimesterMatch) {
+              trimesterCode = directTrimesterMatch[1];
+            } else {
+              // Fallback: Extract year and season to generate trimester code
+              const yearMatch = question.semester_term.match(/(\d{4})/);
+              const year = yearMatch ? yearMatch[1] : '2024';
+              const season = question.semester_term.toLowerCase();
+              
+              if (season.includes('fall')) {
+                trimesterCode = year.slice(-2) + '1';
+              } else if (season.includes('spring')) {
+                trimesterCode = year.slice(-2) + '2';
+              } else if (season.includes('summer')) {
+                trimesterCode = year.slice(-2) + '3';
+              } else {
+                trimesterCode = year.slice(-2) + '1'; // Default to fall
+              }
+            }
+          }
+          
+          // Fallback if still no trimester code
+          if (!trimesterCode) {
+            trimesterCode = '241'; // Default fallback
+          }
+          
+          // Convert exam_type to lowercase for URL
+          const examType = question.exam_type?.toLowerCase() === 'final' ? 'final' : 'mid';
+          
           results.push({
             id: question.id?.toString() || question._id?.toString(),
-            title: `${question.course_code} - ${question.question_number}`,
-            description: `${question.course_title} | ${question.exam_type} | ${question.marks} marks | ${question.semester_term}`,
+            title: `${question.course_code} - ${question.question_number}${question.sub_question ? '-' + question.sub_question : ''}`,
+            description: `${question.course_title} | ${question.exam_type} | ${question.marks} marks | ${trimesterCode}`,
             type: 'question',
-            url: `/dashboard/questions?search=${question.id}`,
+            url: `/dashboard/questions/${question.course_code}/${examType}/trimester/${trimesterCode}`,
             metadata: {
               course_code: question.course_code,
               course_title: question.course_title,
@@ -128,7 +173,10 @@ async function searchHandler(req: AuthenticatedRequest) {
               marks: question.marks,
               semester_term: question.semester_term,
               has_image: question.has_image,
-              has_description: question.has_description
+              has_description: question.has_description,
+              trimester_code: trimesterCode,
+              question_number: question.question_number,
+              sub_question: question.sub_question
             }
           });
         });
@@ -150,7 +198,7 @@ async function searchHandler(req: AuthenticatedRequest) {
               ]
             }
           },
-          { $limit: Math.ceil(limit / 4) }
+          { $limit: 30 }
         ];
 
         const courses = await db.collection('courses').aggregate(coursesPipeline).toArray();
@@ -161,7 +209,7 @@ async function searchHandler(req: AuthenticatedRequest) {
             title: `${course.code} - ${course.title}`,
             description: `${course.department} | ${course.credit} credits`,
             type: 'course',
-            url: `/dashboard/courses?search=${course.code}`,
+            url: `/dashboard/courses`,
             metadata: {
               code: course.code,
               title: course.title,
@@ -189,7 +237,7 @@ async function searchHandler(req: AuthenticatedRequest) {
               ]
             }
           },
-          { $limit: Math.ceil(limit / 4) }
+          { $limit: 20 }
         ];
 
         const agents = await db.collection('agents').aggregate(agentsPipeline).toArray();
@@ -200,7 +248,7 @@ async function searchHandler(req: AuthenticatedRequest) {
             title: agent.display_name || agent.name,
             description: `AI Agent | ${agent.description} | ${agent.is_active ? 'Active' : 'Inactive'}`,
             type: 'agent',
-            url: `/dashboard/agents?search=${agent.id}`,
+            url: `/dashboard/agents/${agent.id}/edit`,
             metadata: {
               name: agent.name,
               display_name: agent.display_name,
@@ -225,12 +273,14 @@ async function searchHandler(req: AuthenticatedRequest) {
                 { admin_email: { $regex: searchRegex } },
                 { description: { $regex: searchRegex } },
                 { resource_type: { $regex: searchRegex } },
-                { action: { $regex: searchRegex } }
+                { action: { $regex: searchRegex } },
+                { method: { $regex: searchRegex } },
+                { endpoint: { $regex: searchRegex } }
               ]
             }
           },
           { $sort: { timestamp: -1 } },
-          { $limit: Math.ceil(limit / 4) }
+          { $limit: 30 }
         ];
 
         const logs = await db.collection('system_logs').aggregate(logsPipeline).toArray();
@@ -241,7 +291,7 @@ async function searchHandler(req: AuthenticatedRequest) {
             title: `${log.action} - ${log.resource_type}`,
             description: `${log.description} | By ${log.admin_name} | ${log.success ? 'Success' : 'Failed'}`,
             type: 'system-log',
-            url: `/dashboard/system-logs?search=${log.id}`,
+            url: `/dashboard/system-logs`,
             metadata: {
               admin_name: log.admin_name,
               method: log.method,

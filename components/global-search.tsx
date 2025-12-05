@@ -87,11 +87,13 @@ export default function GlobalSearch({
         return;
       }
 
+      console.log('Starting search for:', searchQuery);
       setLoading(true);
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=20`);
+        const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=50`);
         if (response.ok) {
           const data: SearchResponse = await response.json();
+          console.log('Search response:', data);
           setResults(data.results);
           setSearchTime(data.searchTime);
         } else {
@@ -175,7 +177,7 @@ export default function GlobalSearch({
           value={query}
           onValueChange={setQuery}
         />
-        <CommandList className="max-h-[400px]">
+        <CommandList className="max-h-[500px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
           {loading && (
             <div className="flex items-center justify-center p-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -229,7 +231,7 @@ export default function GlobalSearch({
                         onSelect={() => handleSelect(result)}
                         className="flex items-center gap-3 p-3 cursor-pointer"
                       >
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                           <Icon className="h-4 w-4" />
                         </div>
                         <div className="flex-1 min-w-0">
