@@ -66,32 +66,33 @@ export const FrostedHeader: React.FC<FrostedHeaderProps> = ({
           </div>
         </div>
         
-        {/* Center - Search (hidden on mobile, visible on larger screens) */}
-        {showSearch && (
-          <div className="hidden lg:flex flex-1 justify-center max-w-md">
-            <GlobalSearch className="w-full" />
-          </div>
-        )}
-        
-        {/* Right side - Search (mobile) + Additional children */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Mobile search - only visible on small screens */}
+        {/* Right side - Search + Additional children */}
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Search bar - visible on larger screens, mobile search button on small screens */}
           {showSearch && (
-            <div className="lg:hidden">
-              <GlobalSearch 
-                trigger={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="p-2 h-8 w-8"
-                    aria-label="Search"
-                  >
-                    <Search className="h-4 w-4" />
-                  </Button>
-                }
-                className="w-8 h-8"
-              />
-            </div>
+            <>
+              {/* Desktop search bar */}
+              <div className="hidden lg:block">
+                <GlobalSearch className="w-64" />
+              </div>
+              
+              {/* Mobile search button */}
+              <div className="lg:hidden">
+                <GlobalSearch 
+                  trigger={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-2 h-8 w-8"
+                      aria-label="Search"
+                    >
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  }
+                  className="w-8 h-8"
+                />
+              </div>
+            </>
           )}
           
           {/* Additional children */}
