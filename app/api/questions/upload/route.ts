@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
+import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware-with-logging';
 import { getCollection } from '@/lib/mongodb';
 import { v4 as uuidv4 } from 'uuid';
 import { generateEmbedding } from '@/lib/embedding-service';

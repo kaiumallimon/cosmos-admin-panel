@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Account, Profile, UpdateUserRequest } from "@/lib/user-types";
-import { withAuth } from "@/lib/api-middleware";
+import { withAuth, AuthenticatedRequest } from "@/lib/api-middleware-with-logging";
 
 async function getUser(
-    req: NextRequest,
+    req: AuthenticatedRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
@@ -61,7 +61,7 @@ async function getUser(
 export const GET = withAuth(getUser);
 
 async function updateUser(
-    req: NextRequest,
+    req: AuthenticatedRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
@@ -229,7 +229,7 @@ async function updateUser(
 export const PUT = withAuth(updateUser);
 
 async function deleteUser(
-    req: NextRequest,
+    req: AuthenticatedRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {

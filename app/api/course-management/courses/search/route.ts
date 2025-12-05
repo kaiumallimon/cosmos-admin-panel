@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
-import { Course } from '@/lib/course-types';
-import { withAuth } from '@/lib/api-middleware';
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
+import { Course } from "@/lib/course-types";
+import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware-with-logging';
 
 // GET - Search courses with pagination and filters
-async function searchCourses(request: NextRequest) {
+async function searchCourses(request: AuthenticatedRequest) {
   try {
     const url = new URL(request.url);
     const searchParams = url.searchParams;

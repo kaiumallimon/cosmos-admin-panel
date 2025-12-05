@@ -158,6 +158,11 @@ export const ACTION_MAPPINGS = {
     'PUT': 'UPDATE_COURSE',
     'DELETE': 'DELETE_COURSE'
   },
+  'course-management': {
+    'POST': 'CREATE_COURSE',
+    'PUT': 'UPDATE_COURSE',
+    'DELETE': 'DELETE_COURSE'
+  },
   
   // System operations
   'update-embeddings': {

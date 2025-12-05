@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
+import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware-with-logging';
 import { getCollection } from '@/lib/mongodb';
 import { FewShotExample, UpdateFewShotExampleRequest } from '@/lib/agent-types';
 

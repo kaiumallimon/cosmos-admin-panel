@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Account, ResetPasswordRequest } from "@/lib/user-types";
-import { withAuth } from "@/lib/api-middleware";
+import { withAuth, AuthenticatedRequest } from "@/lib/api-middleware-with-logging";
 import bcrypt from 'bcryptjs';
 
 async function resetPassword(
-  req: NextRequest,
+  req: AuthenticatedRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

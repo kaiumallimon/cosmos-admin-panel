@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
-import { Course, CourseUpdateRequest } from '@/lib/course-types';
-import { withAuth } from '@/lib/api-middleware';
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
+import { Course, CourseCreateRequest, CourseUpdateRequest } from "@/lib/course-types";
+import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware-with-logging';
 import { ObjectId } from 'mongodb';
 
 // GET - Fetch a single course by ID
 async function getCourse(
-  request: NextRequest,
+  request: AuthenticatedRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -34,7 +34,7 @@ export const GET = withAuth(getCourse);
 
 // PUT - Update a course
 async function updateCourse(
-  request: NextRequest,
+  request: AuthenticatedRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -108,7 +108,7 @@ export const PUT = withAuth(updateCourse);
 
 // DELETE - Delete a course
 async function deleteCourse(
-  request: NextRequest,
+  request: AuthenticatedRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

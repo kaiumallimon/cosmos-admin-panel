@@ -14,8 +14,14 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export function withAuth(handler: (req: AuthenticatedRequest) => Promise<Response>) {
-  return async (request: Request) => {
+// Handler type definitions
+type SingleParamHandler = (req: AuthenticatedRequest) => Promise<Response>;
+type TwoParamHandler<T = any> = (req: AuthenticatedRequest, context: T) => Promise<Response>;
+
+export function withAuth<T = any>(
+  handler: SingleParamHandler | TwoParamHandler<T>
+) {
+  return async (request: Request, context?: T) => {
     const startTime = Date.now();
     let response: Response;
     let logData: any = {};
@@ -64,7 +70,9 @@ export function withAuth(handler: (req: AuthenticatedRequest) => Promise<Respons
       }
 
       // Execute the handler
-      response = await handler(authenticatedRequest);
+      response = context !== undefined 
+        ? await (handler as TwoParamHandler)(authenticatedRequest, context)
+        : await (handler as SingleParamHandler)(authenticatedRequest);
       
       // Log successful operations
       if (shouldLog && response.status >= 200 && response.status < 400) {

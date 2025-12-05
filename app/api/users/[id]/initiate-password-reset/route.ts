@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Account } from "@/lib/user-types";
-import { withAuth } from "@/lib/api-middleware";
+import { withAuth, AuthenticatedRequest } from "@/lib/api-middleware-with-logging";
 import { generatePasswordResetToken, createPasswordResetUrl } from "@/lib/token-utils";
 import { sendEmail, generatePasswordResetEmailHTML } from "@/lib/email-service";
 
@@ -9,7 +9,7 @@ interface PasswordResetInitiateRequest {
   userId: string;
 }
 
-async function initiatePasswordReset(req: NextRequest) {
+async function initiatePasswordReset(req: AuthenticatedRequest) {
   try {
     const { userId }: PasswordResetInitiateRequest = await req.json();
 

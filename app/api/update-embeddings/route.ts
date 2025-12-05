@@ -2,7 +2,7 @@
 // Update ALL course questions embeddings using MongoDB + Pinecone
 
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
+import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware-with-logging';
 import { getCollection } from '@/lib/mongodb';
 import { generateEmbedding } from '@/lib/embedding-service';
 import { getCourseNameSpace, upsertVector } from '@/lib/pinecone-service';
