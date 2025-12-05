@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { signOutAndRedirect } from "@/lib/auth-client";
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -27,14 +26,14 @@ import {
     FileIcon,
     FileTextIcon,
     PlusIcon,
-    Code2Icon,
-    Activity
+    Code2Icon
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useAuthStore } from "@/store/auth";
 import { MobileMenuProvider } from "@/components/mobile-menu-context";
 import { IconRobot } from "@tabler/icons-react";
+import { signOutAndRedirect } from "@/lib/auth-client";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -43,7 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [mounted, setMounted] = React.useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-    useEffect(() => {
+    React.useEffect(() => {
         setMounted(true);
     }, []);
 
@@ -51,7 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const SidebarContentComponent = ({ onLinkClick }: { onLinkClick?: () => void }) => (
         <div className="flex h-full flex-col overflow-hidden">
             {/* Header */}
-            <div className="border-b border-border/40 p-4 shrink-0">
+            <div className="w-60 border-b border-border/50 p-4 shrink-0 bg-transparent dark:bg-transparent backdrop-blur-sm">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-orange-500 to-red-500 text-sm font-bold text-white shadow-md shrink-0">
                         C
@@ -64,7 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* Content - Scrollable Area */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 mr-2 ml-0.5 scrollbar-hide">
                 {/* Main Navigation */}
                 <div>
                     <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
@@ -218,8 +217,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 <div className="my-4 h-px bg-border"></div>
 
-
-                {/* User Management Section */}
+                {/* Management Section */}
                 <div>
                     <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
                         User Management
@@ -260,17 +258,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
                         <div className="mt-1">
                             <Link
-                                href="/dashboard/system-logs"
-                                onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/system-logs" || pathname.startsWith("/dashboard/system-logs/") ? "bg-primary text-primary-foreground font-semibold" : ""
-                                    }`}
-                            >
-                                <Activity className="h-4 w-4 shrink-0" />
-                                <span className="font-medium truncate">System Logs</span>
-                            </Link>
-                        </div>
-                        <div className="mt-1">
-                            <Link
                                 href="/dashboard/help"
                                 onClick={onLinkClick}
                                 className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/help" ? "bg-primary text-primary-foreground font-semibold" : ""
@@ -285,7 +272,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* Footer */}
-            <div className="border-t border-border/40 p-4 shrink-0 overflow-hidden">
+            <div className="w-60 border-t border-border/50 p-4 shrink-0 overflow-hidden bg-transparent dark:bg-transparent backdrop-blur-sm">
                 {/* Theme Toggle */}
                 <div className="mb-3 overflow-hidden">
                     <div className="flex items-center justify-between min-w-0">
@@ -363,7 +350,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                         <Button
                             variant="destructive"
-                            onClick={() => signOutAndRedirect("/")}
+                            onClick={() => signOutAndRedirect()}
                             className="w-full gap-2"
                         >
                             <LogOutIcon className="h-4 w-4" />
@@ -377,15 +364,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return (
         <SidebarProvider defaultOpen={true}>
-            <div className="flex h-screen w-screen bg-background overflow-hidden fixed inset-0">
+            <div className="flex h-screen w-screen bg-transparent overflow-hidden fixed inset-0">
                 {/* Desktop Sidebar - Hidden on mobile */}
-                <div className="hidden md:flex w-64 border-r border-border/40 bg-card overflow-hidden">
+                <div className="hidden md:flex w-60 border-r border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
                     <SidebarContentComponent />
                 </div>
 
                 {/* Mobile Drawer */}
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                    <SheetContent side="left" className="p-0 w-64">
+                    <SheetContent side="left" className="p-0 w-64 bg-card/50 backdrop-blur-sm">
                         <SheetHeader className="sr-only">
                             <SheetTitle>Navigation Menu</SheetTitle>
                             <SheetDescription>
