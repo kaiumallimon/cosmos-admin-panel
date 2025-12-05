@@ -4,6 +4,9 @@ import { Account, Profile, UserWithProfile, CreateUserRequest, UserListResponse 
 import { v4 as uuidv4 } from 'uuid';
 import { withAuth } from "@/lib/api-middleware";
 import bcrypt from 'bcryptjs';
+import { validateEmailAddress } from "@/lib/email-validator";
+import { generateSecurePassword } from "@/lib/token-utils";
+import { sendEmail, generateWelcomeEmailHTML } from "@/lib/email-service";
 
 async function getUsers(req: NextRequest) {
     try {
