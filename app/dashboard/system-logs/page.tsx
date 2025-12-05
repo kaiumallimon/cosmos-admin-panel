@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { 
   Activity, 
   AlertCircle, 
@@ -27,6 +28,7 @@ import { useState, useEffect } from "react";
 import { SystemLog, SystemLogListResponse, SystemLogSummary } from "@/lib/system-log-types";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { DashboardAreaChart, DashboardPieChart, DashboardBarChart } from "@/components/dashboard/chart-components";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb";
 
 export default function SystemLogsPage() {
   const { toggleMobileMenu } = useMobileMenu();
@@ -51,7 +53,7 @@ export default function SystemLogsPage() {
     date_to: ''
   });
 
-  const itemsPerPage = 50;
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchSystemLogs();
@@ -178,6 +180,8 @@ export default function SystemLogsPage() {
           onMobileMenuToggle={toggleMobileMenu}
         />
 
+
+
         <div className="p-6 space-y-6">
           {error && (
             <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
@@ -186,6 +190,20 @@ export default function SystemLogsPage() {
               </CardContent>
             </Card>
           )}
+
+          <div className="pb-0">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>System Logs</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
 
           {/* Statistics Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -227,51 +245,6 @@ export default function SystemLogsPage() {
             )}
           </div>
 
-          {/* Charts Section */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {loading && !stats ? (
-              Array(3).fill(0).map((_, i) => (
-                <Card key={i} className="p-6">
-                  <Skeleton className="h-6 w-32 mb-4" />
-                  <Skeleton className="h-[300px] w-full" />
-                </Card>
-              ))
-            ) : (
-              <>
-                {hourlyChartData.length > 0 && (
-                  <div className="lg:col-span-2">
-                    <DashboardAreaChart
-                      data={hourlyChartData}
-                      dataKey="count"
-                      xAxisKey="hour"
-                      title="Hourly Activity"
-                      description="System activities by hour of day"
-                    />
-                  </div>
-                )}
-
-                {actionChartData.length > 0 && (
-                  <DashboardPieChart
-                    data={actionChartData}
-                    title="Action Distribution"
-                    description="Types of admin actions"
-                  />
-                )}
-
-                {resourceChartData.length > 0 && (
-                  <div className="lg:col-span-3">
-                    <DashboardBarChart
-                      data={resourceChartData}
-                      dataKey="value"
-                      xAxisKey="name"
-                      title="Resource Activity"
-                      description="Activities by resource type"
-                    />
-                  </div>
-                )}
-              </>
-            )}
-          </div>
 
           {/* Filters and Controls */}
           <Card>
@@ -419,48 +392,112 @@ export default function SystemLogsPage() {
               </div>
 
               {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} logs
-                  </p>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    
-                    <div className="flex items-center space-x-1">
+              {totalPages >= 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} logs
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Page {currentPage} of {totalPages} • Items per page: {itemsPerPage}
+                    </p>
+                  </div>
+                  
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (currentPage > 1) setCurrentPage(prev => prev - 1);
+                          }}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                        />
+                      </PaginationItem>
+                      
+                      {/* First page */}
+                      {currentPage > 3 && (
+                        <>
+                          <PaginationItem>
+                            <PaginationLink 
+                              href="#" 
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setCurrentPage(1);
+                              }}
+                            >
+                              1
+                            </PaginationLink>
+                          </PaginationItem>
+                          {currentPage > 4 && (
+                            <PaginationItem>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          )}
+                        </>
+                      )}
+                      
+                      {/* Current page and adjacent pages */}
                       {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        const pageNumber = currentPage <= 3 ? i + 1 : currentPage - 2 + i;
-                        if (pageNumber > totalPages) return null;
+                        const pageNumber = currentPage <= 3 
+                          ? i + 1 
+                          : currentPage >= totalPages - 2 
+                          ? totalPages - 4 + i 
+                          : currentPage - 2 + i;
+                        
+                        if (pageNumber < 1 || pageNumber > totalPages) return null;
                         
                         return (
-                          <Button
-                            key={pageNumber}
-                            variant={pageNumber === currentPage ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setCurrentPage(pageNumber)}
-                          >
-                            {pageNumber}
-                          </Button>
+                          <PaginationItem key={pageNumber}>
+                            <PaginationLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setCurrentPage(pageNumber);
+                              }}
+                              isActive={pageNumber === currentPage}
+                            >
+                              {pageNumber}
+                            </PaginationLink>
+                          </PaginationItem>
                         );
                       })}
-                    </div>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
+                      
+                      {/* Last page */}
+                      {currentPage < totalPages - 2 && (
+                        <>
+                          {currentPage < totalPages - 3 && (
+                            <PaginationItem>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          )}
+                          <PaginationItem>
+                            <PaginationLink 
+                              href="#" 
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setCurrentPage(totalPages);
+                              }}
+                            >
+                              {totalPages}
+                            </PaginationLink>
+                          </PaginationItem>
+                        </>
+                      )}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
+                          }}
+                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
                 </div>
               )}
             </CardContent>

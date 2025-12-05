@@ -12,7 +12,7 @@ async function getSystemLogs(req: AuthenticatedRequest) {
     
     // Parse query parameters
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = parseInt(searchParams.get('limit') || '10');
     
     const filters: SystemLogFilters = {};
     

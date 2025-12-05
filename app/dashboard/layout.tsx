@@ -246,17 +246,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
                     <div>
                         
-                        <div>
-                            <Link
-                                href="/dashboard/settings"
-                                onClick={onLinkClick}
-                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/dashboard/settings" ? "bg-primary text-primary-foreground font-semibold" : ""
-                                    }`}
-                            >
-                                <SettingsIcon className="h-4 w-4 shrink-0" />
-                                <span className="font-medium truncate">Settings</span>
-                            </Link>
-                        </div>
                         <div className="mt-1">
                             <Link
                                 href="/dashboard/system-logs"
