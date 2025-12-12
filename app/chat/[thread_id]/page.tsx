@@ -9,6 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { ArrowRight, Bot, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
@@ -94,6 +103,7 @@ export default function ThreadChatPage() {
   const [latestAiMessage, setLatestAiMessage] = useState<Message | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState<QuestionMetadata[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -105,6 +115,17 @@ export default function ThreadChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, sending, latestAiMessage]);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Get thread title from sessionStorage
   useEffect(() => {
@@ -397,40 +418,70 @@ export default function ThreadChatPage() {
         </div>
       </div>
 
-      {/* Right Sidebar for Questions */}
-      <div
-        className={cn(
-          "border-l bg-background transition-all duration-300 overflow-y-auto",
-          sidebarOpen ? "w-full md:w-96 lg:w-[480px]" : "w-0"
-        )}
-      >
-        {sidebarOpen && (
-          <div className="h-full flex flex-col">
-            {/* Sidebar Header */}
-            <div className="sticky top-0 bg-background/95 backdrop-blur border-b z-10 px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                <h3 className="font-semibold">
-                  Questions ({selectedQuestions.length})
-                </h3>
+      {/* Right Sidebar for Questions (Desktop) */}
+      {!isMobile && (
+        <div
+          className={cn(
+            "border-l bg-background transition-all duration-300 overflow-y-auto",
+            sidebarOpen ? "w-96 lg:w-[480px]" : "w-0"
+          )}
+        >
+          {sidebarOpen && (
+            <div className="h-full flex flex-col">
+              {/* Sidebar Header */}
+              <div className="sticky top-0 bg-background/95 backdrop-blur border-b z-10 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  <h3 className="font-semibold">
+                    Questions ({selectedQuestions.length})
+                  </h3>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
 
-            {/* Questions List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {selectedQuestions.map((question, index) => renderQuestionCard(question, index))}
+              {/* Questions List */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {selectedQuestions.map((question, index) => renderQuestionCard(question, index))}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
+
+    {/* Drawer for Questions (Mobile) */}
+    {isMobile && (
+      <Drawer open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <DrawerContent className="max-h-[90vh]">
+          <DrawerHeader className="border-b">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              <DrawerTitle>Questions ({selectedQuestions.length})</DrawerTitle>
+            </div>
+            <DrawerDescription className="sr-only">
+              View retrieved questions for this message
+            </DrawerDescription>
+          </DrawerHeader>
+
+          {/* Scrollable Questions List */}
+          <div className="overflow-y-auto p-4 space-y-4">
+            {selectedQuestions.map((question, index) => renderQuestionCard(question, index))}
+          </div>
+
+          <DrawerFooter className="border-t pt-4">
+            <DrawerClose asChild>
+              <Button variant="outline">Close</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    )}
 
       {/* Input Area */}
       <div className="border-t bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
