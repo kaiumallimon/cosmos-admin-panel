@@ -297,7 +297,6 @@ export default function ChatPage() {
     <div className="flex flex-col h-full">
       <FrostedHeader
         title={threadTitle}
-        subtitle={threadId ? `Thread ID: ${threadId}` : 'Start a new conversation'}
         onMobileMenuToggle={toggleMobileMenu}
         showSearch={false}
       />

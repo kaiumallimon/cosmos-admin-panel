@@ -8,7 +8,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOutAndRedirect } from "@/lib/auth-client";
 import { useAuthStore } from "@/store/auth";
-import { ArrowLeftIcon, MessageSquarePlusIcon, SearchIcon, SunIcon, MoonIcon, MonitorIcon, MoreVerticalIcon, Trash2Icon } from "lucide-react";
+import { ArrowLeftIcon, MessageSquarePlusIcon, SearchIcon, SunIcon, MoonIcon, MonitorIcon, MoreVerticalIcon, Trash2Icon, MessageCircleIcon, MessageCirclePlusIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -141,7 +141,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
     <div className="flex h-full flex-col overflow-hidden">
       {/* Sidebar Header */}
       <div className="border-b border-border/40 p-4 shrink-0">
-        <div className="flex items-center gap-2 min-w-0 mb-3">
+        <div className="flex items-center gap-2 min-w-0 mb-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-orange-500 to-red-500 text-sm font-bold text-white shadow-md shrink-0">
             C
           </div>
@@ -158,17 +158,17 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
               handleNewChat();
               if (onLinkClick) onLinkClick();
             }}
-            className="w-full justify-start gap-2"
-            variant="outline"
+            className="w-full justify-start gap-2 text-center"
+            variant="ghost"
           >
-            <MessageSquarePlusIcon className="h-4 w-4" />
+            <MessageCirclePlusIcon className="h-4 w-4" />
             <span>New chat</span>
           </Button>
 
           <Button
             onClick={() => setSearchOpen(true)}
-            className="w-full justify-start gap-2"
-            variant="outline"
+            className="w-full justify-start text-center gap-2"
+            variant="ghost"
           >
             <SearchIcon className="h-4 w-4" />
             <span>Search chats</span>
@@ -244,7 +244,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
             </div>
           ) : (
             <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-              {searchQuery ? 'No chats found' : 'No chats yet'}
+              No chats yet
             </div>
           )}
         </div>
@@ -379,8 +379,8 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 
       {/* Search Command Dialog */}
       <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <CommandInput 
-          placeholder="Search threads..." 
+        <CommandInput
+          placeholder="Search threads..."
           value={commandSearchQuery}
           onValueChange={setCommandSearchQuery}
         />

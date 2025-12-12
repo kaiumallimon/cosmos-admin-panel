@@ -292,7 +292,6 @@ export default function ThreadChatPage() {
     <div className="flex flex-col h-full">
       <FrostedHeader
         title={threadTitle}
-        subtitle={threadId ? `Thread ID: ${threadId}` : 'Loading...'}
         onMobileMenuToggle={toggleMobileMenu}
         showSearch={false}
       />
