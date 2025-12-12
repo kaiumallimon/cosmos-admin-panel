@@ -247,10 +247,10 @@ export default function ThreadChatPage() {
 
   // Render question card
   const renderQuestionCard = (question: QuestionMetadata, index: number) => (
-    <Card key={`question-${index}`} className="mt-3 border border-border shadow-sm">
+    <Card key={`question-${index}`} className="mt-3 border border-border shadow-sm overflow-hidden">
       <CardContent className="py-4 px-4 sm:px-6 space-y-3">
-        <div className="flex justify-between items-start">
-          <h4 className="text-base font-semibold">
+        <div className="flex justify-between items-start gap-2">
+          <h4 className="text-base font-semibold wrap-break-word">
             Q{question.question_number}
             {question.sub_question && question.sub_question !== '-' && `.${question.sub_question}`}
             {question.marks && (
@@ -259,13 +259,13 @@ export default function ThreadChatPage() {
               </span>
             )}
           </h4>
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="secondary" className="text-xs shrink-0">
             {question.exam_type}
           </Badge>
         </div>
 
         {question.has_description && question.description_content && question.description_content !== 'N/A' && (
-          <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+          <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md wrap-break-word overflow-wrap-anywhere">
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
               {question.description_content}
             </ReactMarkdown>
@@ -273,16 +273,16 @@ export default function ThreadChatPage() {
         )}
 
         {question.has_image && question.image_url && question.image_url !== 'N/A' && (
-          <div>
+          <div className="overflow-hidden">
             <img
               src={question.image_url}
               alt={question.image_type ?? "Question image"}
-              className="max-w-full rounded border"
+              className="max-w-full h-auto rounded border"
             />
           </div>
         )}
 
-        <div className="prose dark:prose-invert max-w-none text-sm">
+        <div className="prose dark:prose-invert max-w-none text-sm wrap-break-word overflow-wrap-anywhere">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
             {question.question}
           </ReactMarkdown>
@@ -294,16 +294,16 @@ export default function ThreadChatPage() {
               href={question.pdf_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline"
+              className="text-primary hover:underline break-all"
             >
               View PDF
             </a>
           </div>
         )}
 
-        <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
-          <span>{question.course_title} ({question.course_code})</span>
-          {question.created_at && <span>Added: {new Date(question.created_at).toLocaleDateString()}</span>}
+        <div className="pt-2 border-t text-xs text-muted-foreground flex flex-wrap justify-between gap-2">
+          <span className="wrap-break-word">{question.course_title} ({question.course_code})</span>
+          {question.created_at && <span className="shrink-0">Added: {new Date(question.created_at).toLocaleDateString()}</span>}
         </div>
       </CardContent>
     </Card>
