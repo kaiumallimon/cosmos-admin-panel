@@ -23,6 +23,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -44,10 +53,11 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [threadToDelete, setThreadToDelete] = useState<Thread | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [commandSearchQuery, setCommandSearchQuery] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -77,8 +87,15 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
     fetchThreads();
   }, []);
 
+  // Handle new chat
+  const handleNewChat = () => {
+    router.push('/chat');
+    setMobileMenuOpen(false);
+  };
+
+  // Filtered threads for command search
   const filteredThreads = threads.filter(thread =>
-    thread.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    thread.title?.toLowerCase().includes(commandSearchQuery.toLowerCase())
   );
 
   // Handle delete thread
@@ -137,7 +154,10 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         {/* Action Buttons */}
         <div className="space-y-2">
           <Button
-            onClick={onLinkClick}
+            onClick={() => {
+              handleNewChat();
+              if (onLinkClick) onLinkClick();
+            }}
             className="w-full justify-start gap-2"
             variant="outline"
           >
@@ -145,16 +165,14 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
             <span>New chat</span>
           </Button>
 
-          <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search chats"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
+          <Button
+            onClick={() => setSearchOpen(true)}
+            className="w-full justify-start gap-2"
+            variant="outline"
+          >
+            <SearchIcon className="h-4 w-4" />
+            <span>Search chats</span>
+          </Button>
         </div>
       </div>
 
@@ -175,9 +193,9 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                 </div>
               ))}
             </div>
-          ) : filteredThreads.length > 0 ? (
+          ) : threads.length > 0 ? (
             <div className="space-y-1">
-              {filteredThreads.map((thread) => (
+              {threads.map((thread) => (
                 <div key={thread.thread_id} className="relative group/item">
                   <Link
                     href={`/chat/${thread.thread_id}`}
@@ -358,6 +376,41 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Search Command Dialog */}
+      <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <CommandInput 
+          placeholder="Search threads..." 
+          value={commandSearchQuery}
+          onValueChange={setCommandSearchQuery}
+        />
+        <CommandList>
+          <CommandEmpty>No threads found.</CommandEmpty>
+          <CommandGroup heading="Threads">
+            {filteredThreads.map((thread) => (
+              <CommandItem
+                key={thread.thread_id}
+                value={thread.title || 'Untitled Chat'}
+                onSelect={() => {
+                  router.push(`/chat/${thread.thread_id}`);
+                  setSearchOpen(false);
+                  setCommandSearchQuery("");
+                }}
+                className="cursor-pointer"
+              >
+                <div className="flex flex-col w-full">
+                  <span className="font-medium truncate">
+                    {thread.title || 'Untitled Chat'}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(thread.updated_at || thread.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
 
     </SidebarProvider>
   );
