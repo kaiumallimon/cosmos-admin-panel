@@ -121,21 +121,22 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
           ) : filteredThreads.length > 0 ? (
             <div className="space-y-1">
               {filteredThreads.map((thread) => (
-                <Link
-                  key={thread.id}
-                  href={`/chat/${thread.id}`}
-                  onClick={onLinkClick}
-                  className={`block px-3 py-2 rounded-md text-sm transition-all duration-200 hover:bg-primary/30 group ${
-                    pathname === `/chat/${thread.id}` ? "bg-primary/20 font-medium" : ""
-                  }`}
-                >
-                  <div className="truncate">
-                    {thread.title || 'Untitled Chat'}
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate mt-0.5">
-                    {new Date(thread.updated_at || thread.created_at).toLocaleDateString()}
-                  </div>
-                </Link>
+                <div key={thread.id}>
+                  <Link
+                    href={`/chat/${thread.id}`}
+                    onClick={onLinkClick}
+                    className={`block px-3 py-2 rounded-md text-sm transition-all duration-200 hover:bg-primary/30 group ${
+                      pathname === `/chat/${thread.id}` ? "bg-primary/20 font-medium" : ""
+                    }`}
+                  >
+                    <div className="truncate">
+                      {thread.title || 'Untitled Chat'}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate mt-0.5">
+                      {new Date(thread.updated_at || thread.created_at).toLocaleDateString()}
+                    </div>
+                  </Link>
+                </div>
               ))}
             </div>
           ) : (
