@@ -104,6 +104,15 @@ export default function ThreadChatPage() {
     scrollToBottom();
   }, [messages, sending, latestAiMessage]);
 
+  // Get thread title from sessionStorage
+  useEffect(() => {
+    const storedTitle = sessionStorage.getItem('threadTitle');
+    if (storedTitle) {
+      setThreadTitle(storedTitle);
+      sessionStorage.removeItem('threadTitle'); // Clean up after reading
+    }
+  }, [params.thread_id]);
+
   // Fetch thread history
   useEffect(() => {
     const fetchHistory = async () => {
@@ -121,12 +130,6 @@ export default function ThreadChatPage() {
         if (response.ok) {
           const data: Thread = await response.json();
           setMessages(data.messages || []);
-
-          // Set thread title from first message or use thread ID
-          if (data.messages && data.messages.length > 0) {
-            const firstMessage = data.messages[0];
-            setThreadTitle(firstMessage.content.slice(0, 50) + (firstMessage.content.length > 50 ? '...' : ''));
-          }
         } else {
           console.error('Failed to fetch thread history');
         }

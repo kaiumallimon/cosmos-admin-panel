@@ -197,10 +197,13 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
             <div className="space-y-1">
               {threads.map((thread) => (
                 <div key={thread.thread_id} className="relative group/item">
-                  <Link
-                    href={`/chat/${thread.thread_id}`}
-                    onClick={onLinkClick}
-                    className={`block px-3 py-2 pr-10 rounded-md text-sm transition-all duration-200 hover:bg-primary/30 ${
+                  <div
+                    onClick={() => {
+                      sessionStorage.setItem('threadTitle', thread.title || 'Untitled Chat');
+                      router.push(`/chat/${thread.thread_id}`);
+                      if (onLinkClick) onLinkClick();
+                    }}
+                    className={`block px-3 py-2 pr-10 rounded-md text-sm transition-all duration-200 hover:bg-primary/30 cursor-pointer ${
                       pathname === `/chat/${thread.thread_id}` ? "bg-primary/20 font-medium" : ""
                     }`}
                   >
@@ -210,7 +213,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                     <div className="text-xs text-muted-foreground truncate mt-0.5">
                       {new Date(thread.updated_at || thread.created_at).toLocaleDateString()}
                     </div>
-                  </Link>
+                  </div>
 
                   {/* Three-dot menu */}
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity">
@@ -392,6 +395,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                 key={thread.thread_id}
                 value={thread.title || 'Untitled Chat'}
                 onSelect={() => {
+                  sessionStorage.setItem('threadTitle', thread.title || 'Untitled Chat');
                   router.push(`/chat/${thread.thread_id}`);
                   setSearchOpen(false);
                   setCommandSearchQuery("");
