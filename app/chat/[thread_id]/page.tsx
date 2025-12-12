@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { JetBrains_Mono } from "next/font/google";
+import TextType from "@/components/TextType";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -90,6 +91,7 @@ export default function ThreadChatPage() {
   const [inputValue, setInputValue] = useState("");
   const [threadId, setThreadId] = useState<string | null>(null);
   const [threadTitle, setThreadTitle] = useState("Chat");
+  const [latestAiMessage, setLatestAiMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -100,7 +102,7 @@ export default function ThreadChatPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, sending]);
+  }, [messages, sending, latestAiMessage]);
 
   // Fetch thread history
   useEffect(() => {
@@ -146,7 +148,7 @@ export default function ThreadChatPage() {
     }
   }, [inputValue]);
 
-  // Send message
+// Send message
   const handleSend = async () => {
     if (!inputValue.trim() || sending) return;
 
@@ -176,7 +178,7 @@ export default function ThreadChatPage() {
       if (response.ok) {
         const data = await response.json();
 
-        // Add AI response
+        // Add AI response with streaming effect
         const aiMessage: Message = {
           role: "ai",
           content: data.content,
@@ -184,6 +186,7 @@ export default function ThreadChatPage() {
           agent_name: data.agent_name
         };
 
+        setLatestAiMessage(aiMessage);
         setMessages(prev => [...prev, aiMessage]);
       } else {
         console.error('Failed to send message');
@@ -335,9 +338,19 @@ export default function ThreadChatPage() {
                       "prose dark:prose-invert max-w-none",
                       message.role === "human" && "prose-invert text-primary-foreground"
                     )}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                        {message.content}
-                      </ReactMarkdown>
+                      {message.role === "ai" && latestAiMessage === message ? (
+                        <TextType
+                          text={message.content}
+                          typingSpeed={20}
+                          showCursor={false}
+                          loop={false}
+                          className="inline"
+                        />
+                      ) : (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                          {message.content}
+                        </ReactMarkdown>
+                      )}
                     </div>
 
                     {/* Render question cards for AI messages with retrieved documents */}
@@ -352,7 +365,7 @@ export default function ThreadChatPage() {
                 </div>
               ))}
 
-              {/* Loading indicator while sending */}
+              {/* Loading indicator while waiting for response */}
               {sending && (
                 <div className="flex justify-start mb-6">
                   <div className="max-w-[85%]">
