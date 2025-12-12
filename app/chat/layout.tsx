@@ -193,8 +193,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 
         {/* Back Button */}
         <Button
-          variant="ghost"
-          className="w-full justify-start gap-2 hover:bg-primary/30"
+          className="w-full justify-start gap-2 bg-red-500 hover:bg-red-500/75 text-white"
           onClick={() => {
             if (onLinkClick) onLinkClick();
             router.back();
