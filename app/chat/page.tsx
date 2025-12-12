@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Bot } from "lucide-react";
+import { ArrowRight, Bot, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -54,30 +54,48 @@ interface QuestionMetadata {
 }
 
 // Markdown components for code rendering
+const CodeBlock = ({ content }: { content: string }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group mt-3 mb-3">
+      <Button
+        size="sm"
+        variant="ghost"
+        className="absolute right-2 top-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={handleCopy}
+      >
+        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+      </Button>
+      <pre
+        className={`bg-gray-100 dark:bg-[#1e1e1e] px-5 py-4 rounded-md overflow-x-auto ${jetbrainsMono.className}`}
+      >
+        <code className="text-sm dark:text-gray-100">{content}</code>
+      </pre>
+    </div>
+  );
+};
+
 const markdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
     const content = Array.isArray(children) ? children.join("") : children;
+    const isMultiLine = content && typeof content === 'string' && content.includes('\n');
 
-    if (inline) {
+    if (inline || !isMultiLine) {
       return (
-        <code
-          className={`bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono ${jetbrainsMono.className}`}
-          style={{ display: 'inline' }}
-          {...props}
-        >
+        <strong className="font-semibold">
           {content}
-        </code>
+        </strong>
       );
     }
 
-    return (
-      <pre
-        className={`mt-3 mb-3 bg-gray-100 dark:bg-gray-800 px-5 py-4 rounded-md overflow-x-auto ${jetbrainsMono.className}`}
-        {...props}
-      >
-        <code className="text-sm">{content}</code>
-      </pre>
-    );
+    return <CodeBlock content={content} />;
   },
   p({ children, ...props }: any) {
     return <p className="my-2" {...props}>{children}</p>;
@@ -277,7 +295,7 @@ export default function ChatPage() {
 
         <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
           <span>{question.course_title} ({question.course_code})</span>
-          {question.semester_term && <span>Term: {question.semester_term}</span>}
+          {question.created_at && <span>Added: {new Date(question.created_at).toLocaleDateString()}</span>}
         </div>
       </CardContent>
     </Card>
