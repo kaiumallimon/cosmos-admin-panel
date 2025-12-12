@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -27,7 +27,8 @@ import {
     FileTextIcon,
     PlusIcon,
     Code2Icon,
-    Activity
+    Activity,
+    MessageCircle
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -40,10 +41,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const pathname = usePathname();
     const { user } = useAuthStore();
     const { theme, setTheme } = useTheme();
-    const [mounted, setMounted] = React.useState(false);
-    const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+    const [mounted, setMounted] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    React.useEffect(() => {
+    useEffect(() => {
         setMounted(true);
     }, []);
 
@@ -188,6 +189,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             >
                                 <IconRobot className="h-4 w-4 shrink-0" />
                                 <span className="font-medium truncate">Agents</span>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="my-4 h-px bg-border"></div>
+                {/* Chat Section */}
+                <div>
+                    <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
+                        Agent Management
+                    </div>
+                    <div>
+                        <div>
+                            <Link
+                                href="/chat"
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/chat" ? "bg-primary text-primary-foreground font-semibold" : ""
+                                    }`}
+                            >
+                                <MessageCircle className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Chat</span>
                             </Link>
                         </div>
                     </div>
