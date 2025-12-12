@@ -8,10 +8,10 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOutAndRedirect } from "@/lib/auth-client";
 import { useAuthStore } from "@/store/auth";
-import { ArrowLeftIcon, MessageSquarePlusIcon, SearchIcon } from "lucide-react";
+import { ArrowLeftIcon, MessageSquarePlusIcon, SearchIcon, SunIcon, MoonIcon, MonitorIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface Thread {
@@ -23,6 +23,7 @@ interface Thread {
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuthStore();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -147,17 +148,61 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         </div>
       </div>
 
-      {/* Sidebar Footer - Back to Dashboard */}
-      <div className="border-t border-border/40 p-3 shrink-0">
-        <Link href="/dashboard" onClick={onLinkClick}>
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 hover:bg-primary/30"
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-            <span>Back to Dashboard</span>
-          </Button>
-        </Link>
+      {/* Sidebar Footer */}
+      <div className="border-t border-border/40 p-4 shrink-0 overflow-hidden">
+        {/* Theme Toggle */}
+        <div className="mb-3 overflow-hidden">
+          <div className="flex items-center justify-between min-w-0">
+            <span className="text-xs font-medium text-muted-foreground truncate">Theme</span>
+            {mounted && (
+              <div className="flex items-center rounded-md border p-1 shrink-0">
+                <button
+                  className={`h-6 w-6 p-0 shrink-0 rounded-sm flex items-center justify-center transition-colors ${
+                    theme === "light"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                  onClick={() => setTheme("light")}
+                >
+                  <SunIcon className="h-3 w-3" />
+                </button>
+                <button
+                  className={`h-6 w-6 p-0 shrink-0 rounded-sm flex items-center justify-center transition-colors ${
+                    theme === "dark"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                  onClick={() => setTheme("dark")}
+                >
+                  <MoonIcon className="h-3 w-3" />
+                </button>
+                <button
+                  className={`h-6 w-6 p-0 shrink-0 rounded-sm flex items-center justify-center transition-colors ${
+                    theme === "system"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                  onClick={() => setTheme("system")}
+                >
+                  <MonitorIcon className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-2 hover:bg-primary/30"
+          onClick={() => {
+            if (onLinkClick) onLinkClick();
+            router.back();
+          }}
+        >
+          <ArrowLeftIcon className="h-4 w-4" />
+          <span>Back to Dashboard</span>
+        </Button>
       </div>
     </div>
   );
