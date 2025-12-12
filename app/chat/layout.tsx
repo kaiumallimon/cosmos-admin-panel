@@ -15,7 +15,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface Thread {
-  id: string;
+  thread_id: string;
   title: string;
   created_at: string;
   updated_at: string;
@@ -121,13 +121,13 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
             </div>
           ) : filteredThreads.length > 0 ? (
             <div className="space-y-1">
-              {filteredThreads.map((thread, index) => (
-                <div key={`thread-${thread.id}-${index}`}>
+              {filteredThreads.map((thread) => (
+                <div key={thread.thread_id}>
                   <Link
-                    href={`/chat/${thread.id}`}
+                    href={`/chat/${thread.thread_id}`}
                     onClick={onLinkClick}
                     className={`block px-3 py-2 rounded-md text-sm transition-all duration-200 hover:bg-primary/30 group ${
-                      pathname === `/chat/${thread.id}` ? "bg-primary/20 font-medium" : ""
+                      pathname === `/chat/${thread.thread_id}` ? "bg-primary/20 font-medium" : ""
                     }`}
                   >
                     <div className="truncate">
