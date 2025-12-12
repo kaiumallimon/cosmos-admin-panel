@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Bot } from "lucide-react";
+import { ArrowRight, Bot, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -92,6 +92,8 @@ export default function ThreadChatPage() {
   const [threadId, setThreadId] = useState<string | null>(null);
   const [threadTitle, setThreadTitle] = useState("Chat");
   const [latestAiMessage, setLatestAiMessage] = useState<Message | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedQuestions, setSelectedQuestions] = useState<QuestionMetadata[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -213,6 +215,15 @@ export default function ThreadChatPage() {
     }
   };
 
+  // Handle opening questions in sidebar
+  const handleViewQuestions = (documents: any[]) => {
+    const questions = documents
+      .filter((doc: any) => doc.metadata)
+      .map((doc: any) => doc.metadata);
+    setSelectedQuestions(questions);
+    setSidebarOpen(true);
+  };
+
   // Render question card
   const renderQuestionCard = (question: QuestionMetadata, index: number) => (
     <Card key={`question-${index}`} className="mt-3 border border-border shadow-sm">
@@ -299,8 +310,9 @@ export default function ThreadChatPage() {
         showSearch={false}
       />
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+      <div className="flex-1 flex overflow-hidden">
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="max-w-4xl mx-auto">
           {loading ? (
             <div className="space-y-4">
@@ -355,13 +367,17 @@ export default function ThreadChatPage() {
                       )}
                     </div>
 
-                    {/* Render question cards for AI messages with retrieved documents */}
-                    {message.role === "ai" && message.metadata?.retrieved_documents && (
-                      <div className="space-y-2 mt-4">
-                        {message.metadata.retrieved_documents.map((doc: any, docIndex: number) =>
-                          doc.metadata && renderQuestionCard(doc.metadata, docIndex)
-                        )}
-                      </div>
+                    {/* Show link to view questions if message has retrieved documents */}
+                    {message.role === "ai" && message.metadata?.retrieved_documents && message.metadata.retrieved_documents.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => handleViewQuestions(message.metadata.retrieved_documents)}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View {message.metadata.retrieved_documents.length} Question{message.metadata.retrieved_documents.length > 1 ? 's' : ''}
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -380,6 +396,41 @@ export default function ThreadChatPage() {
           <div ref={messagesEndRef} />
         </div>
       </div>
+
+      {/* Right Sidebar for Questions */}
+      <div
+        className={cn(
+          "border-l bg-background transition-all duration-300 overflow-y-auto",
+          sidebarOpen ? "w-full md:w-96 lg:w-[480px]" : "w-0"
+        )}
+      >
+        {sidebarOpen && (
+          <div className="h-full flex flex-col">
+            {/* Sidebar Header */}
+            <div className="sticky top-0 bg-background/95 backdrop-blur border-b z-10 px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                <h3 className="font-semibold">
+                  Questions ({selectedQuestions.length})
+                </h3>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Questions List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {selectedQuestions.map((question, index) => renderQuestionCard(question, index))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
 
       {/* Input Area */}
       <div className="border-t bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
