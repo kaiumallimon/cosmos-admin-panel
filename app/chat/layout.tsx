@@ -121,8 +121,8 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
             </div>
           ) : filteredThreads.length > 0 ? (
             <div className="space-y-1">
-              {filteredThreads.map((thread) => (
-                <div key={thread.id}>
+              {filteredThreads.map((thread, index) => (
+                <div key={`thread-${thread.id}-${index}`}>
                   <Link
                     href={`/chat/${thread.id}`}
                     onClick={onLinkClick}
