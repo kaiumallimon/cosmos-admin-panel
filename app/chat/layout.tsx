@@ -8,7 +8,21 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOutAndRedirect } from "@/lib/auth-client";
 import { useAuthStore } from "@/store/auth";
-import { ArrowLeftIcon, MessageSquarePlusIcon, SearchIcon, SunIcon, MoonIcon, MonitorIcon } from "lucide-react";
+import { ArrowLeftIcon, MessageSquarePlusIcon, SearchIcon, SunIcon, MoonIcon, MonitorIcon, MoreVerticalIcon, Trash2Icon } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -31,6 +45,9 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [threadToDelete, setThreadToDelete] = useState<Thread | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -63,6 +80,45 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   const filteredThreads = threads.filter(thread =>
     thread.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Handle delete thread
+  const handleDeleteClick = (thread: Thread, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setThreadToDelete(thread);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!threadToDelete) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/chat/threads/${threadToDelete.thread_id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remove thread from list
+        setThreads(prev => prev.filter(t => t.thread_id !== threadToDelete.thread_id));
+
+        // If we're currently viewing this thread, redirect to chat home
+        if (pathname === `/chat/${threadToDelete.thread_id}`) {
+          router.push('/chat');
+        }
+      } else {
+        console.error('Failed to delete thread');
+        alert('Failed to delete thread. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting thread:', error);
+      alert('An error occurred while deleting the thread.');
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setThreadToDelete(null);
+    }
+  };
 
   const SidebarContentComponent = ({ onLinkClick }: { onLinkClick?: () => void }) => (
     <div className="flex h-full flex-col overflow-hidden">
@@ -122,11 +178,11 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
           ) : filteredThreads.length > 0 ? (
             <div className="space-y-1">
               {filteredThreads.map((thread) => (
-                <div key={thread.thread_id}>
+                <div key={thread.thread_id} className="relative group/item">
                   <Link
                     href={`/chat/${thread.thread_id}`}
                     onClick={onLinkClick}
-                    className={`block px-3 py-2 rounded-md text-sm transition-all duration-200 hover:bg-primary/30 group ${
+                    className={`block px-3 py-2 pr-10 rounded-md text-sm transition-all duration-200 hover:bg-primary/30 ${
                       pathname === `/chat/${thread.thread_id}` ? "bg-primary/20 font-medium" : ""
                     }`}
                   >
@@ -137,6 +193,34 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                       {new Date(thread.updated_at || thread.created_at).toLocaleDateString()}
                     </div>
                   </Link>
+
+                  {/* Three-dot menu */}
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                        >
+                          <MoreVerticalIcon className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive cursor-pointer"
+                          onClick={(e) => handleDeleteClick(thread, e)}
+                        >
+                          <Trash2Icon className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               ))}
             </div>
@@ -239,6 +323,41 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         </div>
       </div>
 
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Thread</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this chat thread? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {threadToDelete && (
+            <div className="py-4">
+              <p className="text-sm font-medium mb-1">Thread:</p>
+              <p className="text-sm text-muted-foreground truncate">
+                {threadToDelete.title || 'Untitled Chat'}
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </SidebarProvider>
   );
