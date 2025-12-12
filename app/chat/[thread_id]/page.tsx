@@ -67,26 +67,29 @@ interface QuestionMetadata {
 const markdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
     const content = Array.isArray(children) ? children.join("") : children;
+    const isMultiLine = content && typeof content === 'string' && content.includes('\n');
 
-    if (inline) {
+    // Treat single-line code (inline or short blocks) as bold text
+    if (inline || !isMultiLine) {
       return (
-        <code
-          className={`bg-gray-100 dark:bg-gray-800 px-1 rounded text-sm font-mono ${jetbrainsMono.className}`}
-          {...props}
-        >
+        <strong className="font-semibold">
           {content}
-        </code>
+        </strong>
       );
     }
 
+    // Only render as code block if it has multiple lines
     return (
       <pre
-        className={`mt-3 bg-gray-100 dark:bg-gray-800 px-5 py-4 rounded-md overflow-x-auto ${jetbrainsMono.className}`}
+        className={`mt-3 mb-3 bg-gray-100 dark:bg-gray-800 px-5 py-4 rounded-md overflow-x-auto ${jetbrainsMono.className}`}
         {...props}
       >
         <code className="text-sm">{content}</code>
       </pre>
     );
+  },
+  p({ children, ...props }: any) {
+    return <p className="my-2" {...props}>{children}</p>;
   },
 };
 
@@ -370,22 +373,12 @@ export default function ThreadChatPage() {
                     )}
 
                     <div className={cn(
-                      "prose dark:prose-invert max-w-none",
+                      "prose dark:prose-invert max-w-none prose-code:font-semibold prose-code:before:content-none prose-code:after:content-none prose-code:bg-transparent",
                       message.role === "human" && "prose-invert text-primary-foreground"
                     )}>
-                      {message.role === "ai" && latestAiMessage === message ? (
-                        <TextType
-                          text={message.content}
-                          typingSpeed={20}
-                          showCursor={false}
-                          loop={false}
-                          className="inline"
-                        />
-                      ) : (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                          {message.content}
-                        </ReactMarkdown>
-                      )}
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                        {message.content}
+                      </ReactMarkdown>
                     </div>
 
                     {/* Show link to view questions if message has retrieved documents */}

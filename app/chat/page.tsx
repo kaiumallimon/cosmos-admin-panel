@@ -61,7 +61,8 @@ const markdownComponents = {
     if (inline) {
       return (
         <code
-          className={`bg-gray-100 dark:bg-gray-800 px-1 rounded text-sm font-mono ${jetbrainsMono.className}`}
+          className={`bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono ${jetbrainsMono.className}`}
+          style={{ display: 'inline' }}
           {...props}
         >
           {content}
@@ -71,12 +72,15 @@ const markdownComponents = {
 
     return (
       <pre
-        className={`mt-3 bg-gray-100 dark:bg-gray-800 px-5 py-4 rounded-md overflow-x-auto ${jetbrainsMono.className}`}
+        className={`mt-3 mb-3 bg-gray-100 dark:bg-gray-800 px-5 py-4 rounded-md overflow-x-auto ${jetbrainsMono.className}`}
         {...props}
       >
         <code className="text-sm">{content}</code>
       </pre>
     );
+  },
+  p({ children, ...props }: any) {
+    return <p className="my-2" {...props}>{children}</p>;
   },
 };
 
