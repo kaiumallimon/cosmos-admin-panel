@@ -347,6 +347,12 @@ export default function ThreadChatPage() {
     </div>
   );
 
+  function normalizeAgentName(name: String) {
+    // example: fallback_agent_123 -> Fallback Agent
+    if(name==='fallback_agent') return 'General Agent';
+    return name.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+  }
+
   return (
     <div className="flex flex-col h-full">
       <FrostedHeader
@@ -384,12 +390,12 @@ export default function ThreadChatPage() {
                 >
                   <div className={cn(
                     "max-w-[85%]",
-                    message.role === "human" ? "bg-gray-200 rounded-2xl py-1 px-4" : "space-y-3"
+                    message.role === "human" ? "bg-accent rounded-2xl py-1 px-4" : "space-y-3"
                   )}>
                     {message.role === "ai" && message.agent_name && (
-                      <Badge variant="outline" className="mb-2">
+                      <Badge variant="default" className="mb-2 py-1 text-background">
                         <Bot className="h-3 w-3 mr-1" />
-                        {message.agent_name}
+                        {normalizeAgentName(message.agent_name)}
                       </Badge>
                     )}
 

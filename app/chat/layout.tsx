@@ -36,6 +36,7 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Thread {
   thread_id: string;
@@ -43,6 +44,8 @@ interface Thread {
   created_at: string;
   updated_at: string;
 }
+
+const THREADS_PER_PAGE = 10;
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -58,6 +61,8 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   const [deleting, setDeleting] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [commandSearchQuery, setCommandSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalThreads, setTotalThreads] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -68,10 +73,13 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
     const fetchThreads = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/chat/threads');
+        const skip = (currentPage - 1) * THREADS_PER_PAGE;
+        const response = await fetch(`/api/chat/threads?skip=${skip}&limit=${THREADS_PER_PAGE}`);
         if (response.ok) {
           const data = await response.json();
           setThreads(data.threads || data || []);
+          // Set total threads count if available, otherwise calculate from response length
+          setTotalThreads(data.total || data.threads?.length || 0);
         } else {
           console.error('Failed to fetch threads');
           setThreads([]);
@@ -85,7 +93,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
     };
 
     fetchThreads();
-  }, []);
+  }, [currentPage]);
 
   // Handle new chat
   const handleNewChat = () => {
@@ -116,8 +124,19 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
       });
 
       if (response.ok) {
+        // Update total threads count
+        setTotalThreads(prev => Math.max(prev - 1, 0));
+
         // Remove thread from list
         setThreads(prev => prev.filter(t => t.thread_id !== threadToDelete.thread_id));
+
+        // If the current page now has no threads and it's not the first page, go to previous page
+        const newTotalPages = Math.ceil((totalThreads - 1) / THREADS_PER_PAGE);
+        if (threads.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+        } else if (currentPage > newTotalPages) {
+          setCurrentPage(Math.max(1, newTotalPages));
+        }
 
         // If we're currently viewing this thread, redirect to chat home
         if (pathname === `/chat/${threadToDelete.thread_id}`) {
@@ -248,6 +267,33 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
           ) : (
             <div className="px-3 py-4 text-sm text-muted-foreground text-center">
               No chats yet
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {threads.length > 0 && totalThreads > THREADS_PER_PAGE && (
+            <div className="flex items-center justify-between mt-4 px-2 pt-3 border-t border-border/40">
+              <Button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1 || loading}
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Page {currentPage} of {Math.ceil(totalThreads / THREADS_PER_PAGE)}
+              </span>
+              <Button
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={currentPage >= Math.ceil(totalThreads / THREADS_PER_PAGE) || loading}
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           )}
         </div>

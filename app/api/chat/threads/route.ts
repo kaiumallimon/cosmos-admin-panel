@@ -21,8 +21,13 @@ async function getHandler(req: AuthenticatedRequest) {
       );
     }
 
-    // Fetch threads from the external API
-    const response = await fetch(`${SERVER_BASE_URL}/chat/threads`, {
+    // Extract pagination parameters from URL
+    const url = new URL(req.url);
+    const skip = url.searchParams.get('skip') || '0';
+    const limit = url.searchParams.get('limit') || '10';
+
+    // Fetch threads from the external API with pagination
+    const response = await fetch(`${SERVER_BASE_URL}/chat/threads?skip=${skip}&limit=${limit}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
