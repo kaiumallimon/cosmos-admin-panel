@@ -44,7 +44,7 @@ interface Thread {
   updated_at: string;
 }
 
-const THREADS_PER_PAGE = 20;
+const THREADS_PER_PAGE = 10;
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -305,12 +305,18 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 
           {/* Infinite scroll trigger */}
           {!loading && hasMore && (
-            <div ref={observerTarget} className="px-3 py-2">
-              {loadingMore && (
-                <div className="flex items-center justify-center">
-                  <Skeleton className="h-4 w-3/4" />
+            <div ref={observerTarget} className="px-3 py-2" />
+          )}
+
+          {/* Loading more indicator */}
+          {loadingMore && (
+            <div className="px-3 py-2 space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex flex-col gap-1">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-2/3" />
                 </div>
-              )}
+              ))}
             </div>
           )}
         </div>

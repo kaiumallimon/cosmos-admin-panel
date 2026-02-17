@@ -370,7 +370,7 @@ export default function ChatPage() {
                     </div>
 
                     {/* Render question cards for AI messages with retrieved documents */}
-                    {message.role === "ai" && message.metadata?.retrieved_documents && (
+                    {message.role === "ai" && message.metadata?.retrieved_documents && message.metadata.retrieved_documents.length > 0 && (
                       <div className="space-y-2 mt-4">
                         {message.metadata.retrieved_documents.map((doc: any, docIndex: number) =>
                           doc.metadata && renderQuestionCard(doc.metadata, docIndex)
