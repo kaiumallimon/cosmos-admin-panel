@@ -351,7 +351,7 @@ export default function ChatPage() {
                 >
                   <div className={cn(
                     "max-w-[85%]",
-                    message.role === "human" ? "bg-primary text-primary-foreground rounded-2xl px-4 py-3" : "space-y-3"
+                    message.role === "human" ? "rounded-2xl px-4 py-3" : "space-y-3"
                   )}>
                     {message.role === "ai" && message.agent_name && (
                       <Badge variant="outline" className="mb-2">
@@ -362,7 +362,7 @@ export default function ChatPage() {
 
                     <div className={cn(
                       "prose dark:prose-invert max-w-none",
-                      message.role === "human" && "prose-invert text-primary-foreground"
+                      message.role === "human" && "text-foreground"
                     )}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                         {message.content}

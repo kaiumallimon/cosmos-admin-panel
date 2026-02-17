@@ -44,9 +44,9 @@ function CommandDialog({
 }) {
   return (
     <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
+      <DialogHeader className="sr-only" suppressHydrationWarning>
+        <DialogTitle suppressHydrationWarning>{title}</DialogTitle>
+        <DialogDescription suppressHydrationWarning>{description}</DialogDescription>
       </DialogHeader>
       <DialogContent
         className={cn("overflow-hidden p-0 bg-background/85 backdrop-blur-xl border border-border/50 shadow-2xl w-[95vw] sm:w-full max-w-[90vw] sm:max-w-lg", className)}
