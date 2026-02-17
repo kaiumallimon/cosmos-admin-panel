@@ -61,6 +61,7 @@ interface QuestionMetadata {
   question: string;
   pdf_url?: string;
   created_at?: string;
+  semester_term?: string;
 }
 
 // Markdown components for code rendering
@@ -284,7 +285,7 @@ export default function ThreadChatPage() {
             )}
           </h4>
           <Badge variant="secondary" className="text-xs shrink-0">
-            {question.exam_type}
+            {question.semester_term} - {question.exam_type}
           </Badge>
         </div>
 
