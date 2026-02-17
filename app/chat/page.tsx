@@ -362,7 +362,7 @@ export default function ChatPage() {
 
                     <div className={cn(
                       "prose dark:prose-invert max-w-none",
-                      message.role === "human" && "text-foreground"
+                      message.role === "human" && "prose-invert bg-accent rounded-2xl py-1 px-4 text-foreground"
                     )}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                         {message.content}

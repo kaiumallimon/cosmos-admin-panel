@@ -35,8 +35,7 @@ import {
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState, useRef, useCallback } from "react";
 
 interface Thread {
   thread_id: string;
@@ -45,7 +44,7 @@ interface Thread {
   updated_at: string;
 }
 
-const THREADS_PER_PAGE = 10;
+const THREADS_PER_PAGE = 20;
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -61,25 +60,25 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   const [deleting, setDeleting] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [commandSearchQuery, setCommandSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalThreads, setTotalThreads] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Fetch threads from API
+  // Fetch initial threads
   useEffect(() => {
     const fetchThreads = async () => {
       try {
         setLoading(true);
-        const skip = (currentPage - 1) * THREADS_PER_PAGE;
-        const response = await fetch(`/api/chat/threads?skip=${skip}&limit=${THREADS_PER_PAGE}`);
+        const response = await fetch(`/api/chat/threads?skip=0&limit=${THREADS_PER_PAGE}`);
         if (response.ok) {
           const data = await response.json();
-          setThreads(data.threads || data || []);
-          // Set total threads count if available, otherwise calculate from response length
-          setTotalThreads(data.total || data.threads?.length || 0);
+          console.log('Initial threads API response:', data);
+          setThreads(data.threads || []);
+          setHasMore(data.threads?.length >= THREADS_PER_PAGE);
         } else {
           console.error('Failed to fetch threads');
           setThreads([]);
@@ -93,7 +92,52 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
     };
 
     fetchThreads();
-  }, [currentPage]);
+  }, []);
+
+  // Load more threads
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+    try {
+      const skip = threads.length;
+      const response = await fetch(`/api/chat/threads?skip=${skip}&limit=${THREADS_PER_PAGE}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Load more threads:', data);
+        const newThreads = data.threads || [];
+        setThreads(prev => [...prev, ...newThreads]);
+        setHasMore(newThreads.length >= THREADS_PER_PAGE);
+      }
+    } catch (error) {
+      console.error('Error loading more threads:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [threads.length, loadingMore, hasMore]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [loadMore, hasMore, loadingMore]);
 
   // Handle new chat
   const handleNewChat = () => {
@@ -124,19 +168,8 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
       });
 
       if (response.ok) {
-        // Update total threads count
-        setTotalThreads(prev => Math.max(prev - 1, 0));
-
         // Remove thread from list
         setThreads(prev => prev.filter(t => t.thread_id !== threadToDelete.thread_id));
-
-        // If the current page now has no threads and it's not the first page, go to previous page
-        const newTotalPages = Math.ceil((totalThreads - 1) / THREADS_PER_PAGE);
-        if (threads.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        } else if (currentPage > newTotalPages) {
-          setCurrentPage(Math.max(1, newTotalPages));
-        }
 
         // If we're currently viewing this thread, redirect to chat home
         if (pathname === `/chat/${threadToDelete.thread_id}`) {
@@ -270,30 +303,14 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
             </div>
           )}
 
-          {/* Pagination Controls */}
-          {threads.length > 0 && totalThreads > THREADS_PER_PAGE && (
-            <div className="flex items-center justify-between mt-4 px-2 pt-3 border-t border-border/40">
-              <Button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1 || loading}
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-xs text-muted-foreground">
-                Page {currentPage} of {Math.ceil(totalThreads / THREADS_PER_PAGE)}
-              </span>
-              <Button
-                onClick={() => setCurrentPage(prev => prev + 1)}
-                disabled={currentPage >= Math.ceil(totalThreads / THREADS_PER_PAGE) || loading}
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+          {/* Infinite scroll trigger */}
+          {!loading && hasMore && (
+            <div ref={observerTarget} className="px-3 py-2">
+              {loadingMore && (
+                <div className="flex items-center justify-center">
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              )}
             </div>
           )}
         </div>

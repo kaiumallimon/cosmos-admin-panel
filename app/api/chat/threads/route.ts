@@ -26,8 +26,11 @@ async function getHandler(req: AuthenticatedRequest) {
     const skip = url.searchParams.get('skip') || '0';
     const limit = url.searchParams.get('limit') || '10';
 
+    // Convert skip to offset for backend API
+    const offset = skip;
+
     // Fetch threads from the external API with pagination
-    const response = await fetch(`${SERVER_BASE_URL}/chat/threads?skip=${skip}&limit=${limit}`, {
+    const response = await fetch(`${SERVER_BASE_URL}/chat/threads?offset=${offset}&limit=${limit}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -44,7 +47,20 @@ async function getHandler(req: AuthenticatedRequest) {
     }
 
     const data = await response.json();
-    return NextResponse.json(data, { status: 200 });
+
+    // Backend returns { threads: [...], pagination: { total, limit, offset, count, has_more } }
+    const threadsArray = data.threads || [];
+    const totalCount = data.pagination?.total || 0;
+
+    // Return normalized response for frontend
+    const responseData = {
+      threads: threadsArray,
+      total: totalCount,
+    };
+
+    console.log('Fetched threads:', responseData);
+
+    return NextResponse.json(responseData, { status: 200 });
 
   } catch (error: any) {
     console.error('Error fetching threads:', error);
