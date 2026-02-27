@@ -8,7 +8,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOutAndRedirect } from "@/lib/auth-client";
 import { useAuthStore } from "@/store/auth";
-import { ArrowLeftIcon, MessageSquarePlusIcon, SearchIcon, SunIcon, MoonIcon, MonitorIcon, MoreVerticalIcon, Trash2Icon, MessageCircleIcon, MessageCirclePlusIcon } from "lucide-react";
+import { ArrowLeftIcon, MessageSquarePlusIcon, SearchIcon, SunIcon, MoonIcon, MonitorIcon, MoreVerticalIcon, Trash2Icon, MessageCircleIcon, MessageCirclePlusIcon, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +35,7 @@ import {
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 interface Thread {
   thread_id: string;
@@ -62,7 +62,6 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   const [commandSearchQuery, setCommandSearchQuery] = useState("");
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -115,29 +114,6 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
       setLoadingMore(false);
     }
   }, [threads.length, loadingMore, hasMore]);
-
-  // Infinite scroll observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          loadMore();
-        }
-      },
-      { threshold: 1.0 }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [loadMore, hasMore, loadingMore]);
 
   // Handle new chat
   const handleNewChat = () => {
@@ -303,21 +279,19 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
             </div>
           )}
 
-          {/* Infinite scroll trigger */}
+          {/* Load more button */}
           {!loading && hasMore && (
-            <div ref={observerTarget} className="px-3 py-2" />
-          )}
-
-          {/* Loading more indicator */}
-          {loadingMore && (
-            <div className="px-3 py-2 space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex flex-col gap-1">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-3 w-2/3" />
-                </div>
-              ))}
-            </div>
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="mt-1 w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingMore ? (
+                <><Loader2 className="h-3 w-3 animate-spin" />Loading…</>
+              ) : (
+                'Load more'
+              )}
+            </button>
           )}
         </div>
       </div>
