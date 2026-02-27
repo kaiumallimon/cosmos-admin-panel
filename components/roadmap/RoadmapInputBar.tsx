@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Mic, MicOff, RefreshCwIcon, Send } from 'lucide-react';
+import { AlertTriangle, Loader2, Mic, MicOff, RefreshCwIcon, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import type { RoadmapData } from './types';
@@ -29,7 +29,7 @@ export function RoadmapInputBar({
       <div className="max-w-3xl mx-auto p-4">
         {error && (
           <div className="mb-3 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg text-xs text-destructive flex items-center gap-1.5">
-            <span>⚠</span> {error}
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {error}
           </div>
         )}
 
@@ -46,28 +46,32 @@ export function RoadmapInputBar({
             />
 
             {/* Voice */}
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={toggleVoice}
               disabled={isLoading}
-              className={`shrink-0 self-end mb-1 p-1.5 rounded-lg transition-colors ${
+              className={`shrink-0 self-end mb-1 h-8 w-8 ${
                 isListening ? 'text-destructive animate-pulse' : 'text-muted-foreground hover:text-foreground'
               }`}
               title={isListening ? 'Stop listening' : 'Voice input'}
             >
               {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </button>
+            </Button>
 
             {/* Reset */}
             {roadmapData && (
-              <button
+              <Button
                 type="button"
-                className="shrink-0 self-end mb-1 p-1.5 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
+                variant="ghost"
+                size="icon"
+                className="shrink-0 self-end mb-1 h-8 w-8 text-muted-foreground hover:text-destructive"
                 title="Clear and start new"
                 onClick={onReset}
               >
                 <RefreshCwIcon className="h-4 w-4" />
-              </button>
+              </Button>
             )}
 
             {/* Submit */}

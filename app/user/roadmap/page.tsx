@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as d3 from 'd3';
 import { MessageSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth';
 import { useTheme } from 'next-themes';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -299,14 +300,15 @@ export default function RoadmapPage() {
 
         {/* Collapsed chat tab (desktop) */}
         {!showChatbot && roadmapId && !isMobile && (
-          <button
+          <Button
+            variant="outline"
             onClick={() => setShowChatbot(true)}
-            className="shrink-0 self-center flex flex-col items-center gap-1 w-8 py-3 rounded-xl border border-border bg-card hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all text-muted-foreground shadow-sm"
+            className="shrink-0 self-center flex flex-col items-center gap-1 w-8 h-auto py-3 rounded-xl bg-card hover:bg-primary hover:text-primary-foreground hover:border-primary text-muted-foreground shadow-sm"
             title="Open AI Chat"
           >
             <MessageSquare className="h-4 w-4" />
             <span className="text-[9px] font-medium [writing-mode:vertical-rl] rotate-180 leading-none">AI Chat</span>
-          </button>
+          </Button>
         )}
       </div>
 
