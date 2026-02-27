@@ -31,6 +31,7 @@ interface Message {
   content: string;
   metadata?: any;
   agent_name?: string;
+  agent_display_name?: string;
 }
 
 interface Thread {
@@ -168,7 +169,7 @@ export default function UserChatThreadPage() {
       });
       if (response.ok) {
         const data = await response.json();
-        const aiMessage: Message = { role: "ai", content: data.content, metadata: data.metadata, agent_name: data.agent_name };
+        const aiMessage: Message = { role: "ai", content: data.content, metadata: data.metadata, agent_name: data.agent_name, agent_display_name: data.agent_display_name };
         setLatestAiMessage(aiMessage);
         setMessages(prev => [...prev, aiMessage]);
       } else {
@@ -249,20 +250,44 @@ export default function UserChatThreadPage() {
             {loading ? (
               <div className="space-y-4"><LoadingSkeleton /><LoadingSkeleton /></div>
             ) : messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
-                <Bot className="h-16 w-16 text-muted-foreground mb-4" />
-                <h2 className="text-2xl font-semibold mb-2">No messages yet</h2>
-                <p className="text-muted-foreground max-w-md">Start the conversation by sending a message!</p>
+              <div className="flex flex-col items-center justify-center min-h-[500px] py-12 px-4">
+                <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5 shadow-sm">
+                  <Bot className="h-8 w-8 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight mb-2">What would you like to study?</h2>
+                <p className="text-muted-foreground text-sm text-center max-w-sm mb-8">
+                  Ask about your courses, past exams, or any topic you're working on.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
+                  {[
+                    { emoji: "📚", title: "Past Exam Questions", prompt: "Show me past exam questions for DBMS" },
+                    { emoji: "🧠", title: "Explain a Concept", prompt: "Explain normalization in databases" },
+                    { emoji: "📝", title: "Topic Overview", prompt: "What are the key topics in Operating Systems?" },
+                    { emoji: "🔍", title: "Find Questions", prompt: "Find questions about SQL joins from past exams" },
+                  ].map((s) => (
+                    <button
+                      key={s.title}
+                      onClick={() => setInputValue(s.prompt)}
+                      className="flex items-start gap-3 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors text-left group"
+                    >
+                      <span className="text-xl leading-none mt-0.5 shrink-0">{s.emoji}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium group-hover:text-primary transition-colors">{s.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{s.prompt}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               <>
                 {messages.map((message, index) => (
                   <div key={`msg-${index}`} className={cn("mb-6", message.role === "human" ? "flex justify-end" : "flex justify-start")}>
                     <div className={cn("max-w-[85%]", message.role === "human" ? "bg-accent rounded-2xl py-1 px-4" : "space-y-3")}>
-                      {message.role === "ai" && message.agent_name && (
+                      {message.role === "ai" && (message.agent_display_name || message.agent_name) && (
                         <Badge variant="default" className="mb-2 py-1 text-background">
                           <Bot className="h-3 w-3 mr-1" />
-                          {normalizeAgentName(message.agent_name)}
+                          {message.agent_display_name || normalizeAgentName(message.agent_name || '')}
                         </Badge>
                       )}
                       <div className={cn(
