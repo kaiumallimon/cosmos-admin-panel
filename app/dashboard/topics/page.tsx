@@ -123,11 +123,11 @@ export default function TopicsPage() {
     const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
     // Form state
-    type CreateForm = { course_id: string; name: string; code: string; exam_type: string; ct_no: string };
-    type EditForm = { name: string; code: string; exam_type: string; ct_no: string };
+    type CreateForm = { course_id: string; name: string; exam_type: string; ct_no: string };
+    type EditForm = { name: string; exam_type: string; ct_no: string };
 
-    const defaultCreateForm: CreateForm = { course_id: '', name: '', code: '', exam_type: '', ct_no: '' };
-    const defaultEditForm: EditForm = { name: '', code: '', exam_type: '', ct_no: '' };
+    const defaultCreateForm: CreateForm = { course_id: '', name: '', exam_type: '', ct_no: '' };
+    const defaultEditForm: EditForm = { name: '', exam_type: '', ct_no: '' };
 
     const [createForm, setCreateForm] = useState<CreateForm>(defaultCreateForm);
     const [editForm, setEditForm] = useState<EditForm>(defaultEditForm);
@@ -189,17 +189,18 @@ export default function TopicsPage() {
     // ─── CRUD handlers ───────────────────────────────────────────────────────
 
     const handleCreateTopic = async () => {
-        if (!createForm.course_id || !createForm.name.trim() || !createForm.code.trim()) {
-            setFormError('Course, Name, and Code are required.');
+        if (!createForm.course_id || !createForm.name.trim()) {
+            setFormError('Course and Name are required.');
             return;
         }
         setFormLoading(true);
         setFormError(null);
         try {
+            const selectedCourse = courses.find(c => c.id === createForm.course_id);
             const payload: Record<string, any> = {
                 course_id: createForm.course_id,
                 name: createForm.name.trim(),
-                code: createForm.code.trim(),
+                code: selectedCourse?.code ?? createForm.course_id,
             };
             if (createForm.exam_type) payload.exam_type = createForm.exam_type;
             if (createForm.ct_no) payload.ct_no = parseInt(createForm.ct_no, 10);
@@ -225,8 +226,8 @@ export default function TopicsPage() {
 
     const handleEditTopic = async () => {
         if (!selectedTopic) return;
-        if (!editForm.name.trim() || !editForm.code.trim()) {
-            setFormError('Name and Code are required.');
+        if (!editForm.name.trim()) {
+            setFormError('Name is required.');
             return;
         }
         setFormLoading(true);
@@ -234,7 +235,6 @@ export default function TopicsPage() {
         try {
             const payload: Record<string, any> = {
                 name: editForm.name.trim(),
-                code: editForm.code.trim(),
             };
             if (editForm.exam_type) payload.exam_type = editForm.exam_type;
             else payload.exam_type = null;
@@ -286,7 +286,6 @@ export default function TopicsPage() {
         setSelectedTopic(topic);
         setEditForm({
             name: topic.name,
-            code: topic.code,
             exam_type: topic.exam_type || '',
             ct_no: topic.ct_no?.toString() || '',
         });
@@ -663,17 +662,6 @@ export default function TopicsPage() {
                                 />
                             </div>
 
-                            {/* Code */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="add-code">Topic Code *</Label>
-                                <Input
-                                    id="add-code"
-                                    placeholder="e.g., DSA-01"
-                                    value={createForm.code}
-                                    onChange={(e) => setCreateForm({ ...createForm, code: e.target.value })}
-                                />
-                            </div>
-
                             {/* Exam Type */}
                             <div className="grid gap-2">
                                 <Label>Exam Type</Label>
@@ -756,16 +744,6 @@ export default function TopicsPage() {
                                         id="edit-name"
                                         value={editForm.name}
                                         onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                    />
-                                </div>
-
-                                {/* Code */}
-                                <div className="grid gap-2">
-                                    <Label htmlFor="edit-code">Topic Code *</Label>
-                                    <Input
-                                        id="edit-code"
-                                        value={editForm.code}
-                                        onChange={(e) => setEditForm({ ...editForm, code: e.target.value })}
                                     />
                                 </div>
 
