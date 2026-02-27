@@ -17,9 +17,7 @@ import { useTheme } from 'next-themes';
 interface RoadmapItem {
   name: string;
   description: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  timeCommitment?: string;
-  status?: string;
+  resources: string[];
 }
 
 interface RoadmapStage {
@@ -30,29 +28,19 @@ interface RoadmapStage {
 
 interface RoadmapData {
   id?: string;
+  user_id?: string;
   topic: string;
   introduction?: string;
   stages: RoadmapStage[];
-}
-
-interface RoadmapThread {
-  thread_id: string;
-  title: string;
-  created_at: string;
-  roadmap: RoadmapData;
-  chat_history?: any[];
-  progress?: {
-    total_items: number;
-    completed_items: number;
-    overall_progress_percentage: number;
-  };
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface D3NodeData {
   name: string;
   type: 'root' | 'stage' | 'item';
   description: string;
-  difficulty?: string;
+  difficulty?: never;
   id?: string;
   stageIndex?: number;
   itemIndex?: number;
@@ -65,6 +53,7 @@ export default function RoadmapPage() {
   const { user } = useAuthStore();
   const { resolvedTheme } = useTheme();
   const svgRef = useRef<SVGSVGElement>(null);
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Roadmap state
@@ -72,7 +61,8 @@ export default function RoadmapPage() {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [threadId, setThreadId] = useState<string | null>(null);
+  const [roadmapId, setRoadmapId] = useState<string | null>(null);
+  const [autoMessage, setAutoMessage] = useState<{ text: string; nodeTitle?: string } | null>(null);
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
   const [selectedNode, setSelectedNode] = useState<D3NodeData | null>(null);
 
@@ -82,10 +72,10 @@ export default function RoadmapPage() {
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
 
   // History
-  const [chatHistory, setChatHistory] = useState<RoadmapThread[]>([]);
+  const [chatHistory, setChatHistory] = useState<RoadmapData[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'progress' | 'title'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
 
   // Voice input
   const [isListening, setIsListening] = useState(false);
@@ -136,7 +126,8 @@ export default function RoadmapPage() {
       const res = await fetch('/api/roadmap/threads');
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setChatHistory(data.threads || []);
+      // API returns RoadmapData[] directly
+      setChatHistory(Array.isArray(data) ? data : []);
     } catch {
       setChatHistory([]);
     } finally {
@@ -144,20 +135,13 @@ export default function RoadmapPage() {
     }
   };
 
-  const loadThread = (thread: RoadmapThread) => {
-    setRoadmapData(thread.roadmap);
-    setThreadId(thread.thread_id);
-    setQuery(thread.title || '');
+  const loadThread = (thread: RoadmapData) => {
+    setRoadmapData(thread);
+    setRoadmapId(thread.id ?? null);
+    setQuery(thread.topic || '');
     setSelectedNode(null);
-    if (thread.roadmap?.stages) {
-      const completed = new Set<string>();
-      thread.roadmap.stages.forEach((stage, si) => {
-        stage.items.forEach((item, ii) => {
-          if (item.status === 'completed') completed.add(`${si}-${ii}`);
-        });
-      });
-      setCompletedItems(completed);
-    }
+    setCompletedItems(new Set());
+    setAutoMessage(null);
   };
 
   // ── Generate roadmap ───────────────────────────────────────────────────────
@@ -173,7 +157,7 @@ export default function RoadmapPage() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      if (data.id) setThreadId(data.id);
+      if (data.id) setRoadmapId(data.id);
       if (data.stages) {
         setRoadmapData(data);
         setCompletedItems(new Set());
@@ -205,39 +189,41 @@ export default function RoadmapPage() {
 
     // ── Palette ────────────────────────────────────────────────────────────
     const palette = {
-      spine:       dark ? '#60a5fa' : '#3b82f6',
-      stageFill:   dark ? '#92400e' : '#fbbf24',
-      stageStroke: dark ? '#b45309' : '#f59e0b',
-      stageText:   dark ? '#fef3c7' : '#1c1917',
-      itemFill:    dark ? '#1c1917' : '#fef9c3',
-      itemStroke:  dark ? '#44403c' : '#fde68a',
-      itemText:    dark ? '#e7e5e4' : '#1c1917',
-      doneFill:    dark ? '#14532d' : '#dcfce7',
-      doneStroke:  dark ? '#166534' : '#86efac',
-      doneText:    dark ? '#86efac' : '#15803d',
-      dot:         dark ? '#60a5fa' : '#3b82f6',
-      topicText:   '#f97316',
+      spine:        dark ? '#60a5fa' : '#3b82f6',
+      stageFill:    dark ? '#1c1a0e' : '#fffbeb',
+      stageStroke:  dark ? '#d97706' : '#f59e0b',
+      stageAccent:  dark ? '#d97706' : '#f59e0b',
+      stageText:    dark ? '#fde68a' : '#1c1917',
+      itemFill:     dark ? '#111110' : '#ffffff',
+      itemStroke:   dark ? '#44403c' : '#e5e7eb',
+      itemText:     dark ? '#e7e5e4' : '#1c1917',
+      itemSubText:  dark ? '#a8a29e' : '#78716c',
+      doneFill:     dark ? '#052e16' : '#f0fdf4',
+      doneStroke:   dark ? '#166534' : '#86efac',
+      doneText:     dark ? '#86efac' : '#15803d',
+      dot:          dark ? '#60a5fa' : '#3b82f6',
+      topicText:    '#f97316',
+      canvasBg:     dark ? '#0a0a0a' : '#f8fafc',
     };
 
     // ── Layout constants ───────────────────────────────────────────────────
-    const SVG_W      = 1200;
-    const CX         = SVG_W / 2;   // center x
-    const STAGE_W    = 210;
-    const STAGE_H    = 50;
-    const STAGE_R    = 8;
-    const ITEM_W     = 210;
-    const ITEM_H     = 40;
-    const ITEM_R     = 6;
-    const ITEM_GAP_X = 320;         // center of items from CX
-    const ITEM_SPACING = 52;        // vertical gap between items
-    const STAGE_PAD  = 80;          // extra padding between stage blocks
-    const TOP_PAD    = 90;
+    const SVG_W       = 1260;
+    const CX          = SVG_W / 2;
+    const STAGE_W     = 220;
+    const STAGE_H     = 52;
+    const STAGE_R     = 10;
+    const ITEM_W      = 220;
+    const ITEM_H      = 44;
+    const ITEM_R      = 8;
+    const ITEM_GAP_X  = 340;
+    const ITEM_SPACING = 58;
+    const STAGE_PAD   = 90;
+    const TOP_PAD     = 100;
 
     // ── Calculate stage Y positions ────────────────────────────────────────
     const stages = roadmapData.stages;
     const stageYs: number[] = [];
     let curY = TOP_PAD;
-
     stages.forEach((stage, i) => {
       const fan = ((stage.items.length - 1) / 2) * ITEM_SPACING;
       if (i === 0) {
@@ -254,32 +240,73 @@ export default function RoadmapPage() {
     // ── SVG setup ──────────────────────────────────────────────────────────
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
-    svg.attr('width', SVG_W).attr('height', SVG_H);
+    svg.attr('width', SVG_W).attr('height', SVG_H)
+       .style('background', palette.canvasBg)
+       .style('transition', 'background 0.3s');
+
+    // Defs: drop-shadow filters
+    const defs = svg.append('defs');
+    defs.append('filter').attr('id', 'shadow-stage')
+      .append('feDropShadow')
+      .attr('dx', 0).attr('dy', 3).attr('stdDeviation', 6)
+      .attr('flood-color', dark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.12)');
+    defs.append('filter').attr('id', 'shadow-item')
+      .append('feDropShadow')
+      .attr('dx', 0).attr('dy', 2).attr('stdDeviation', 4)
+      .attr('flood-color', dark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.08)');
 
     const g = svg.append('g');
 
+    // ── Zoom (wide range, smooth) ──────────────────────────────────────────
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.08, 4])
-      .on('zoom', (event) => g.attr('transform', event.transform));
-    svg.call(zoom as any);
+      .scaleExtent([0.04, 8])
+      .interpolate(d3.interpolateZoom)
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform);
+      });
+    zoomRef.current = zoom;
+    svg.call(zoom as any).on('dblclick.zoom', null);
 
     // ── Spine line ─────────────────────────────────────────────────────────
+    const spineTop = stageYs[0] - STAGE_H / 2 - 32;
+    const spineBot = stageYs[stageYs.length - 1] + STAGE_H / 2 + 32;
+
+    // Glow spine (thick, soft)
     g.append('line')
-      .attr('x1', CX).attr('y1', stageYs[0] - STAGE_H / 2 - 30)
-      .attr('x2', CX).attr('y2', stageYs[stageYs.length - 1] + STAGE_H / 2 + 30)
+      .attr('x1', CX).attr('y1', spineTop)
+      .attr('x2', CX).attr('y2', spineBot)
       .attr('stroke', palette.spine)
-      .attr('stroke-width', 2)
-      .attr('stroke-dasharray', '5,4')
-      .attr('opacity', 0.55);
+      .attr('stroke-width', 6)
+      .attr('opacity', 0.07);
+
+    // Main spine
+    g.append('line')
+      .attr('x1', CX).attr('y1', spineTop)
+      .attr('x2', CX).attr('y2', spineBot)
+      .attr('stroke', palette.spine)
+      .attr('stroke-width', 1.5)
+      .attr('stroke-dasharray', '6,4')
+      .attr('opacity', 0.45);
 
     // ── Topic title ────────────────────────────────────────────────────────
-    g.append('text')
-      .attr('x', CX).attr('y', stageYs[0] - STAGE_H / 2 - 44)
+    const titleY = spineTop - 16;
+    // Pill background
+    const titleG = g.append('g').attr('transform', `translate(${CX},${titleY})`);
+    titleG.append('rect')
+      .attr('x', -110).attr('y', -16)
+      .attr('width', 220).attr('height', 32)
+      .attr('rx', 16)
+      .attr('fill', dark ? 'rgba(249,115,22,0.15)' : 'rgba(249,115,22,0.10)')
+      .attr('stroke', 'rgba(249,115,22,0.35)')
+      .attr('stroke-width', 1)
+      .attr('stroke-dasharray', '5,3');
+    titleG.append('text')
       .attr('text-anchor', 'middle')
-      .attr('font-size', '18px').attr('font-weight', '700')
-      .attr('letter-spacing', '0.5')
+      .attr('dominant-baseline', 'middle')
+      .attr('font-size', '14px').attr('font-weight', '700')
+      .attr('letter-spacing', '0.8')
       .attr('fill', palette.topicText)
-      .text(roadmapData.topic);
+      .text(roadmapData.topic.length > 26 ? roadmapData.topic.substring(0, 24) + '…' : roadmapData.topic);
 
     // ── SVG text-wrap helper ───────────────────────────────────────────────
     function svgWrapText(
@@ -294,7 +321,6 @@ export default function RoadmapPage() {
       let lineNum = 0;
       el.text('');
       let tspan = el.append('tspan').attr('x', 0).attr('dy', '0em');
-
       for (const word of words) {
         line.push(word);
         tspan.text(line.join(' '));
@@ -305,8 +331,7 @@ export default function RoadmapPage() {
           line = [word];
           lineNum++;
           if (lineNum >= maxLines) {
-            // truncate last line
-            let t = tspan.text();
+            const t = tspan.text();
             if (t.length > 24) tspan.text(t.substring(0, 22) + '…');
             break;
           }
@@ -318,16 +343,30 @@ export default function RoadmapPage() {
 
     // ── Render each stage ─────────────────────────────────────────────────
     stages.forEach((stage, si) => {
-      const stageY = stageYs[si];
-      const side   = si % 2 === 0 ? 1 : -1;   // +1 = items right, -1 = items left
-      const itemCX = CX + side * ITEM_GAP_X;
-      const stageEdgeX  = CX + side * STAGE_W / 2;
-      const itemEdgeX   = itemCX - side * ITEM_W / 2;
+      const stageY      = stageYs[si];
+      const side        = si % 2 === 0 ? 1 : -1;
+      const itemCX      = CX + side * ITEM_GAP_X;
+      const stageEdgeX  = CX + side * (STAGE_W / 2);
+      const itemEdgeX   = itemCX - side * (ITEM_W / 2);
 
-      // ── Stage node ───────────────────────────────────────────────────
+      // Section label above stage group
+      g.append('text')
+        .attr('x', CX)
+        .attr('y', stageY - STAGE_H / 2 - 10)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '10px')
+        .attr('font-weight', '500')
+        .attr('letter-spacing', '1.5')
+        .attr('fill', palette.spine)
+        .attr('opacity', 0.5)
+        .attr('text-transform', 'uppercase')
+        .text(`STAGE ${si + 1}`);
+
+      // ── Stage node ───────────────────────────────────────────────────────
       const stageG = g.append('g')
         .attr('transform', `translate(${CX},${stageY})`)
-        .style('cursor', 'pointer');
+        .style('cursor', 'pointer')
+        .style('transition', 'transform 0.2s');
 
       stageG.append('rect')
         .attr('x', -STAGE_W / 2).attr('y', -STAGE_H / 2)
@@ -335,10 +374,19 @@ export default function RoadmapPage() {
         .attr('rx', STAGE_R)
         .attr('fill', palette.stageFill)
         .attr('stroke', palette.stageStroke)
-        .attr('stroke-width', 1.5)
-        .attr('filter', 'drop-shadow(0 2px 6px rgba(0,0,0,0.18))');
+        .attr('stroke-width', 1.8)
+        .attr('stroke-dasharray', '7,3')
+        .attr('filter', 'url(#shadow-stage)');
 
-      // Stage label — multi-line
+      // Left accent bar
+      stageG.append('rect')
+        .attr('x', -STAGE_W / 2).attr('y', -STAGE_H / 2)
+        .attr('width', 5).attr('height', STAGE_H)
+        .attr('rx', STAGE_R)
+        .attr('fill', palette.stageAccent)
+        .attr('opacity', 0.9);
+
+      // Stage label
       const stageTxt = stageG.append('text')
         .attr('text-anchor', 'middle')
         .attr('dominant-baseline', 'middle')
@@ -348,13 +396,13 @@ export default function RoadmapPage() {
 
       const stageWords = stage.title.split(/\s+/);
       let stageLine: string[] = [];
-      let stageLines: string[] = [];
+      const stageLines: string[] = [];
       const stageTmpSpan = stageTxt.append('tspan').attr('x', 0).attr('dy', '0em');
       for (const w of stageWords) {
         stageLine.push(w);
         stageTmpSpan.text(stageLine.join(' '));
         const sn = stageTmpSpan.node() as SVGTSpanElement | null;
-        if (sn && sn.getComputedTextLength() > STAGE_W - 24 && stageLine.length > 1) {
+        if (sn && sn.getComputedTextLength() > STAGE_W - 28 && stageLine.length > 1) {
           stageLine.pop();
           stageLines.push(stageLine.join(' '));
           stageLine = [w];
@@ -367,23 +415,42 @@ export default function RoadmapPage() {
       const stageOffsetY = -((stageLines.length - 1) * stageLH) / 2;
       stageLines.forEach((l, li) => {
         stageTxt.append('tspan')
-          .attr('x', 0)
+          .attr('x', 4)
           .attr('dy', li === 0 ? `${stageOffsetY}em` : `${stageLH}em`)
           .text(l);
       });
 
-      stageG.on('click', () => {
-        setSelectedNode({ name: stage.title, type: 'stage', description: stage.description, stageIndex: si });
-        setShowDetails(true);
-        setShowChatbot(true);
-      });
+      // Hover
+      stageG
+        .on('mouseenter', function() {
+          d3.select(this).raise()
+            .select('rect')
+            .transition().duration(150)
+            .attr('stroke-width', 2.5)
+            .attr('filter', `drop-shadow(0 4px 14px ${dark ? 'rgba(217,119,6,0.45)' : 'rgba(245,158,11,0.4)'}`);
+        })
+        .on('mouseleave', function() {
+          d3.select(this)
+            .select('rect')
+            .transition().duration(150)
+            .attr('stroke-width', 1.8)
+            .attr('filter', 'url(#shadow-stage)');
+        })
+        .on('click', () => {
+          setSelectedNode({ name: stage.title, type: 'stage', description: stage.description, stageIndex: si });
+          setShowDetails(true);
+          setShowChatbot(true);
+          setAutoMessage({ text: `Tell me about "${stage.title}" in the context of ${roadmapData?.topic ?? 'this topic'}.`, nodeTitle: stage.title });
+        });
 
-      // ── Items ─────────────────────────────────────────────────────────
+      // ── Items ─────────────────────────────────────────────────────────────
       stage.items.forEach((item, ii) => {
         const offsetY = (ii - (stage.items.length - 1) / 2) * ITEM_SPACING;
         const itemY   = stageY + offsetY;
         const nodeId  = `${si}-${ii}`;
         const done    = completedItems.has(nodeId);
+
+        const diffColor = '#6366f1'; // indigo accent (no difficulty in API)
 
         // Bezier connector
         const midX = (stageEdgeX + itemEdgeX) / 2;
@@ -393,38 +460,20 @@ export default function RoadmapPage() {
           .attr('stroke', palette.spine)
           .attr('stroke-width', 1.5)
           .attr('stroke-dasharray', '4,3')
-          .attr('opacity', 0.55);
+          .attr('opacity', 0.4);
 
-        // Dot at stage edge
-        g.append('circle')
-          .attr('cx', stageEdgeX).attr('cy', stageY)
-          .attr('r', 3)
-          .attr('fill', palette.dot)
-          .attr('opacity', 0.8);
+        // End-point dots
+        g.append('circle').attr('cx', stageEdgeX).attr('cy', stageY)
+          .attr('r', 3.5).attr('fill', palette.spine).attr('opacity', 0.6);
+        g.append('circle').attr('cx', itemEdgeX).attr('cy', itemY)
+          .attr('r', 3.5).attr('fill', palette.spine).attr('opacity', 0.6);
 
-        // Dot at item edge
-        g.append('circle')
-          .attr('cx', itemEdgeX).attr('cy', itemY)
-          .attr('r', 3)
-          .attr('fill', palette.dot)
-          .attr('opacity', 0.8);
-
-        // Item node
+        // Item group
         const itemG = g.append('g')
           .attr('transform', `translate(${itemCX},${itemY})`)
           .style('cursor', 'pointer');
 
-        itemG.on('click', () => {
-          const nodeData: D3NodeData = {
-            name: item.name, type: 'item', description: item.description,
-            difficulty: item.difficulty, id: nodeId, stageIndex: si, itemIndex: ii,
-          };
-          setSelectedNode(nodeData);
-          setShowDetails(true);
-          setShowChatbot(true);
-          toggleCompletion(nodeId);
-        });
-
+        // Main rect — dashed border
         itemG.append('rect')
           .attr('x', -ITEM_W / 2).attr('y', -ITEM_H / 2)
           .attr('width', ITEM_W).attr('height', ITEM_H)
@@ -432,49 +481,86 @@ export default function RoadmapPage() {
           .attr('fill', done ? palette.doneFill : palette.itemFill)
           .attr('stroke', done ? palette.doneStroke : palette.itemStroke)
           .attr('stroke-width', 1.5)
-          .attr('filter', 'drop-shadow(0 1px 4px rgba(0,0,0,0.10))');
+          .attr('stroke-dasharray', '6,3')
+          .attr('filter', 'url(#shadow-item)');
 
-        // Done badge
+        // Left difficulty accent strip
+        itemG.append('rect')
+          .attr('x', -ITEM_W / 2).attr('y', -ITEM_H / 2)
+          .attr('width', 4).attr('height', ITEM_H)
+          .attr('rx', ITEM_R)
+          .attr('fill', done ? '#22c55e' : diffColor)
+          .attr('opacity', 0.85);
+
+        // Check icon for done
         if (done) {
           itemG.append('text')
-            .attr('x', -ITEM_W / 2 + 11).attr('y', 1)
+            .attr('x', -ITEM_W / 2 + 14).attr('y', 1)
             .attr('dominant-baseline', 'middle')
-            .attr('font-size', '10px')
+            .attr('font-size', '11px')
             .attr('fill', palette.doneText)
             .text('✓');
         }
 
+        // Item name
         const itemTxt = itemG.append('text')
           .attr('text-anchor', 'middle')
           .attr('dominant-baseline', 'middle')
-          .attr('font-size', '11px')
-          .attr('font-weight', '500')
+          .attr('font-size', '11px').attr('font-weight', '500')
           .attr('fill', done ? palette.doneText : palette.itemText)
           .attr('pointer-events', 'none');
+        svgWrapText(itemTxt as any, item.name, ITEM_W - (done ? 44 : 28), 1.15, 2);
 
-        svgWrapText(itemTxt as any, item.name, ITEM_W - (done ? 32 : 20), 1.15, 2);
-
-        // Difficulty dot
-        const diffColor =
-          item.difficulty === 'Easy' ? '#22c55e' :
-          item.difficulty === 'Hard' ? '#ef4444' : '#f59e0b';
+        // Difficulty dot (right edge)
         itemG.append('circle')
-          .attr('cx', ITEM_W / 2 - 10).attr('cy', 0)
-          .attr('r', 4)
+          .attr('cx', ITEM_W / 2 - 11).attr('cy', 0)
+          .attr('r', 4.5)
           .attr('fill', diffColor)
-          .attr('opacity', 0.8);
+          .attr('opacity', done ? 0.4 : 0.85);
+
+        // Hover
+        itemG
+          .on('mouseenter', function() {
+            d3.select(this).raise();
+            d3.select(this).select('rect')
+              .transition().duration(130)
+              .attr('stroke-width', 2.2)
+              .attr('filter', `drop-shadow(0 3px 12px ${dark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.18)'}`);
+          })
+          .on('mouseleave', function() {
+            d3.select(this).select('rect')
+              .transition().duration(130)
+              .attr('stroke-width', 1.5)
+              .attr('filter', 'url(#shadow-item)');
+          })
+          .on('click', () => {
+            const nodeData: D3NodeData = {
+              name: item.name, type: 'item', description: item.description,
+              id: nodeId, stageIndex: si, itemIndex: ii,
+            };
+            setSelectedNode(nodeData);
+            setShowDetails(true);
+            setShowChatbot(true);
+            setAutoMessage({ text: `Explain "${item.name}" in detail.`, nodeTitle: item.name });
+            toggleCompletion(nodeId);
+          });
       });
     });
 
-    // ── Auto-fit ───────────────────────────────────────────────────────────
+    // ── Entrance fade-in ───────────────────────────────────────────────────
+    g.attr('opacity', 0);
+    g.transition().duration(500).ease(d3.easeCubicOut).attr('opacity', 1);
+
+    // ── Auto-fit (smooth) ─────────────────────────────────────────────────
     const containerEl = svgRef.current!.parentElement!;
     const cW = containerEl.clientWidth  || 800;
     const cH = containerEl.clientHeight || 600;
     const bounds = (g.node() as SVGGElement).getBBox();
-    const scale  = Math.min(cW / (bounds.width + 80), cH / (bounds.height + 80)) * 0.9;
+    const scale  = Math.min(cW / (bounds.width + 100), cH / (bounds.height + 100)) * 0.88;
     const tx = cW / 2 - (bounds.x + bounds.width  / 2) * scale;
     const ty = cH / 2 - (bounds.y + bounds.height / 2) * scale;
-    svg.call(
+
+    svg.transition().duration(650).ease(d3.easeCubicInOut).call(
       zoom.transform as any,
       d3.zoomIdentity.translate(tx, ty).scale(scale),
     );
@@ -490,12 +576,11 @@ export default function RoadmapPage() {
     let list = chatHistory;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      list = list.filter((t) => t.title?.toLowerCase().includes(q) || t.roadmap?.topic?.toLowerCase().includes(q));
+      list = list.filter((t) => t.topic?.toLowerCase().includes(q));
     }
     return [...list].sort((a, b) => {
-      if (sortBy === 'date') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      if (sortBy === 'progress') return (b.progress?.overall_progress_percentage ?? 0) - (a.progress?.overall_progress_percentage ?? 0);
-      return (a.title || '').localeCompare(b.title || '');
+      if (sortBy === 'date') return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
+      return (a.topic || '').localeCompare(b.topic || '');
     });
   }, [chatHistory, searchQuery, sortBy]);
 
@@ -587,7 +672,6 @@ export default function RoadmapPage() {
                 className="w-full text-xs bg-muted border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="date">Newest first</option>
-                <option value="progress">By progress</option>
                 <option value="title">By title</option>
               </select>
             </div>
@@ -602,25 +686,22 @@ export default function RoadmapPage() {
                 </p>
               ) : (
                 filteredHistory.map((thread) => {
-                  const pct = thread.progress?.overall_progress_percentage ?? 0;
-                  const isActive = thread.thread_id === threadId;
+                  const isActive = thread.id === roadmapId;
+                  const stageCount = thread.stages?.length ?? 0;
+                  const itemCount = thread.stages?.reduce((t, s) => t + s.items.length, 0) ?? 0;
                   return (
                     <div
-                      key={thread.thread_id}
+                      key={thread.id}
                       onClick={() => loadThread(thread)}
                       className={`rounded-lg border p-3 cursor-pointer transition-colors ${
                         isActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/50'
                       }`}
                     >
                       <p className={`text-xs font-medium truncate ${isActive ? 'text-primary' : 'text-foreground'}`}>
-                        {thread.title || 'Untitled'}
+                        {thread.topic || 'Untitled'}
                       </p>
                       <div className="flex items-center justify-between mt-1.5 text-xs text-muted-foreground">
-                        <span>{thread.progress?.completed_items ?? 0}/{thread.progress?.total_items ?? 0} items</span>
-                        <span className="text-primary font-medium">{pct.toFixed(0)}%</span>
-                      </div>
-                      <div className="mt-1.5 h-1 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                        <span>{stageCount} stages · {itemCount} items</span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1.5">
                         {thread.created_at ? new Date(thread.created_at).toLocaleDateString() : 'N/A'}
@@ -645,27 +726,11 @@ export default function RoadmapPage() {
             <div className="flex-1 overflow-y-auto px-4 py-4">
               <h4 className="text-base font-semibold mb-3 leading-tight">{selectedNode.name}</h4>
 
-              {selectedNode.type === 'item' && (
+              {selectedNode.type === 'item' && selectedNode.id && completedItems.has(selectedNode.id) && (
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {selectedNode.difficulty && (
-                    <Badge
-                      variant="outline"
-                      className={
-                        selectedNode.difficulty === 'Easy'
-                          ? 'border-green-500/40 text-green-600 bg-green-50 dark:bg-green-950/40'
-                          : selectedNode.difficulty === 'Medium'
-                          ? 'border-yellow-500/40 text-yellow-600 bg-yellow-50 dark:bg-yellow-950/40'
-                          : 'border-red-500/40 text-red-600 bg-red-50 dark:bg-red-950/40'
-                      }
-                    >
-                      {selectedNode.difficulty}
-                    </Badge>
-                  )}
-                  {selectedNode.id && completedItems.has(selectedNode.id) && (
-                    <Badge variant="outline" className="border-green-500/40 text-green-600 bg-green-50 dark:bg-green-950/40">
-                      ✓ Completed
-                    </Badge>
-                  )}
+                  <Badge variant="outline" className="border-green-500/40 text-green-600 bg-green-50 dark:bg-green-950/40">
+                    ✓ Completed
+                  </Badge>
                 </div>
               )}
 
@@ -693,8 +758,51 @@ export default function RoadmapPage() {
           {roadmapData ? (
             <>
               <svg ref={svgRef} className="w-full h-full" style={{ userSelect: 'none' }} />
-              <div className="absolute top-3 right-3 px-3 py-2 bg-card/90 backdrop-blur-sm border border-border rounded-lg text-xs text-muted-foreground">
-                Click a node to see details — or drag/scroll to navigate
+
+              {/* Zoom controls */}
+              <div className="absolute bottom-4 right-4 flex flex-col gap-1 z-10">
+                <button
+                  onClick={() => {
+                    if (!svgRef.current || !zoomRef.current) return;
+                    d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy as any, 1.4);
+                  }}
+                  className="w-8 h-8 rounded-lg border border-border bg-card/90 backdrop-blur-sm text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all flex items-center justify-center text-base font-bold shadow-sm"
+                  title="Zoom in"
+                >+</button>
+                <button
+                  onClick={() => {
+                    if (!svgRef.current || !zoomRef.current) return;
+                    d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy as any, 0.7);
+                  }}
+                  className="w-8 h-8 rounded-lg border border-border bg-card/90 backdrop-blur-sm text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all flex items-center justify-center text-base font-bold shadow-sm"
+                  title="Zoom out"
+                >−</button>
+                <button
+                  onClick={() => {
+                    if (!svgRef.current || !zoomRef.current || !roadmapData) return;
+                    const svg = d3.select(svgRef.current);
+                    const g = svg.select<SVGGElement>('g');
+                    const containerEl = svgRef.current.parentElement!;
+                    const cW = containerEl.clientWidth || 800;
+                    const cH = containerEl.clientHeight || 600;
+                    const bounds = (g.node() as SVGGElement).getBBox();
+                    const scale = Math.min(cW / (bounds.width + 100), cH / (bounds.height + 100)) * 0.88;
+                    const tx = cW / 2 - (bounds.x + bounds.width / 2) * scale;
+                    const ty = cH / 2 - (bounds.y + bounds.height / 2) * scale;
+                    svg.transition().duration(450).call(zoomRef.current.transform as any, d3.zoomIdentity.translate(tx, ty).scale(scale));
+                  }}
+                  className="w-8 h-8 rounded-lg border border-border bg-card/90 backdrop-blur-sm text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all flex items-center justify-center shadow-sm"
+                  title="Fit to screen"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M3 3h6M3 3v6M21 3h-6M21 3v6M3 21h6M3 21v-6M21 21h-6M21 21v-6"/>
+                  </svg>
+                </button>
+              </div>
+
+              {/* Hint */}
+              <div className="absolute top-3 right-3 px-2.5 py-1.5 bg-card/90 backdrop-blur-sm border border-border rounded-lg text-xs text-muted-foreground pointer-events-none">
+                Click node · Drag to pan · Scroll to zoom
               </div>
             </>
           ) : (
@@ -730,7 +838,11 @@ export default function RoadmapPage() {
               </Button>
             </div>
             <div className="flex-1 overflow-hidden min-h-0">
-              <RoadmapChatPanel topic={selectedNode.name} threadId={threadId} />
+              <RoadmapChatPanel
+                roadmapId={roadmapId}
+                autoMessage={autoMessage}
+                onAutoMessageSent={() => setAutoMessage(null)}
+              />
             </div>
           </div>
         )}
@@ -797,7 +909,7 @@ export default function RoadmapPage() {
                     setSelectedNode(null);
                     setCompletedItems(new Set());
                     setError(null);
-                    setThreadId(null);
+                    setRoadmapId(null);
                   }}
                 >
                   <RefreshCwIcon className="h-4 w-4" />
