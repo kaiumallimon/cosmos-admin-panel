@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
-import { ArrowLeftIcon, HistoryIcon, Loader2, Mic, MicOff, RefreshCwIcon, Send, X } from 'lucide-react';
+import { ArrowLeftIcon, HistoryIcon, Loader2, MessageSquare, Mic, MicOff, PlusCircle, RefreshCwIcon, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -76,6 +76,31 @@ export default function RoadmapPage() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
+
+  // Chat panel resize
+  const [chatPanelWidth, setChatPanelWidth] = useState(384);
+  const chatDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  const onChatDragStart = useCallback((e: React.MouseEvent) => {
+    chatDragRef.current = { startX: e.clientX, startWidth: chatPanelWidth };
+    e.preventDefault();
+  }, [chatPanelWidth]);
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!chatDragRef.current) return;
+      const delta = chatDragRef.current.startX - e.clientX;
+      const next = Math.min(640, Math.max(280, chatDragRef.current.startWidth + delta));
+      setChatPanelWidth(next);
+    };
+    const onMouseUp = () => { chatDragRef.current = null; };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
 
   // Voice input
   const [isListening, setIsListening] = useState(false);
@@ -600,12 +625,12 @@ export default function RoadmapPage() {
           <span className="text-sm font-semibold">Learning Roadmap</span>
         </div>
 
-        {/* Progress bar (when roadmap loaded) */}
-        {roadmapData && (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          {/* Progress (only when roadmap loaded) */}
+          {roadmapData && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mr-1">
               <span>{completedCount}/{totalItems} completed</span>
-              <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="w-28 h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary rounded-full transition-all duration-500"
                   style={{ width: `${progressPct}%` }}
@@ -613,21 +638,46 @@ export default function RoadmapPage() {
               </div>
               <span className="font-medium text-primary">{progressPct}%</span>
             </div>
+          )}
+
+          {/* New Roadmap */}
+          {roadmapData && (
             <Button
               variant="ghost"
               size="sm"
               className="h-8 gap-1.5 text-xs"
-              onClick={() => setShowHistoryPanel((v) => !v)}
+              onClick={() => {
+                setRoadmapData(null);
+                setRoadmapId(null);
+                setQuery('');
+                setSelectedNode(null);
+                setCompletedItems(new Set());
+                setError(null);
+                setAutoMessage(null);
+                setTimeout(() => textareaRef.current?.focus(), 50);
+              }}
             >
-              <HistoryIcon className="h-3.5 w-3.5" />
-              History
+              <PlusCircle className="h-3.5 w-3.5" />
+              New
             </Button>
-          </div>
-        )}
+          )}
 
-        {!roadmapData && (
+          {/* AI Chat toggle */}
+          {roadmapId && (
+            <Button
+              variant={showChatbot ? 'default' : 'ghost'}
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setShowChatbot((v) => !v)}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              AI Chat
+            </Button>
+          )}
+
+          {/* History */}
           <Button
-            variant="ghost"
+            variant={showHistoryPanel ? 'default' : 'ghost'}
             size="sm"
             className="h-8 gap-1.5 text-xs"
             onClick={() => setShowHistoryPanel((v) => !v)}
@@ -635,7 +685,7 @@ export default function RoadmapPage() {
             <HistoryIcon className="h-3.5 w-3.5" />
             History
           </Button>
-        )}
+        </div>
       </div>
 
       {/* Body */}
@@ -828,12 +878,27 @@ export default function RoadmapPage() {
           )}
         </div>
 
-        {/* Chatbot Panel */}
-        {selectedNode && showChatbot && (
-          <div className="w-96 shrink-0 flex flex-col bg-card border border-border rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
-              <h3 className="text-sm font-semibold">COSMOS AI</h3>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowChatbot(false)}>
+        {/* Chatbot Panel — resizable via drag handle on left edge */}
+        {showChatbot && (
+          <div
+            className="shrink-0 flex flex-col bg-card border border-border rounded-xl overflow-hidden relative select-none"
+            style={{ width: chatPanelWidth }}
+          >
+            {/* ─ Drag handle ─ */}
+            <div
+              className="absolute left-0 top-0 bottom-0 w-1.5 z-20 cursor-col-resize group"
+              onMouseDown={onChatDragStart}
+            >
+              <div className="absolute inset-y-0 left-0 w-1 rounded-l-xl bg-transparent group-hover:bg-primary/30 transition-colors" />
+              <div className="absolute top-1/2 -translate-y-1/2 left-0 w-1 h-10 rounded-full bg-border group-hover:bg-primary/60 transition-colors" />
+            </div>
+
+            <div className="pl-2 pr-3 py-3 border-b border-border flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <MessageSquare className="h-3.5 w-3.5 text-primary shrink-0" />
+                <h3 className="text-sm font-semibold truncate">COSMOS AI</h3>
+              </div>
+              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setShowChatbot(false)}>
                 <X className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -845,6 +910,18 @@ export default function RoadmapPage() {
               />
             </div>
           </div>
+        )}
+
+        {/* Floating open-chat button when panel is closed and a roadmap is loaded */}
+        {!showChatbot && roadmapId && (
+          <button
+            onClick={() => setShowChatbot(true)}
+            className="shrink-0 self-center flex flex-col items-center gap-1 w-8 py-3 rounded-xl border border-border bg-card hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all text-muted-foreground shadow-sm"
+            title="Open AI Chat"
+          >
+            <MessageSquare className="h-4 w-4" />
+            <span className="text-[9px] font-medium [writing-mode:vertical-rl] rotate-180 leading-none">AI Chat</span>
+          </button>
         )}
       </div>
 
@@ -859,18 +936,6 @@ export default function RoadmapPage() {
 
           <form onSubmit={handleSubmit}>
             <div className="relative flex items-end gap-2 rounded-2xl border bg-background p-2">
-              {/* History toggle */}
-              <Button
-                type="button"
-                variant={showHistoryPanel ? 'default' : 'ghost'}
-                size="icon"
-                className="shrink-0 rounded-xl h-9 w-9 self-end"
-                onClick={() => setShowHistoryPanel((v) => !v)}
-                title="Toggle history"
-              >
-                <HistoryIcon className="h-4 w-4" />
-              </Button>
-
               {/* Textarea */}
               <Textarea
                 ref={textareaRef}
@@ -897,12 +962,12 @@ export default function RoadmapPage() {
                 {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </button>
 
-              {/* Reset */}
+              {/* Reset — keep as subtle icon in the bar */}
               {roadmapData && (
                 <button
                   type="button"
-                  className="shrink-0 self-end mb-1 p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
-                  title="Reset roadmap"
+                  className="shrink-0 self-end mb-1 p-1.5 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
+                  title="Clear and start new"
                   onClick={() => {
                     setRoadmapData(null);
                     setQuery('');
@@ -910,6 +975,7 @@ export default function RoadmapPage() {
                     setCompletedItems(new Set());
                     setError(null);
                     setRoadmapId(null);
+                    setAutoMessage(null);
                   }}
                 >
                   <RefreshCwIcon className="h-4 w-4" />
