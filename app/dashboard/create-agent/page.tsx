@@ -11,6 +11,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { generateAgentName, validateAgentName } from "@/lib/agent-utils";
 import { Save, CheckCircle, Loader2, Wand2, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -115,153 +123,165 @@ export default function CreateAgentPage() {
           onMobileMenuToggle={toggleMobileMenu}
         />
 
-        <div className="flex-1 p-4 sm:p-6 max-w-3xl">
-          <div className="space-y-6">
+        <div className="p-6">
+          {/* Breadcrumb */}
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard/agents">Agents</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Create Agent</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
 
-            {/* Info banner */}
-            <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
-              <CardContent className="p-4">
-                <div className="flex gap-3">
-                  <CheckCircle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
-                  <div className="text-sm text-orange-800 dark:text-orange-300 space-y-1">
-                    <p className="font-medium">Note: Server restart required</p>
-                    <p>After creating an agent, a server restart is required for the orchestrator to pick it up. The agent name is immutable after creation.</p>
-                  </div>
+          {/* Info banner */}
+          <Card className="mt-6 border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
+            <CardContent className="p-4">
+              <div className="flex gap-3">
+                <CheckCircle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+                <div className="text-sm text-orange-800 dark:text-orange-300 space-y-1">
+                  <p className="font-medium">Note: Server restart required</p>
+                  <p>After creating an agent, a server restart is required for the orchestrator to pick it up. The agent name is immutable after creation.</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Form */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  Agent Configuration
-                </CardTitle>
-                <CardDescription>Define the core properties of the new agent.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          {/* Form card — full width, matching add-question style */}
+          <Card className="p-6 mt-6 border md:border-none shadow-sm md:shadow-none hover:shadow-sm hover:md:shadow-none transition-all duration-300">
+            <p className="text-sm text-muted-foreground mb-6">Fill up the following fields</p>
 
-                {/* Display Name + Agent Name */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="display_name">Display Name *</Label>
-                    <Input
-                      id="display_name"
-                      placeholder="e.g., Professor Mathematics"
-                      value={formData.display_name}
-                      onChange={(e) => {
-                        updateFormData('display_name', e.target.value);
-                        if (!formData.name) {
-                          updateFormData('name', generateAgentName(e.target.value));
-                        }
-                      }}
-                    />
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="name">Agent Name (ID) *</Label>
-                      <Badge variant="secondary" className="text-xs gap-1">
-                        <Lock className="h-3 w-3" /> Immutable after creation
-                      </Badge>
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        id="name"
-                        placeholder="e.g., math_agent"
-                        value={formData.name}
-                        onChange={(e) => updateFormData('name', e.target.value)}
-                        className={formData.name && !validateAgentName(formData.name).isValid ? 'border-destructive' : ''}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          updateFormData('name', generateAgentName(formData.display_name));
-                          toast.success('Name generated');
-                        }}
-                        disabled={!formData.display_name}
-                        title="Generate from display name"
-                      >
-                        <Wand2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    {formData.name && !validateAgentName(formData.name).isValid && (
-                      <p className="text-xs text-destructive">{validateAgentName(formData.name).error}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground">Lowercase, alphanumeric + underscores, starts with a letter.</p>
-                  </div>
+              {/* Display Name */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="display_name">Display Name *</Label>
+                <Input
+                  id="display_name"
+                  placeholder="e.g., Professor Mathematics"
+                  value={formData.display_name}
+                  onChange={(e) => {
+                    updateFormData('display_name', e.target.value);
+                    if (!formData.name) {
+                      updateFormData('name', generateAgentName(e.target.value));
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Agent Name */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="name">Agent Name (ID) *</Label>
+                  <Badge variant="secondary" className="text-xs gap-1">
+                    <Lock className="h-3 w-3" /> Immutable
+                  </Badge>
                 </div>
-
-                {/* Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description * <span className="text-xs text-muted-foreground">(min 10 chars)</span></Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe what this agent specializes in and which topics it covers..."
-                    value={formData.description}
-                    onChange={(e) => updateFormData('description', e.target.value)}
-                    rows={3}
+                <div className="flex gap-2">
+                  <Input
+                    id="name"
+                    placeholder="e.g., math_agent"
+                    value={formData.name}
+                    onChange={(e) => updateFormData('name', e.target.value)}
+                    className={formData.name && !validateAgentName(formData.name).isValid ? 'border-destructive' : ''}
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      updateFormData('name', generateAgentName(formData.display_name));
+                      toast.success('Name generated');
+                    }}
+                    disabled={!formData.display_name}
+                    title="Generate from display name"
+                  >
+                    <Wand2 className="h-4 w-4" />
+                  </Button>
                 </div>
+                {formData.name && !validateAgentName(formData.name).isValid && (
+                  <p className="text-xs text-destructive">{validateAgentName(formData.name).error}</p>
+                )}
+                <p className="text-xs text-muted-foreground">Lowercase, alphanumeric + underscores, starts with a letter.</p>
+              </div>
 
-                {/* System Prompt */}
-                <div className="space-y-2">
-                  <Label htmlFor="system_prompt">System Prompt * <span className="text-xs text-muted-foreground">(min 20 chars)</span></Label>
-                  <Textarea
-                    id="system_prompt"
-                    placeholder="You are a specialized expert in... Injected at the start of every conversation."
-                    value={formData.system_prompt}
-                    onChange={(e) => updateFormData('system_prompt', e.target.value)}
-                    rows={7}
-                  />
-                </div>
+              {/* Description — full width */}
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <Label htmlFor="description">
+                  Description * <span className="text-xs text-muted-foreground">(min 10 chars)</span>
+                </Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe what this agent specializes in and which topics it covers..."
+                  value={formData.description}
+                  onChange={(e) => updateFormData('description', e.target.value)}
+                  rows={3}
+                />
+              </div>
 
-                {/* Question Processing Prompt */}
-                <div className="space-y-2">
-                  <Label htmlFor="question_processing_prompt">
-                    Question Processing Prompt
-                    <span className="ml-1 text-xs text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Textarea
-                    id="question_processing_prompt"
-                    placeholder="Secondary prompt used when processing exam questions..."
-                    value={formData.question_processing_prompt}
-                    onChange={(e) => updateFormData('question_processing_prompt', e.target.value)}
-                    rows={4}
-                  />
-                </div>
+              {/* System Prompt — full width */}
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <Label htmlFor="system_prompt">
+                  System Prompt * <span className="text-xs text-muted-foreground">(min 20 chars)</span>
+                </Label>
+                <Textarea
+                  id="system_prompt"
+                  placeholder="You are a specialized expert in... Injected at the start of every conversation."
+                  value={formData.system_prompt}
+                  onChange={(e) => updateFormData('system_prompt', e.target.value)}
+                  rows={7}
+                />
+              </div>
 
-                {/* Active switch */}
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={(checked) => updateFormData('is_active', checked)}
-                  />
-                  <Label htmlFor="is_active">Agent is active (loaded by orchestrator on startup)</Label>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Question Processing Prompt — full width */}
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <Label htmlFor="question_processing_prompt">
+                  Question Processing Prompt{' '}
+                  <span className="text-xs text-muted-foreground">(optional)</span>
+                </Label>
+                <Textarea
+                  id="question_processing_prompt"
+                  placeholder="Secondary prompt used when processing exam questions..."
+                  value={formData.question_processing_prompt}
+                  onChange={(e) => updateFormData('question_processing_prompt', e.target.value)}
+                  rows={4}
+                />
+              </div>
 
-            {/* Actions */}
-            <div className="flex gap-3 justify-between">
-              <Button
-                variant="outline"
-                onClick={() => { setFormData(defaultForm); toast.success('Form cleared'); }}
-                className="text-destructive hover:text-destructive"
-              >
-                Clear Form
-              </Button>
-              <Button onClick={handleSubmit} disabled={isLoading} loading={isLoading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                {isLoading ? 'Creating Agent...' : 'Create Agent'}
-              </Button>
+              {/* Active switch — full width */}
+              <div className="flex items-center gap-3 md:col-span-2">
+                <Switch
+                  id="is_active"
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => updateFormData('is_active', checked)}
+                />
+                <Label htmlFor="is_active">Agent is active (loaded by orchestrator on startup)</Label>
+              </div>
+
+              {/* Actions — full width */}
+              <div className="flex gap-3 justify-between md:col-span-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => { setFormData(defaultForm); toast.success('Form cleared'); }}
+                  className="text-destructive hover:text-destructive"
+                >
+                  Clear Form
+                </Button>
+                <Button onClick={handleSubmit} disabled={isLoading} loading={isLoading}>
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                  {isLoading ? 'Creating Agent...' : 'Create Agent'}
+                </Button>
+              </div>
+
             </div>
-
-          </div>
+          </Card>
         </div>
       </div>
     </ProtectedRoute>
