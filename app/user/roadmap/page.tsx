@@ -62,18 +62,38 @@ export default function RoadmapPage() {
     router.replace(`/user/roadmap?${params.toString()}`, { scroll: false });
   }, [router, searchParams]);
 
-  // ── Load roadmap by ID ─────────────────────────────────────────────────────
+  // ── Load roadmap by ID (also hydrates progress) ────────────────────────────
   const loadRoadmapById = useCallback(async (id: string) => {
     try {
-      const res = await fetch(`/api/roadmap/${id}`);
+      const [res, progressRes] = await Promise.all([
+        fetch(`/api/roadmap/${id}`),
+        fetch(`/api/roadmap/${id}/progress`),
+      ]);
       if (!res.ok) return;
       const data = await res.json();
       if (data?.stages) {
         setRoadmapData(data);
         setRoadmapId(data.id ?? id);
         setQuery(data.topic ?? '');
-        setCompletedItems(new Set());
         setSelectedNode(null);
+
+        // Rebuild completedItems from server progress
+        if (progressRes.ok) {
+          const progressData = await progressRes.json();
+          const completedSet = new Set<string>();
+          progressData?.stages?.forEach((pStage: any) => {
+            const si = data.stages.findIndex((s: any) => s.title === pStage.stage_title);
+            if (si === -1) return;
+            pStage.items?.forEach((pItem: any) => {
+              if (!pItem.completed) return;
+              const ii = data.stages[si].items.findIndex((it: any) => it.name === pItem.item_name);
+              if (ii !== -1) completedSet.add(`${si}-${ii}`);
+            });
+          });
+          setCompletedItems(completedSet);
+        } else {
+          setCompletedItems(new Set());
+        }
       }
     } catch { /* silently ignore */ }
   }, []);
@@ -115,11 +135,31 @@ export default function RoadmapPage() {
   // ── D3 rendering (delegated to hook) ──────────────────────────────────────
   const toggleCompletion = useCallback((id: string) => {
     setCompletedItems((prev) => {
+      const wasCompleted = prev.has(id);
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      wasCompleted ? next.delete(id) : next.add(id);
+
+      // Persist to server (fire-and-forget)
+      if (roadmapId && roadmapData) {
+        const [si, ii] = id.split('-').map(Number);
+        const stage = roadmapData.stages[si];
+        const item  = stage?.items[ii];
+        if (stage && item) {
+          fetch(`/api/roadmap/${roadmapId}/progress`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              stage_title: stage.title,
+              item_name:   item.name,
+              completed:   !wasCompleted,
+            }),
+          }).catch(() => { /* silently ignore */ });
+        }
+      }
+
       return next;
     });
-  }, []);
+  }, [roadmapId, roadmapData]);
 
   useRoadmapD3({
     roadmapData, completedItems, toggleCompletion, resolvedTheme,
@@ -206,6 +246,17 @@ export default function RoadmapPage() {
     pushRoadmapId(null);
   };
 
+  // ── Delete roadmap ──────────────────────────────────────────────────────────
+  const deleteRoadmap = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/roadmap/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setChatHistory((prev) => prev.filter((r) => r.id !== id));
+        if (roadmapId === id) handleReset();
+      }
+    } catch { /* ignore */ }
+  }, [roadmapId]);
+
   // ── Derived stats ──────────────────────────────────────────────────────────
   const totalItems     = roadmapData?.stages?.reduce((t, s) => t + s.items.length, 0) ?? 0;
   const completedCount = completedItems.size;
@@ -228,6 +279,8 @@ export default function RoadmapPage() {
   const historyContentProps = {
     filteredHistory, loadingHistory, searchQuery, setSearchQuery,
     sortBy, setSortBy, roadmapId, loadThread,
+    onDeleteRoadmap: deleteRoadmap,
+    onNew: () => { handleReset(); setTimeout(() => textareaRef.current?.focus(), 50); },
   };
 
   // ─────────────────────────────────────────────────────────────────────────

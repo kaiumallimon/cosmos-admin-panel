@@ -24,23 +24,36 @@ export function RoadmapTopNav({
   roadmapId, onNew,
 }: RoadmapTopNavProps) {
   return (
-    <div className="shrink-0 border-b border-border/60 bg-card/80 backdrop-blur-sm px-4 h-12 flex items-center justify-between z-20">
-      <div className="flex items-center gap-3">
+    <div className="shrink-0 border-b border-border/60 bg-card/80 backdrop-blur-sm px-3 sm:px-4 h-12 flex items-center justify-between z-20">
+
+      {/* Left – back + title */}
+      <div className="flex items-center gap-2 min-w-0">
         <Link href="/user">
-          <Button variant="ghost" size="sm" className="h-8 gap-1.5">
+          <Button variant="ghost" size="sm" className="h-8 gap-1 shrink-0">
             <ArrowLeftIcon className="h-3.5 w-3.5" />
-            <span className="text-xs">Dashboard</span>
+            <span className="hidden sm:inline text-xs">Dashboard</span>
           </Button>
         </Link>
-        <div className="h-4 w-px bg-border" />
-        <span className="text-sm font-semibold">Learning Roadmap</span>
+        <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
+        <span className="text-sm font-semibold truncate max-w-[120px] sm:max-w-none">
+          <span className="hidden sm:inline">Learning Roadmap</span>
+          <span className="sm:hidden">Roadmap</span>
+        </span>
+
+        {/* Compact progress badge (mobile only, when roadmap loaded) */}
+        {roadmapData && (
+          <span className="sm:hidden ml-1 text-xs font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0">
+            {progressPct}%
+          </span>
+        )}
       </div>
 
-      <div className="flex items-center gap-2">
-        {/* Progress bar */}
+      {/* Right – actions */}
+      <div className="flex items-center gap-1 shrink-0">
+        {/* Progress bar (desktop only) */}
         {roadmapData && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mr-1">
-            <span>{completedCount}/{totalItems} completed</span>
+          <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground mr-2">
+            <span>{completedCount}/{totalItems}</span>
             <div className="w-28 h-1.5 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all duration-500"
@@ -68,7 +81,7 @@ export function RoadmapTopNav({
             onClick={() => setShowChatbot((v) => !v)}
           >
             <MessageSquare className="h-3.5 w-3.5" />
-            AI Chat
+            <span className="hidden sm:inline">AI Chat</span>
           </Button>
         )}
 
@@ -80,7 +93,7 @@ export function RoadmapTopNav({
           onClick={() => setShowHistoryPanel((v) => !v)}
         >
           <HistoryIcon className="h-3.5 w-3.5" />
-          History
+          <span className="hidden sm:inline">History</span>
         </Button>
       </div>
     </div>
