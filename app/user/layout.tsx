@@ -22,6 +22,7 @@ import {
   UserIcon,
   ChevronDownIcon,
   MenuIcon,
+  BarChart2Icon,
 } from "lucide-react";
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
@@ -141,6 +142,24 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           >
             <MapIcon className="h-4 w-4 shrink-0" />
             <span className="font-medium truncate">Roadmap</span>
+          </Link>
+        </div>
+
+        <div className="my-4 h-px bg-border" />
+
+        <div>
+          <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
+            Performance
+          </div>
+          <Link
+            href="/user/performance"
+            onClick={onLinkClick}
+            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
+              pathname.startsWith('/user/performance') ? 'bg-primary text-primary-foreground font-semibold' : ''
+            }`}
+          >
+            <BarChart2Icon className="h-4 w-4 shrink-0" />
+            <span className="font-medium truncate">Performance Tracker</span>
           </Link>
         </div>
       </div>
