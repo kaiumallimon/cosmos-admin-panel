@@ -12,6 +12,7 @@ export function middleware(req: NextRequest) {
                         pathname.startsWith('/_next/static') ||
                         pathname.startsWith('/_next/image') ||
                         pathname === '/login' ||
+                        pathname === '/register' ||
                         pathname === '/reset-password' ||
                         pathname === "/favicon.ico";
 
