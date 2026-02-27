@@ -18,7 +18,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { ArrowRight, Bot, FileText, X, Copy, Check, Loader2 } from "lucide-react";
+import { ArrowRight, Bot, FileText, X, Copy, Check, Loader2, BookOpen, Brain, ScrollText, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -115,16 +115,16 @@ const markdownComponents = {
     return <p className="my-2" {...props}>{children}</p>;
   },
   h1({ children, ...props }: any) {
-    return <h1 className="text-2xl font-bold mt-6 mb-3 tracking-tight" {...props}>{children}</h1>;
+    return <h1 className="text-2xl font-bold mt-6 mb-3 tracking-tight text-primary" {...props}>{children}</h1>;
   },
   h2({ children, ...props }: any) {
-    return <h2 className="text-xl font-semibold mt-5 mb-2.5 tracking-tight" {...props}>{children}</h2>;
+    return <h2 className="text-xl font-semibold mt-5 mb-2.5 tracking-tight text-primary" {...props}>{children}</h2>;
   },
   h3({ children, ...props }: any) {
-    return <h3 className="text-base font-semibold mt-4 mb-2 tracking-tight" {...props}>{children}</h3>;
+    return <h3 className="text-base font-semibold mt-4 mb-2 tracking-tight text-primary" {...props}>{children}</h3>;
   },
   h4({ children, ...props }: any) {
-    return <h4 className="text-sm font-semibold mt-3 mb-1.5" {...props}>{children}</h4>;
+    return <h4 className="text-sm font-semibold mt-3 mb-1.5 text-primary" {...props}>{children}</h4>;
   },
   hr() {
     return (
@@ -405,17 +405,19 @@ export default function ThreadChatPage() {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
                 {[
-                  { emoji: "📚", title: "Past Exam Questions", prompt: "Show me past exam questions for DBMS" },
-                  { emoji: "🧠", title: "Explain a Concept", prompt: "Explain normalization in databases" },
-                  { emoji: "📝", title: "Topic Overview", prompt: "What are the key topics in Operating Systems?" },
-                  { emoji: "🔍", title: "Find Questions", prompt: "Find questions about SQL joins from past exams" },
+                  { icon: BookOpen, title: "Past Exam Questions", prompt: "Show me past exam questions for DBMS" },
+                  { icon: Brain, title: "Explain a Concept", prompt: "Explain normalization in databases" },
+                  { icon: ScrollText, title: "Topic Overview", prompt: "What are the key topics in Operating Systems?" },
+                  { icon: Search, title: "Find Questions", prompt: "Find questions about SQL joins from past exams" },
                 ].map((s) => (
                   <button
                     key={s.title}
                     onClick={() => setInputValue(s.prompt)}
                     className="flex items-start gap-3 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors text-left group"
                   >
-                    <span className="text-xl leading-none mt-0.5 shrink-0">{s.emoji}</span>
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <s.icon className="h-4 w-4 text-primary" />
+                    </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium group-hover:text-primary transition-colors">{s.title}</p>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">{s.prompt}</p>
