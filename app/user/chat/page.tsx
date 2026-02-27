@@ -53,6 +53,18 @@ const markdownComponents = {
   p({ children, ...props }: any) {
     return <p className="my-2" {...props}>{children}</p>;
   },
+  h1({ children, ...props }: any) {
+    return <h1 className="text-2xl font-bold mt-6 mb-3 tracking-tight" {...props}>{children}</h1>;
+  },
+  h2({ children, ...props }: any) {
+    return <h2 className="text-xl font-semibold mt-5 mb-2.5 tracking-tight" {...props}>{children}</h2>;
+  },
+  h3({ children, ...props }: any) {
+    return <h3 className="text-base font-semibold mt-4 mb-2 tracking-tight" {...props}>{children}</h3>;
+  },
+  h4({ children, ...props }: any) {
+    return <h4 className="text-sm font-semibold mt-3 mb-1.5" {...props}>{children}</h4>;
+  },
   hr() {
     return (
       <div className="my-6 flex items-center gap-3">
