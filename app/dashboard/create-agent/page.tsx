@@ -20,7 +20,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { generateAgentName, validateAgentName } from "@/lib/agent-utils";
-import { Save, CheckCircle, Loader2, Wand2, Lock } from "lucide-react";
+import { Save, CheckCircle, Loader2, Wand2, Lock, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from 'next/navigation';
 
@@ -142,13 +142,13 @@ export default function CreateAgentPage() {
           </Breadcrumb>
 
           {/* Info banner */}
-          <Card className="mt-6 border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
+          <Card className="mt-6  border-orange-200 border-dashed bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
             <CardContent className="p-4">
               <div className="flex gap-3">
-                <CheckCircle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
-                <div className="text-sm text-orange-800 dark:text-orange-300 space-y-1">
-                  <p className="font-medium">Note: Server restart required</p>
-                  <p>After creating an agent, a server restart is required for the orchestrator to pick it up. The agent name is immutable after creation.</p>
+                <Info className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+                <div className="text-orange-800 dark:text-orange-300 space-y-1">
+                  <p className="font-bold text-sm md:text-base">Note: Server restart required</p>
+                  <p className='text-xs md:text-sm'>After creating an agent, a server restart is required for the orchestrator to pick it up. The agent name is immutable after creation.</p>
                 </div>
               </div>
             </CardContent>
