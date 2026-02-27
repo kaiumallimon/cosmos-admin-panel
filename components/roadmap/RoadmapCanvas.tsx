@@ -57,9 +57,9 @@ export function RoadmapCanvas({
       >
         <svg ref={svgRef} className="w-full h-full" style={{ userSelect: 'none' }} />
 
-        {/* Zoom controls */}
+        {/* Zoom controls — centered-right on mobile, bottom-right on desktop */}
         <motion.div
-          className="absolute bottom-4 right-4 flex flex-col gap-1 z-10"
+          className="absolute right-3 top-1/2 -translate-y-1/2 md:top-auto md:translate-y-0 md:bottom-4 md:right-4 flex flex-col gap-1 z-10"
           initial={{ opacity: 0, x: 12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3, duration: 0.3 }}
@@ -170,102 +170,104 @@ function EmptyState({ userName, onTopicSelect }: { userName?: string; onTopicSel
 
   return (
     <motion.div
-      className="flex flex-col items-center justify-center h-full px-6 py-12"
+      className="flex flex-col items-center justify-center h-full w-full px-4 py-8 sm:px-8 sm:py-12 overflow-y-auto"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
-      {/* Glow orb */}
-      <motion.div
-        className="relative mb-8"
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.1, duration: 0.5, ease: 'easeOut' }}
-      >
-        <div className="absolute inset-0 rounded-full bg-primary/20 blur-3xl scale-150" />
-        <div className="relative h-20 w-20 rounded-2xl bg-linear-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center shadow-xl">
-          <Map className="h-10 w-10 text-primary" strokeWidth={1.3} />
-        </div>
+      <div className="w-full max-w-sm flex flex-col items-center">
+        {/* Glow orb */}
         <motion.div
-          className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center"
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
+          className="relative mb-6"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1, duration: 0.5, ease: 'easeOut' }}
         >
-          <Sparkles className="h-2.5 w-2.5 text-primary" />
+          <div className="absolute inset-0 rounded-full bg-primary/20 blur-3xl scale-150" />
+          <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-linear-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center shadow-xl">
+            <Map className="h-8 w-8 sm:h-10 sm:w-10 text-primary" strokeWidth={1.3} />
+          </div>
+          <motion.div
+            className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center"
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Sparkles className="h-2.5 w-2.5 text-primary" />
+          </motion.div>
         </motion.div>
-      </motion.div>
 
-      <motion.h2
-        className="text-xl font-bold mb-2 text-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
-        {userName ? `Hey, ${userName.split(' ')[0]}! 👋` : 'Learning Roadmap'}
-      </motion.h2>
-      <motion.p
-        className="text-sm text-muted-foreground text-center max-w-xs mb-8 leading-relaxed"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.25 }}
-      >
-        Generate a personalized AI-powered learning roadmap for any topic. Click on nodes to explore and track your progress.
-      </motion.p>
+        <motion.h2
+          className="text-lg sm:text-xl font-bold mb-2 text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          {userName ? `Hey, ${userName.split(' ')[0]}! 👋` : 'Learning Roadmap'}
+        </motion.h2>
+        <motion.p
+          className="text-xs sm:text-sm text-muted-foreground text-center max-w-[260px] sm:max-w-xs mb-6 sm:mb-8 leading-relaxed"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25 }}
+        >
+          Generate a personalized AI-powered learning roadmap for any topic. Click on nodes to explore and track your progress.
+        </motion.p>
 
-      {/* Feature grid */}
-      <motion.div
-        className="grid grid-cols-3 gap-3 max-w-xs w-full mb-8"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        {FEATURES.map(({ icon: Icon, label, color, bg }, idx) => (
-          <motion.div
-            key={label}
-            className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border p-3 text-center ${bg}`}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.35 + idx * 0.07 }}
-          >
-            <Icon className={`h-5 w-5 ${color}`} />
-            <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
-          </motion.div>
-        ))}
-      </motion.div>
-
-      {/* Quick-start chips */}
-      <motion.p
-        className="text-xs text-muted-foreground mb-3"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
-        Try one of these:
-      </motion.p>
-      <motion.div
-        className="flex flex-wrap justify-center gap-2 max-w-sm"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.55 }}
-      >
-        {QUICK_TOPICS.map((topic, idx) => (
-          <motion.div
-            key={topic}
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.57 + idx * 0.06 }}
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full h-auto px-3 py-1.5 text-xs text-muted-foreground hover:text-primary hover:border-primary/50"
-              onClick={() => onTopicSelect(topic)}
+        {/* Feature grid */}
+        <motion.div
+          className="grid grid-cols-3 gap-2 sm:gap-3 w-full mb-6 sm:mb-8"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          {FEATURES.map(({ icon: Icon, label, color, bg }, idx) => (
+            <motion.div
+              key={label}
+              className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2.5 sm:p-3 text-center ${bg}`}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.35 + idx * 0.07 }}
             >
-              {topic}
-            </Button>
-          </motion.div>
-        ))}
-      </motion.div>
+              <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${color}`} />
+              <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground leading-tight">{label}</span>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Quick-start chips */}
+        <motion.p
+          className="text-xs text-muted-foreground mb-2.5"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          Try one of these:
+        </motion.p>
+        <motion.div
+          className="flex flex-wrap justify-center gap-1.5 sm:gap-2 w-full"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55 }}
+        >
+          {QUICK_TOPICS.map((topic, idx) => (
+            <motion.div
+              key={topic}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.57 + idx * 0.06 }}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full h-auto px-3 py-1.5 text-xs text-muted-foreground hover:text-primary hover:border-primary/50"
+                onClick={() => onTopicSelect(topic)}
+              >
+                {topic}
+              </Button>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
     </motion.div>
   );
 }
