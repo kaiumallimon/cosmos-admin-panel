@@ -5,13 +5,13 @@ export function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
     // Allow public and static paths
-    const isPublicPath = pathname === '/' || 
-                        pathname.startsWith('/public') || 
-                        pathname.startsWith('/api/auth/') || 
+    const isPublicPath = pathname === '/' ||
+                        pathname.startsWith('/public') ||
+                        pathname.startsWith('/api/auth/') ||
                         pathname.startsWith('/api/reset-password') ||
-                        pathname.startsWith('/_next/static') || 
+                        pathname.startsWith('/_next/static') ||
                         pathname.startsWith('/_next/image') ||
-                        pathname === '/login' || 
+                        pathname === '/login' ||
                         pathname === '/reset-password' ||
                         pathname === "/favicon.ico";
 
@@ -22,7 +22,7 @@ export function middleware(req: NextRequest) {
 
     // Get access token from cookies or Authorization header
     let accessToken = req.cookies.get("access_token")?.value || req.cookies.get("token")?.value;
-    
+
     // For API routes, also check Authorization header
     if (!accessToken && isApiRoute) {
         const authHeader = req.headers.get('Authorization');
@@ -45,33 +45,41 @@ export function middleware(req: NextRequest) {
         }
     }
 
-    // For now, we'll just check if the token exists
-    // The actual JWT verification will happen in the API routes
-    // to avoid issues with crypto in edge runtime
+    // Validate JWT format and decode payload to enforce role-based access.
+    // Full signature verification happens in individual API routes (requires Node crypto).
     try {
-        // Simple validation - check if it looks like a JWT
         const parts = accessToken.split('.');
         if (parts.length !== 3) {
             throw new Error('Invalid token format');
         }
-        
+
+        // Decode payload (base64url → JSON) — no crypto needed
+        const payloadJson = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+        const payload = JSON.parse(payloadJson) as { role?: string };
+        const role = payload.role ?? 'user';
+
+        // Block non-admin users from /admin routes
+        if (pathname.startsWith('/admin') && role !== 'admin') {
+            return NextResponse.redirect(new URL('/user', req.url));
+        }
+
+        // Block admin users from /user routes (send them to their panel)
+        if (pathname.startsWith('/user') && role === 'admin') {
+            return NextResponse.redirect(new URL('/admin', req.url));
+        }
+
         return NextResponse.next();
     } catch (error) {
         if (isApiRoute) {
-            // Return JSON error for API routes
             return NextResponse.json(
                 { error: 'Invalid or expired token' },
                 { status: 401 }
             );
         } else {
-            // Token is invalid, redirect to login for browser requests
             const loginUrl = new URL('/', req.url);
             const response = NextResponse.redirect(loginUrl);
-            
-            // Clear invalid tokens
             response.cookies.set('access_token', '', { maxAge: 0, path: '/' });
             response.cookies.set('token', '', { maxAge: 0, path: '/' });
-            
             return response;
         }
     }

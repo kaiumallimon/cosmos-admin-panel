@@ -29,7 +29,7 @@ export default function NotFound() {
 
       <p className="text-muted-foreground max-w-md" >Seems like the page you're looking for, does not exists in this website.</p>
       <Button className="mt-5" onClick={()=>{
-        router.push('/dashboard');
+        router.push('/admin');
       }}>Go Back to Dashboard</Button>
     </div>
   );

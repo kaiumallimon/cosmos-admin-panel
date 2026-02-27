@@ -343,7 +343,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         <Button
           className="w-full justify-start gap-2 bg-red-500 hover:bg-red-500/75 text-white"
           onClick={() => {
-            router.push('/dashboard');
+            router.push('/admin');
           }}
         >
           <ArrowLeftIcon className="h-4 w-4" />

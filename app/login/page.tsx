@@ -24,7 +24,7 @@ export default function LoginPage() {
   useEffect(() => {
     try {
       if (isAuthenticated()) {
-        router.push('/dashboard');
+        router.push('/admin');
       } else if (isUserAuthenticated()) {
         router.push('/user');
       }
@@ -49,7 +49,7 @@ export default function LoginPage() {
       if (result.success) {
         toast.success("Login successful!");
         if (result.role === 'admin') {
-          router.push('/dashboard');
+          router.push('/admin');
         } else {
           router.push('/user');
         }

@@ -400,84 +400,84 @@ function getNavigationResults(): SearchResult[] {
       title: 'Dashboard',
       description: 'View system overview, analytics, and recent activity',
       type: 'navigation',
-      url: '/dashboard'
+      url: '/admin'
     },
     {
       id: 'nav-users',
       title: 'Manage Users',
       description: 'View, create, edit, and manage user accounts',
       type: 'navigation',
-      url: '/dashboard/users'
+      url: '/admin/users'
     },
     {
       id: 'nav-questions',
       title: 'Question Bank',
       description: 'Browse and manage exam questions',
       type: 'navigation',
-      url: '/dashboard/questions'
+      url: '/admin/questions'
     },
     {
       id: 'nav-add-question',
       title: 'Add Questions',
       description: 'Add new questions to the question bank',
       type: 'navigation',
-      url: '/dashboard/add-question'
+      url: '/admin/add-question'
     },
     {
       id: 'nav-courses',
       title: 'Course Management',
       description: 'Manage courses, departments, and academic programs',
       type: 'navigation',
-      url: '/dashboard/courses'
+      url: '/admin/courses'
     },
     {
       id: 'nav-agents',
       title: 'AI Agents',
       description: 'Configure and manage AI agents',
       type: 'navigation',
-      url: '/dashboard/agents'
+      url: '/admin/agents'
     },
     {
       id: 'nav-create-agent',
       title: 'Create Agent',
       description: 'Create new AI agents with custom configurations',
       type: 'navigation',
-      url: '/dashboard/create-agent'
+      url: '/admin/create-agent'
     },
     {
       id: 'nav-upload',
       title: 'Upload Content',
       description: 'Bulk upload questions and course materials',
       type: 'navigation',
-      url: '/dashboard/upload'
+      url: '/admin/upload'
     },
     {
       id: 'nav-system-logs',
       title: 'System Logs',
       description: 'View system activity logs and admin actions',
       type: 'navigation',
-      url: '/dashboard/system-logs'
+      url: '/admin/system-logs'
     },
     {
       id: 'nav-update-embeddings',
       title: 'Update Embeddings',
       description: 'Refresh search index and vector embeddings',
       type: 'navigation',
-      url: '/dashboard/update-embeddings'
+      url: '/admin/update-embeddings'
     },
     {
       id: 'nav-search',
       title: 'Global Search',
       description: 'Search across users, questions, courses, and more',
       type: 'navigation',
-      url: '/dashboard/search'
+      url: '/admin/search'
     },
     {
       id: 'nav-help',
       title: 'Help & Documentation',
       description: 'Get help and view system documentation',
       type: 'navigation',
-      url: '/dashboard/help'
+      url: '/admin/help'
     }
   ];
 }

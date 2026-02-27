@@ -28,7 +28,7 @@ export default function Home() {
         // Check authentication status and redirect
         if (currentUser.isAuthenticated && currentUser.role === 'admin') {
           console.log('User is authenticated admin, redirecting to dashboard');
-          router.push('/dashboard');
+          router.push('/admin');
         } else {
           console.log('User is not authenticated or not admin, redirecting to login');
           router.push('/login');

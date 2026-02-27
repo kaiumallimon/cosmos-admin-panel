@@ -23,6 +23,12 @@ import {
   ChevronDownIcon,
   MenuIcon,
   BarChart2Icon,
+  BookOpenIcon,
+  ClipboardListIcon,
+  AlertTriangleIcon,
+  BrainCircuitIcon,
+  SparklesIcon,
+  TrendingUpIcon,
 } from "lucide-react";
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
@@ -151,16 +157,30 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
             Performance
           </div>
-          <Link
-            href="/user/performance"
-            onClick={onLinkClick}
-            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
-              pathname.startsWith('/user/performance') ? 'bg-primary text-primary-foreground font-semibold' : ''
-            }`}
-          >
-            <BarChart2Icon className="h-4 w-4 shrink-0" />
-            <span className="font-medium truncate">Performance Tracker</span>
-          </Link>
+
+          {([
+            { href: '/user/performance', label: 'Overview', icon: TrendingUpIcon, exact: true },
+            { href: '/user/performance/courses', label: 'My Courses', icon: BookOpenIcon, exact: false },
+            { href: '/user/performance/assessments', label: 'Assessments', icon: ClipboardListIcon, exact: false },
+            { href: '/user/performance/weaknesses', label: 'Weaknesses', icon: AlertTriangleIcon, exact: false },
+            { href: '/user/performance/quiz', label: 'Quiz', icon: BrainCircuitIcon, exact: false },
+            { href: '/user/performance/predict', label: 'Grade Prediction', icon: SparklesIcon, exact: false },
+          ] as const).map(({ href, label, icon: Icon, exact }) => {
+            const isActive = exact ? pathname === href : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={onLinkClick}
+                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md px-2 py-1.5 mt-0.5 text-sm transition-all duration-200 hover:bg-primary/30 ${
+                  isActive ? 'bg-primary text-primary-foreground font-semibold' : ''
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="font-medium truncate">{label}</span>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
