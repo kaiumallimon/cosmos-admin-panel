@@ -119,6 +119,14 @@ export default function LoginPage() {
                   disabled={loading}
                 />
               </div>
+              <div className="flex justify-end">
+                <Link
+                  href="/reset-password"
+                  className="text-xs text-muted-foreground hover:text-orange-500 transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <Button
                 type="submit"
                 disabled={loading}
@@ -126,6 +134,13 @@ export default function LoginPage() {
               >
                 {loading ? "Signing in..." : "Sign in"}
               </Button>
+
+              <p className="text-center text-xs text-muted-foreground pt-1">
+                Don&apos;t have an account?{' '}
+                <Link href="/register" className="text-orange-500 hover:text-orange-600 font-medium">
+                  Sign up
+                </Link>
+              </p>
             </form>
           </div>
         </div>

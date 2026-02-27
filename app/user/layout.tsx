@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import {
   HomeIcon,
   MessageCircleIcon,
+  MapIcon,
   SunIcon,
   MoonIcon,
   MonitorIcon,
@@ -72,6 +73,15 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     );
   }
 
+  // Roadmap gets full-screen layout too
+  if (pathname.startsWith('/user/roadmap')) {
+    return (
+      <div data-user-panel className="fixed inset-0">
+        {children}
+      </div>
+    );
+  }
+
   const SidebarContentComponent = ({ onLinkClick }: { onLinkClick?: () => void }) => (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Header */}
@@ -120,6 +130,17 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           >
             <MessageCircleIcon className="h-4 w-4 shrink-0" />
             <span className="font-medium truncate">Chat</span>
+          </Link>
+
+          <Link
+            href="/user/roadmap"
+            onClick={onLinkClick}
+            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 mt-1 text-sm transition-all duration-200 hover:bg-primary/30 ${
+              pathname.startsWith('/user/roadmap') ? 'bg-primary text-primary-foreground font-semibold' : ''
+            }`}
+          >
+            <MapIcon className="h-4 w-4 shrink-0" />
+            <span className="font-medium truncate">Roadmap</span>
           </Link>
         </div>
       </div>
