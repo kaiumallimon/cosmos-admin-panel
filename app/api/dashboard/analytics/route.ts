@@ -82,6 +82,14 @@ interface DashboardAnalytics {
   };
 }
 
+/** Convert a MongoDB $group aggregation result to a plain Record<string, number> */
+function toRecord(agg: Array<{ _id: string | null; count: number }>): Record<string, number> {
+  return agg.reduce((acc, item) => {
+    acc[item._id ?? 'Unknown'] = item.count;
+    return acc;
+  }, {} as Record<string, number>);
+}
+
 async function getDashboardAnalytics(req: AuthenticatedRequest): Promise<NextResponse> {
   try {
     const [
@@ -106,141 +114,140 @@ async function getDashboardAnalytics(req: AuthenticatedRequest): Promise<NextRes
       getCollection<SystemLog>('system_logs')
     ]);
 
-    // Date calculations for recent data
+    // Fix: create independent date objects so mutations don't bleed into each other
     const now = new Date();
-    const lastMonth = new Date(now.setMonth(now.getMonth() - 1));
-    const lastWeek = new Date(now.setDate(now.getDate() - 7));
+    const lastMonthDate = new Date(now);
+    lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+    const lastWeekDate = new Date(now);
+    lastWeekDate.setDate(lastWeekDate.getDate() - 7);
 
-    // Overview Statistics
-    const [totalUsers, totalCourses, totalQuestions, totalAgents] = await Promise.all([
+    // Run ALL queries in parallel with MongoDB aggregation pipelines instead of
+    // fetching full collections into memory.
+    const [
+      totalUsers,
+      totalCourses,
+      totalQuestions,
+      totalAgents,
+
+      roleDistributionAgg,
+      departmentDistributionAgg,
+      studentsByBatchAgg,
+      genderDistributionAgg,
+      cgpaAgg,
+      recentRegistrations,
+
+      courseDeptAgg,
+      creditAgg,
+      recentCourses,
+
+      subjectAgg,
+      examTypeAgg,
+      semesterAgg,
+      imageQuestionsCount,
+      questionsWithDescCount,
+      totalMarksAgg,
+      recentQuestions,
+
+      activeAgents,
+      inactiveAgents,
+      toolsCount,
+      configurationsCount,
+      examplesCount,
+
+      recentLogs,
+      totalOperations,
+      successfulOps,
+      operationsLastWeek,
+      operationsByTypeAgg,
+      adminActivityAgg,
+      hourlyActivityAgg,
+    ] = await Promise.all([
+      // --- Overview counts ---
       accountsCollection.countDocuments(),
       coursesCollection.countDocuments(),
       questionsCollection.countDocuments(),
-      agentsCollection.countDocuments()
-    ]);
+      agentsCollection.countDocuments(),
 
-    // System logs analysis
-    const systemLogs = await systemLogsCollection
-      .find({})
-      .sort({ timestamp: -1 })
-      .limit(1000)
-      .toArray();
+      // --- User distributions ---
+      accountsCollection.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: '$role', count: { $sum: 1 } } },
+      ]).toArray(),
+      profilesCollection.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: { $ifNull: ['$department', 'Not Specified'] }, count: { $sum: 1 } } },
+      ]).toArray(),
+      profilesCollection.aggregate<{ _id: string; count: number }>([
+        { $match: { batch: { $exists: true, $ne: null } } },
+        { $group: { _id: '$batch', count: { $sum: 1 } } },
+      ]).toArray(),
+      profilesCollection.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: { $ifNull: ['$gender', 'Not Specified'] }, count: { $sum: 1 } } },
+      ]).toArray(),
+      profilesCollection.aggregate<{ _id: null; avg: number }>([
+        { $match: { cgpa: { $ne: null, $exists: true } } },
+        { $group: { _id: null, avg: { $avg: '$cgpa' } } },
+      ]).toArray(),
+      accountsCollection.countDocuments({ created_at: { $gte: lastMonthDate } }),
 
-    const recentLogs = systemLogs.slice(0, 10);
-    const totalOperations = systemLogs.length;
-    const successfulOps = systemLogs.filter(log => log.success).length;
-    const successRate = totalOperations > 0 ? Math.round((successfulOps / totalOperations) * 100) : 100;
+      // --- Course distributions ---
+      coursesCollection.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: '$department', count: { $sum: 1 } } },
+      ]).toArray(),
+      coursesCollection.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: { $toString: '$credit' }, count: { $sum: 1 } } },
+      ]).toArray(),
+      coursesCollection.countDocuments({ created_at: { $gte: lastMonthDate } }),
 
-    // User analytics
-    const allProfiles = await profilesCollection.find({}).toArray();
-    const allAccounts = await accountsCollection.find({}).toArray();
+      // --- Question distributions ---
+      questionsCollection.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: '$course_code', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+      ]).toArray(),
+      questionsCollection.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: '$exam_type', count: { $sum: 1 } } },
+      ]).toArray(),
+      questionsCollection.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: '$semester_term', count: { $sum: 1 } } },
+      ]).toArray(),
+      questionsCollection.countDocuments({ has_image: true }),
+      questionsCollection.countDocuments({ has_description: true }),
+      questionsCollection.aggregate<{ _id: null; total: number }>([
+        { $group: { _id: null, total: { $sum: '$marks' } } },
+      ]).toArray(),
+      questionsCollection.countDocuments({ created_at: { $gte: lastMonthDate } }),
 
-    const roleDistribution = allAccounts.reduce((acc, account) => {
-      acc[account.role] = (acc[account.role] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const departmentDistribution = allProfiles.reduce((acc, profile) => {
-      const dept = profile.department || 'Not Specified';
-      acc[dept] = (acc[dept] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const studentsByBatch = allProfiles.reduce((acc, profile) => {
-      if (profile.batch) {
-        acc[profile.batch] = (acc[profile.batch] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-
-    const genderDistribution = allProfiles.reduce((acc, profile) => {
-      const gender = profile.gender || 'Not Specified';
-      acc[gender] = (acc[gender] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const averageCGPA = allProfiles.length > 0 
-      ? allProfiles
-          .filter(p => p.cgpa !== null && p.cgpa !== undefined)
-          .reduce((sum, p) => sum + (p.cgpa || 0), 0) / allProfiles.filter(p => p.cgpa).length
-      : 0;
-
-    const recentRegistrations = await accountsCollection.countDocuments({
-      created_at: { $gte: lastMonth }
-    });
-
-    // Course analytics
-    const allCourses = await coursesCollection.find({}).toArray();
-    const courseDepartmentDist = allCourses.reduce((acc, course) => {
-      acc[course.department] = (acc[course.department] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const creditDistribution = allCourses.reduce((acc, course) => {
-      const credit = course.credit.toString();
-      acc[credit] = (acc[credit] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const recentCourses = await coursesCollection.countDocuments({
-      created_at: { $gte: lastMonth }
-    });
-
-    // Question analytics
-    const allQuestions = await questionsCollection.find({}).toArray();
-    
-    const subjectDistribution = allQuestions.reduce((acc, q) => {
-      acc[q.course_code] = (acc[q.course_code] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const examTypeDistribution = allQuestions.reduce((acc, q) => {
-      acc[q.exam_type] = (acc[q.exam_type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const semesterDistribution = allQuestions.reduce((acc, q) => {
-      acc[q.semester_term] = (acc[q.semester_term] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const imageQuestions = allQuestions.filter(q => q.has_image).length;
-    const questionsWithDescription = allQuestions.filter(q => q.has_description).length;
-    const totalMarks = allQuestions.reduce((sum, q) => sum + q.marks, 0);
-
-    const recentQuestions = await questionsCollection.countDocuments({
-      created_at: { $gte: lastMonth }
-    });
-
-    // Agent analytics
-    const [activeAgents, inactiveAgents, toolsCount, configurationsCount, examplesCount] = await Promise.all([
+      // --- Agent counts ---
       agentsCollection.countDocuments({ is_active: true }),
       agentsCollection.countDocuments({ is_active: false }),
       agentToolsCollection.countDocuments(),
       agentConfigsCollection.countDocuments(),
-      fewShotExamplesCollection.countDocuments()
+      fewShotExamplesCollection.countDocuments(),
+
+      // --- System logs (only fetch the 10 we actually display) ---
+      systemLogsCollection.find({}).sort({ timestamp: -1 }).limit(10).toArray(),
+      systemLogsCollection.countDocuments(),
+      systemLogsCollection.countDocuments({ success: true }),
+      systemLogsCollection.countDocuments({ timestamp: { $gte: lastWeekDate } }),
+      systemLogsCollection.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: '$method', count: { $sum: 1 } } },
+      ]).toArray(),
+      systemLogsCollection.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: '$admin_name', count: { $sum: 1 } } },
+      ]).toArray(),
+      systemLogsCollection.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: { $toString: { $hour: { $toDate: '$timestamp' } } }, count: { $sum: 1 } } },
+      ]).toArray(),
     ]);
 
-    // System analytics
-    const operationsByType = systemLogs.reduce((acc, log) => {
-      acc[log.method] = (acc[log.method] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const successRate = totalOperations > 0
+      ? Math.round((successfulOps / totalOperations) * 100)
+      : 100;
 
-    const adminActivity = systemLogs.reduce((acc, log) => {
-      acc[log.admin_name] = (acc[log.admin_name] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const averageCGPA = cgpaAgg.length > 0
+      ? Math.round((cgpaAgg[0].avg ?? 0) * 100) / 100
+      : 0;
 
-    const hourlyActivity = systemLogs.reduce((acc, log) => {
-      const hour = new Date(log.timestamp).getHours().toString();
-      acc[hour] = (acc[hour] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const operationsLastWeek = await systemLogsCollection.countDocuments({
-      timestamp: { $gte: lastWeek }
-    });
+    const totalMarks = totalMarksAgg.length > 0 ? (totalMarksAgg[0].total ?? 0) : 0;
 
     const analytics: DashboardAnalytics = {
       overview: {
@@ -249,55 +256,55 @@ async function getDashboardAnalytics(req: AuthenticatedRequest): Promise<NextRes
         totalQuestions,
         totalAgents,
         systemOperations: totalOperations,
-        successRate
+        successRate,
       },
       users: {
-        roleDistribution,
-        departmentDistribution,
+        roleDistribution: toRecord(roleDistributionAgg),
+        departmentDistribution: toRecord(departmentDistributionAgg),
         recentRegistrations,
-        averageCGPA: Math.round(averageCGPA * 100) / 100,
-        studentsByBatch,
-        genderDistribution
+        averageCGPA,
+        studentsByBatch: toRecord(studentsByBatchAgg),
+        genderDistribution: toRecord(genderDistributionAgg),
       },
       courses: {
-        departmentDistribution: courseDepartmentDist,
-        creditDistribution,
-        recentlyAdded: recentCourses
+        departmentDistribution: toRecord(courseDeptAgg),
+        creditDistribution: toRecord(creditAgg),
+        recentlyAdded: recentCourses,
       },
       questions: {
-        subjectDistribution,
-        examTypeDistribution,
-        semesterDistribution,
-        imageQuestions,
+        subjectDistribution: toRecord(subjectAgg),
+        examTypeDistribution: toRecord(examTypeAgg),
+        semesterDistribution: toRecord(semesterAgg),
+        imageQuestions: imageQuestionsCount,
         totalMarks,
-        questionsWithDescription
+        questionsWithDescription: questionsWithDescCount,
       },
       agents: {
         activeAgents,
         inactiveAgents,
         toolsCount,
         configurationsCount,
-        examplesCount
+        examplesCount,
       },
       system: {
         recentLogs,
         errorRate: 100 - successRate,
-        operationsByType,
-        adminActivity,
-        hourlyActivity
+        operationsByType: toRecord(operationsByTypeAgg),
+        adminActivity: toRecord(adminActivityAgg),
+        hourlyActivity: toRecord(hourlyActivityAgg),
       },
       growth: {
         usersLastMonth: recentRegistrations,
         questionsLastMonth: recentQuestions,
         coursesLastMonth: recentCourses,
-        operationsLastWeek
-      }
+        operationsLastWeek,
+      },
     };
 
-    return NextResponse.json({
-      success: true,
-      data: analytics
-    });
+    const response = NextResponse.json({ success: true, data: analytics });
+    // Cache for 60 s on the client; serve stale for up to 5 min while revalidating
+    response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=300');
+    return response;
 
   } catch (error: any) {
     console.error('Dashboard analytics error:', error);
