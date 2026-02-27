@@ -19,7 +19,6 @@ import {
   RefreshCwIcon,
   InfoIcon,
   AlertCircleIcon,
-  MapPinIcon,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -88,7 +87,6 @@ export default function RoutinesPage() {
   const [error, setError] = useState('');
   const [data, setData] = useState<RoutineData | null>(null);
   const [activeDay, setActiveDay] = useState('');
-  const [examTab, setExamTab] = useState<'upcoming' | 'past'>('upcoming');
 
   const handleFetch = async () => {
     if (!studentId.trim() || !password.trim()) {
@@ -131,83 +129,76 @@ export default function RoutinesPage() {
     return (
       <div className="flex flex-col h-full">
         <FrostedHeader title="Exam & Class Routines" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-md mx-auto space-y-4">
+        <div className="flex-1 overflow-y-auto">
 
-            {/* Privacy guarantee */}
-            <Card className="border border-green-500/30 bg-green-500/5">
-              <CardContent className="p-4 flex gap-3">
-                <ShieldCheckIcon className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-green-700 dark:text-green-400">Your password is never stored</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Your UCAM credentials are used only to fetch your routine in real-time. They are never logged, saved to a database, or retained after the request completes. This is a pull-and-display only feature.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Hero section */}
+          <div className="w-full border-b bg-muted/20 px-6 py-12 flex flex-col items-center text-center gap-4">
+            <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-[#007AFF]/10 border border-[#007AFF]/20 mb-1">
+              <CalendarDaysIcon className="h-7 w-7 text-[#007AFF]" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">UIU Exam &amp; Class Routine Finder</h1>
+              <p className="text-sm text-muted-foreground mt-1.5 max-w-lg">
+                Find your personalized exam schedule and class routine quickly. Login with your UCAM student ID and password — no data is ever stored or retained.
+              </p>
+            </div>
 
-            {/* SOSE-only notice */}
-            <Card className="border border-amber-500/30 bg-amber-500/5">
-              <CardContent className="p-4 flex gap-3">
-                <InfoIcon className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">SOSE students only (for now)</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Currently this feature supports UIU SOSE students. Support for additional schools will be added soon.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {/* SOSE badge */}
+            <div className="flex items-center gap-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 px-3 py-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+              <InfoIcon className="h-3.5 w-3.5 shrink-0" />
+              Only SOSE is supported (for now)
+            </div>
 
-            {/* Login form */}
-            <Card className="border shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <LockIcon className="h-4 w-4 text-[#007AFF]" />
-                  Sign in with UCAM
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Student ID</label>
-                  <Input
-                    placeholder="e.g. 011221291"
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">UCAM Password</label>
-                  <Input
-                    type="password"
-                    placeholder="Your UCAM portal password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
-                  />
-                </div>
-                {error && (
-                  <div className="flex items-center gap-2 text-sm text-destructive">
-                    <AlertCircleIcon className="h-4 w-4 shrink-0" />
-                    {error}
-                  </div>
-                )}
+            {/* Inline credential row */}
+            <div className="w-full max-w-xl mt-2 space-y-3">
+              <div className="flex flex-col sm:flex-row gap-2 w-full">
+                <Input
+                  placeholder="Student ID (e.g. 011221291)"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
+                  className="flex-1"
+                />
+                <Input
+                  type="password"
+                  placeholder="UCAM Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
+                  className="flex-1"
+                />
                 <Button
-                  className="w-full gap-2 bg-[#007AFF] hover:bg-[#007AFF]/90"
+                  className="gap-2 bg-[#007AFF] hover:bg-[#007AFF]/90 shrink-0"
                   disabled={loading}
                   onClick={handleFetch}
                 >
                   {loading
-                    ? <><RefreshCwIcon className="h-4 w-4 animate-spin" /> Fetching Routine…</>
-                    : <><LogInIcon className="h-4 w-4" /> Fetch My Routine</>
+                    ? <><RefreshCwIcon className="h-4 w-4 animate-spin" /> Loading…</>
+                    : <><LogInIcon className="h-4 w-4" /> Load</>
                   }
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+              {error && (
+                <div className="flex items-center justify-center gap-2 text-sm text-destructive">
+                  <AlertCircleIcon className="h-4 w-4 shrink-0" />
+                  {error}
+                </div>
+              )}
+            </div>
 
+            {/* Privacy strip */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+              <ShieldCheckIcon className="h-3.5 w-3.5 text-green-500 shrink-0" />
+              Your password is used only for this request and is never stored, logged, or retained.
+            </div>
           </div>
+
+          {/* Empty state hint */}
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground px-6">
+            <LockIcon className="h-10 w-10 opacity-15" />
+            <p className="text-sm">Enter your UCAM credentials above to load your routine and exam schedule.</p>
+          </div>
+
         </div>
       </div>
     );
@@ -219,9 +210,6 @@ export default function RoutinesPage() {
   const upcomingExams = exams
     .filter((e) => !isExamPast(e))
     .sort((a, b) => new Date(a.exam_date).getTime() - new Date(b.exam_date).getTime());
-  const pastExams = exams
-    .filter((e) => isExamPast(e))
-    .sort((a, b) => new Date(b.exam_date).getTime() - new Date(a.exam_date).getTime());
   const currentDayClasses = sortByTime(routine[activeDay] ?? []);
   const todayClasses = sortByTime(routine[TODAY_NAME] ?? []);
 
@@ -358,26 +346,10 @@ export default function RoutinesPage() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <GraduationCapIcon className="h-4 w-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Exam Schedule</h2>
-          </div>
-
-          <div className="flex gap-1 rounded-lg border p-1 w-fit mb-4">
-            <button
-              onClick={() => setExamTab('upcoming')}
-              className={`px-4 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                examTab === 'upcoming' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Upcoming {upcomingExams.length > 0 && `(${upcomingExams.length})`}
-            </button>
-            <button
-              onClick={() => setExamTab('past')}
-              className={`px-4 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                examTab === 'past' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Recent / Past {pastExams.length > 0 && `(${pastExams.length})`}
-            </button>
+            <h2 className="font-semibold text-sm">Upcoming Exam Schedule</h2>
+            {upcomingExams.length > 0 && (
+              <Badge variant="outline" className="text-xs ml-auto">{upcomingExams.length} exam{upcomingExams.length !== 1 ? 's' : ''}</Badge>
+            )}
           </div>
 
           <Card className="border shadow-sm">
@@ -394,27 +366,22 @@ export default function RoutinesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(examTab === 'upcoming' ? upcomingExams : pastExams).length === 0 ? (
+                    {upcomingExams.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="text-center text-xs text-muted-foreground py-8">
-                          No {examTab === 'upcoming' ? 'upcoming' : 'past'} exams
+                          No upcoming exams
                         </td>
                       </tr>
                     ) : (
-                      (examTab === 'upcoming' ? upcomingExams : pastExams).map((exam, i) => (
+                      upcomingExams.map((exam, i) => (
                         <tr
                           key={i}
-                          className={`border-b last:border-0 transition-colors ${
-                            examTab === 'past' ? 'opacity-55' : 'hover:bg-muted/30'
-                          }`}
+                          className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2 flex-wrap">
                               <Badge variant="outline" className="text-xs font-mono">{exam.course_code}</Badge>
                               <span className="text-xs text-muted-foreground">§{exam.section}</span>
-                              {examTab === 'past' && (
-                                <Badge variant="secondary" className="text-xs">Past</Badge>
-                              )}
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
