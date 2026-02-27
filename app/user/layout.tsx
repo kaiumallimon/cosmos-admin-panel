@@ -29,6 +29,8 @@ import {
   BrainCircuitIcon,
   SparklesIcon,
   TrendingUpIcon,
+  CalculatorIcon,
+  CalendarDaysIcon,
 } from "lucide-react";
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
@@ -113,9 +115,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           <Link
             href="/user"
             onClick={onLinkClick}
-            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
-              pathname === '/user' ? 'bg-primary text-primary-foreground font-semibold' : ''
-            }`}
+            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === '/user' ? 'bg-primary text-primary-foreground font-semibold' : ''
+              }`}
           >
             <HomeIcon className="h-4 w-4 shrink-0" />
             <span className="font-medium truncate">Dashboard</span>
@@ -131,9 +132,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           <Link
             href="/user/chat"
             onClick={onLinkClick}
-            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${
-              pathname.startsWith('/user/chat') ? 'bg-primary text-primary-foreground font-semibold' : ''
-            }`}
+            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/chat') ? 'bg-primary text-primary-foreground font-semibold' : ''
+              }`}
           >
             <MessageCircleIcon className="h-4 w-4 shrink-0" />
             <span className="font-medium truncate">Chat</span>
@@ -142,9 +142,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           <Link
             href="/user/roadmap"
             onClick={onLinkClick}
-            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 mt-1 text-sm transition-all duration-200 hover:bg-primary/30 ${
-              pathname.startsWith('/user/roadmap') ? 'bg-primary text-primary-foreground font-semibold' : ''
-            }`}
+            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 mt-1 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/roadmap') ? 'bg-primary text-primary-foreground font-semibold' : ''
+              }`}
           >
             <MapIcon className="h-4 w-4 shrink-0" />
             <span className="font-medium truncate">Roadmap</span>
@@ -172,9 +171,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 key={href}
                 href={href}
                 onClick={onLinkClick}
-                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md px-2 py-1.5 mt-0.5 text-sm transition-all duration-200 hover:bg-primary/30 ${
-                  isActive ? 'bg-primary text-primary-foreground font-semibold' : ''
-                }`}
+                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md px-2 py-1.5 mt-0.5 text-sm transition-all duration-200 hover:bg-primary/30 ${isActive ? 'bg-primary text-primary-foreground font-semibold' : ''
+                  }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="font-medium truncate">{label}</span>
@@ -182,7 +180,35 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             );
           })}
         </div>
+
+                <div className="my-4 h-px bg-border" />
+
+        <div>
+          <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
+            Tools
+          </div>
+          <Link
+            href="/user/cgpa"
+            onClick={onLinkClick}
+            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md px-2 py-1.5 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/cgpa') ? 'bg-primary text-primary-foreground font-semibold' : ''
+              }`}
+          >
+            <CalculatorIcon className="h-4 w-4 shrink-0" />
+            <span className="font-medium truncate">CGPA Calculator</span>
+          </Link>
+          <Link
+            href="/user/routines"
+            onClick={onLinkClick}
+            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md px-2 py-1.5 mt-0.5 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/routines') ? 'bg-primary text-primary-foreground font-semibold' : ''
+              }`}
+          >
+            <CalendarDaysIcon className="h-4 w-4 shrink-0" />
+            <span className="font-medium truncate">Exam & Class Routines</span>
+          </Link>
+        </div>
       </div>
+
+
 
       {/* Footer */}
       <div className="border-t border-border/40 p-4 shrink-0 overflow-hidden">
@@ -193,25 +219,22 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             {mounted && (
               <div className="flex items-center rounded-md border p-1 shrink-0">
                 <button
-                  className={`h-6 w-6 p-0 shrink-0 rounded-sm flex items-center justify-center transition-colors ${
-                    theme === 'light' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
-                  }`}
+                  className={`h-6 w-6 p-0 shrink-0 rounded-sm flex items-center justify-center transition-colors ${theme === 'light' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+                    }`}
                   onClick={() => setTheme('light')}
                 >
                   <SunIcon className="h-3 w-3" />
                 </button>
                 <button
-                  className={`h-6 w-6 p-0 shrink-0 rounded-sm flex items-center justify-center transition-colors ${
-                    theme === 'dark' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
-                  }`}
+                  className={`h-6 w-6 p-0 shrink-0 rounded-sm flex items-center justify-center transition-colors ${theme === 'dark' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+                    }`}
                   onClick={() => setTheme('dark')}
                 >
                   <MoonIcon className="h-3 w-3" />
                 </button>
                 <button
-                  className={`h-6 w-6 p-0 shrink-0 rounded-sm flex items-center justify-center transition-colors ${
-                    theme === 'system' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
-                  }`}
+                  className={`h-6 w-6 p-0 shrink-0 rounded-sm flex items-center justify-center transition-colors ${theme === 'system' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+                    }`}
                   onClick={() => setTheme('system')}
                 >
                   <MonitorIcon className="h-3 w-3" />
