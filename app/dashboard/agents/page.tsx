@@ -6,27 +6,12 @@ import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbS
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Pause, Play, Users, CheckCircle, XCircle, ToolCaseIcon, FileText } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MoreHorizontal, Edit, Pause, Play, Users, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-
-interface AgentTool {
-    id: string;
-    tool_name: string;
-    tool_description?: string;
-    is_enabled: boolean;
-}
-
-interface FewShotExample {
-    id: string;
-    example_type: string;
-    user_query: string;
-    expected_output: any;
-    description?: string;
-    is_active: boolean;
-}
 
 interface Agent {
     id: string;
@@ -34,15 +19,12 @@ interface Agent {
     display_name: string;
     description: string;
     system_prompt: string;
-    question_processing_prompt?: string;
+    question_processing_prompt?: string | null;
     is_active: boolean;
     created_at: string;
     updated_at: string;
-    agent_tools?: AgentTool[];
-    few_shot_examples?: FewShotExample[];
 }
 
-// Utility function to truncate text with ellipsis
 const truncateText = (text: string, maxLength: number = 80): string => {
     if (!text) return "No description";
     if (text.length <= maxLength) return text;
@@ -54,91 +36,85 @@ export default function AgentsPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [updatingAgent, setUpdatingAgent] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<Agent | null>(null);
+    const [deleting, setDeleting] = useState(false);
     const router = useRouter();
 
-    useEffect(() => {
-        const fetchAgents = async () => {
-            setLoading(true);
-            try {
-                const response = await fetch('/api/agents');
-                const result = await response.json();
+    const fetchAgents = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch('/api/agents?include_inactive=true');
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Failed to fetch agents');
+            setAgents(result || []);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-                if (!response.ok) {
-                    throw new Error(result.error || 'Failed to fetch agents');
-                }
+    useEffect(() => { fetchAgents(); }, []);
 
-                setAgents(result || []);
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchAgents();
-    }, []);
-
-    // Compute stats for cards
     const totalAgents = agents.length;
     const activeAgents = agents.filter(a => a.is_active).length;
     const inactiveAgents = totalAgents - activeAgents;
-    const totalTools = agents.reduce((acc, a) => acc + (a.agent_tools?.length || 0), 0);
-    const totalExamples = agents.reduce((acc, a) => acc + (a.few_shot_examples?.length || 0), 0);
 
     const statsArray = [
         { title: "Total Agents", value: totalAgents, icon: Users },
         { title: "Active Agents", value: activeAgents, icon: CheckCircle },
         { title: "Inactive Agents", value: inactiveAgents, icon: XCircle },
-        { title: "Total Examples", value: totalExamples, icon: FileText },
     ];
 
-    // Handler functions for suspend/edit
-    const handleSuspendAgent = async (agentId: string, currentStatus: boolean) => {
-        const action = currentStatus ? 'suspend' : 'activate';
-        const actionText = currentStatus ? 'Suspending' : 'Activating';
-        
-        setUpdatingAgent(agentId);
-        
+    const handleToggleActive = async (agent: Agent) => {
+        setUpdatingAgent(agent.id);
         try {
-            const response = await fetch(`/api/agents/${agentId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    is_active: !currentStatus
-                }),
+            const response = await fetch(`/api/agents/${agent.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_active: !agent.is_active }),
             });
-
             const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || `Failed to ${action} agent`);
-            }
-
-            // Update the local state to reflect the change
-            setAgents(prevAgents => 
-                prevAgents.map(agent => 
-                    agent.id === agentId 
-                        ? { ...agent, is_active: !currentStatus }
-                        : agent
-                )
+            if (!response.ok) throw new Error(result.error || 'Failed to update agent');
+            setAgents(prev =>
+                prev.map(a => a.id === agent.id ? { ...a, is_active: !agent.is_active } : a)
             );
-
-            toast.success(`Agent ${currentStatus ? 'suspended' : 'activated'} successfully`);
-        } catch (error: any) {
-            console.error(`Error ${actionText.toLowerCase()} agent:`, error);
-            toast.error(error.message || `Failed to ${action} agent`);
+            toast.success(`Agent ${agent.is_active ? 'deactivated' : 'activated'} successfully`);
+        } catch (err: any) {
+            toast.error(err.message);
         } finally {
             setUpdatingAgent(null);
         }
     };
-    
+
+    const handleDelete = async (hard: boolean) => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        try {
+            const response = await fetch(`/api/agents/${deleteTarget.id}?hard=${hard}`, {
+                method: 'DELETE',
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Failed to delete agent');
+            if (hard) {
+                setAgents(prev => prev.filter(a => a.id !== deleteTarget.id));
+            } else {
+                setAgents(prev => prev.map(a => a.id === deleteTarget.id ? { ...a, is_active: false } : a));
+            }
+            toast.success(result.message || 'Agent deleted successfully');
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setDeleting(false);
+            setDeleteTarget(null);
+        }
+    };
+
     const handleEditAgent = (agentId: string) => router.push(`/dashboard/agents/${agentId}/edit`);
 
     if (loading) return <ProtectedRoute><div className="fixed inset-0 flex items-center justify-center bg-background/80">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-500 mx-auto mb-4"></div>
-            </div></ProtectedRoute>;
+        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-500 mx-auto mb-4"></div>
+    </div></ProtectedRoute>;
     if (error) return <ProtectedRoute><div className="fixed inset-0 flex items-center justify-center text-red-500">{error}</div></ProtectedRoute>;
 
     return (
@@ -155,9 +131,10 @@ export default function AgentsPage() {
                         </BreadcrumbList>
                     </Breadcrumb>
                 </div>
-                <div className="">
+
+                <div>
                     {/* Stats Cards */}
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 p-4 sm:p-6">
+                    <div className="grid gap-4 md:grid-cols-3 p-4 sm:p-6">
                         {statsArray.map((stat, index) => (
                             <Card key={index} className="p-5 sm:p-8 hover:shadow-md transition-shadow">
                                 <div className="flex items-center gap-4">
@@ -174,7 +151,7 @@ export default function AgentsPage() {
                     </div>
 
                     {/* Agents Table */}
-                    <div className="mt-5 px-6">
+                    <div className="mt-5 px-6 pb-8">
                         {agents.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground">No agents found.</div>
                         ) : (
@@ -185,9 +162,8 @@ export default function AgentsPage() {
                                             <TableHead>Name</TableHead>
                                             <TableHead>Description</TableHead>
                                             <TableHead>Status</TableHead>
-                                            <TableHead>Tools</TableHead>
-                                            <TableHead>Examples</TableHead>
                                             <TableHead>Created</TableHead>
+                                            <TableHead>Updated</TableHead>
                                             <TableHead className="w-12">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -197,36 +173,24 @@ export default function AgentsPage() {
                                                 <TableCell>
                                                     <div>
                                                         <div className="font-medium">{agent.display_name}</div>
-                                                        <div className="text-sm text-muted-foreground">{agent.name}</div>
+                                                        <div className="text-xs text-muted-foreground font-mono">{agent.name}</div>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="max-w-md">
-                                                        <p className="text-sm" title={agent.description || "No description"}>
-                                                            {truncateText(agent.description, 80)}
-                                                        </p>
-                                                    </div>
+                                                    <p className="text-sm max-w-sm" title={agent.description}>
+                                                        {truncateText(agent.description, 90)}
+                                                    </p>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${agent.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${agent.is_active ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"}`}>
                                                         {agent.is_active ? "Active" : "Inactive"}
                                                     </span>
                                                 </TableCell>
                                                 <TableCell>
-                                                    {agent.agent_tools && agent.agent_tools.length > 0
-                                                        ? (() => {
-                                                            const toolsText = agent.agent_tools.map(tool => tool.tool_name).join(', ');
-                                                            return (
-                                                                <span title={toolsText}>
-                                                                    {truncateText(toolsText, 50)}
-                                                                </span>
-                                                            );
-                                                          })()
-                                                        : 'No tools'}
-                                                </TableCell>
-                                                <TableCell>{agent.few_shot_examples?.length || 0}</TableCell>
-                                                <TableCell>
                                                     <span className="text-sm text-muted-foreground">{new Date(agent.created_at).toLocaleDateString()}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-sm text-muted-foreground">{new Date(agent.updated_at).toLocaleDateString()}</span>
                                                 </TableCell>
                                                 <TableCell>
                                                     <DropdownMenu>
@@ -239,8 +203,14 @@ export default function AgentsPage() {
                                                             <DropdownMenuItem onClick={() => handleEditAgent(agent.id)} className="cursor-pointer">
                                                                 <Edit className="mr-2 h-4 w-4" />Edit
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleSuspendAgent(agent.id, agent.is_active)} disabled={updatingAgent === agent.id} className="cursor-pointer">
-                                                                {agent.is_active ? <><Pause className="mr-2 h-4 w-4" />Suspend</> : <><Play className="mr-2 h-4 w-4" />Activate</>}
+                                                            <DropdownMenuItem onClick={() => handleToggleActive(agent)} disabled={updatingAgent === agent.id} className="cursor-pointer">
+                                                                {agent.is_active
+                                                                    ? <><Pause className="mr-2 h-4 w-4" />Deactivate</>
+                                                                    : <><Play className="mr-2 h-4 w-4" />Activate</>}
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem onClick={() => setDeleteTarget(agent)} className="cursor-pointer text-destructive focus:text-destructive">
+                                                                <Trash2 className="mr-2 h-4 w-4" />Delete
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
@@ -248,13 +218,38 @@ export default function AgentsPage() {
                                             </TableRow>
                                         ))}
                                     </TableBody>
-
                                 </Table>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Delete confirmation dialog */}
+            <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open && !deleting) setDeleteTarget(null); }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Agent</DialogTitle>
+                        <DialogDescription>
+                            How would you like to delete <strong>{deleteTarget?.display_name}</strong>?
+                            <br /><br />
+                            <span className="text-sm">
+                                • <strong>Soft delete</strong>: deactivates the agent (can be re-activated)<br />
+                                • <strong>Hard delete</strong>: permanently removes the agent
+                            </span>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex-col sm:flex-row gap-2">
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancel</Button>
+                        <Button variant="secondary" onClick={() => handleDelete(false)} disabled={deleting} loading={deleting}>
+                            Soft Delete
+                        </Button>
+                        <Button variant="destructive" onClick={() => handleDelete(true)} disabled={deleting} loading={deleting}>
+                            Hard Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </ProtectedRoute>
     );
 }

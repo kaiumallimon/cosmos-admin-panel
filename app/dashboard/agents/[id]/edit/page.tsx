@@ -16,26 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Save, ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Save, ArrowLeft, Lock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
-
-interface AgentTool {
-    id?: string;
-    tool_name: string;
-    tool_description?: string;
-    is_enabled: boolean;
-}
-
-interface FewShotExample {
-    id?: string;
-    example_type: string;
-    user_query: string;
-    expected_output: any;
-    description?: string;
-    is_active: boolean;
-}
 
 interface Agent {
     id: string;
@@ -43,12 +28,10 @@ interface Agent {
     display_name: string;
     description: string;
     system_prompt: string;
-    question_processing_prompt?: string;
+    question_processing_prompt?: string | null;
     is_active: boolean;
     created_at: string;
     updated_at: string;
-    agent_tools?: AgentTool[];
-    few_shot_examples?: FewShotExample[];
 }
 
 export default function EditAgentPage() {
@@ -62,7 +45,6 @@ export default function EditAgentPage() {
     const [error, setError] = useState("");
 
     const [formData, setFormData] = useState({
-        name: "",
         display_name: "",
         description: "",
         system_prompt: "",
@@ -70,117 +52,67 @@ export default function EditAgentPage() {
         is_active: true,
     });
 
-    const [tools, setTools] = useState<AgentTool[]>([]);
-    const [examples, setExamples] = useState<FewShotExample[]>([]);
-
-    // Fetch agent data via API
     useEffect(() => {
         const fetchAgent = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`/api/agents/${agentId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                });
-                
+                const response = await fetch(`/api/agents/${agentId}`);
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.error || 'Failed to fetch agent');
                 }
-                
-                const agentData = await response.json();
-                
+                const agentData: Agent = await response.json();
                 setAgent(agentData);
                 setFormData({
-                    name: agentData.name || "",
                     display_name: agentData.display_name || "",
                     description: agentData.description || "",
                     system_prompt: agentData.system_prompt || "",
-                    question_processing_prompt:
-                        agentData.question_processing_prompt || "",
+                    question_processing_prompt: agentData.question_processing_prompt || "",
                     is_active: agentData.is_active ?? true,
                 });
-                setTools(agentData.agent_tools || []);
-                setExamples(agentData.few_shot_examples || []);
             } catch (err: any) {
                 setError(err.message);
             } finally {
                 setLoading(false);
             }
         };
-
         if (agentId) fetchAgent();
     }, [agentId]);
 
     const handleInputChange = (field: string, value: any) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
+        setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const addTool = () =>
-        setTools((prev) => [
-            ...prev,
-            { tool_name: "", tool_description: "", is_enabled: true },
-        ]);
-    const updateTool = (index: number, field: string, value: any) =>
-        setTools((prev) =>
-            prev.map((tool, i) => (i === index ? { ...tool, [field]: value } : tool))
-        );
-    const removeTool = (index: number) =>
-        setTools((prev) => prev.filter((_, i) => i !== index));
-
-    const addExample = () =>
-        setExamples((prev) => [
-            ...prev,
-            {
-                example_type: "",
-                user_query: "",
-                expected_output: {},
-                description: "",
-                is_active: true,
-            },
-        ]);
-    const updateExample = (index: number, field: string, value: any) =>
-        setExamples((prev) =>
-            prev.map((ex, i) => (i === index ? { ...ex, [field]: value } : ex))
-        );
-    const removeExample = (index: number) =>
-        setExamples((prev) => prev.filter((_, i) => i !== index));
-
     const handleSave = async () => {
+        if (!formData.display_name.trim()) { toast.error('Display name is required'); return; }
+        if (formData.description.trim().length < 10) { toast.error('Description must be at least 10 characters'); return; }
+        if (formData.system_prompt.trim().length < 20) { toast.error('System prompt must be at least 20 characters'); return; }
+
         setSaving(true);
         try {
-            const updatePayload = {
-                ...formData,
-                agent_tools: tools.map(tool => ({
-                    tool_name: tool.tool_name,
-                    tool_description: tool.tool_description,
-                    is_enabled: tool.is_enabled
-                })),
-                few_shot_examples: examples.map(example => ({
-                    example_type: example.example_type,
-                    user_query: example.user_query,
-                    expected_output: example.expected_output,
-                    description: example.description,
-                    is_active: example.is_active
-                }))
+            const payload: Record<string, any> = {
+                display_name: formData.display_name,
+                description: formData.description,
+                system_prompt: formData.system_prompt,
+                is_active: formData.is_active,
             };
-            
+            if (formData.question_processing_prompt.trim()) {
+                payload.question_processing_prompt = formData.question_processing_prompt;
+            } else {
+                payload.question_processing_prompt = null;
+            }
+
             const response = await fetch(`/api/agents/${agentId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(updatePayload),
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to update agent');
             }
-            
-            const result = await response.json();
+
             toast.success("Agent updated successfully");
             router.push("/dashboard/agents");
         } catch (err: any) {
@@ -194,16 +126,14 @@ export default function EditAgentPage() {
         return (
             <ProtectedRoute>
                 <div className="min-h-screen flex items-center justify-center">
-                    Loading...
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-500"></div>
                 </div>
             </ProtectedRoute>
         );
     if (error)
         return (
             <ProtectedRoute>
-                <div className="min-h-screen flex items-center justify-center text-red-500">
-                    {error}
-                </div>
+                <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>
             </ProtectedRoute>
         );
 
@@ -212,7 +142,7 @@ export default function EditAgentPage() {
             <div className="min-h-screen bg-background">
                 <FrostedHeader
                     title={`Edit Agent: ${agent?.display_name}`}
-                    subtitle="Modify agent configuration, tools, and examples"
+                    subtitle="Modify agent configuration"
                 />
 
                 <div className="p-6">
@@ -232,319 +162,86 @@ export default function EditAgentPage() {
                         </BreadcrumbList>
                     </Breadcrumb>
 
-                    <div className="mt-6 space-y-6">
+                    <div className="mt-6 max-w-3xl space-y-6">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Basic Information</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="name">Name (ID)</Label>
-                                        <Input
-                                            id="name"
-                                            value={formData.name}
-                                            onChange={(e) =>
-                                                handleInputChange("name", e.target.value)
-                                            }
-                                            placeholder="e.g., dbms_agent"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="display_name">Display Name</Label>
-                                        <Input
-                                            id="display_name"
-                                            value={formData.display_name}
-                                            onChange={(e) =>
-                                                handleInputChange("display_name", e.target.value)
-                                            }
-                                            placeholder="e.g., Professor DBMS"
-                                        />
-                                    </div>
-                                </div>
+                                {/* Agent name — immutable */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="description">Description</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Label>Agent Name (ID)</Label>
+                                        <Badge variant="secondary" className="text-xs gap-1">
+                                            <Lock className="h-3 w-3" /> Immutable
+                                        </Badge>
+                                    </div>
+                                    <Input value={agent?.name ?? ""} disabled className="font-mono bg-muted" />
+                                    <p className="text-xs text-muted-foreground">The agent name is set at creation and cannot be changed.</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="display_name">Display Name *</Label>
+                                    <Input
+                                        id="display_name"
+                                        value={formData.display_name}
+                                        onChange={e => handleInputChange("display_name", e.target.value)}
+                                        placeholder="e.g., Professor DBMS"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="description">Description *</Label>
                                     <Textarea
                                         id="description"
                                         value={formData.description}
-                                        onChange={(e) =>
-                                            handleInputChange("description", e.target.value)
-                                        }
-                                        placeholder="Brief description of the agent's purpose"
+                                        onChange={e => handleInputChange("description", e.target.value)}
+                                        placeholder="Brief description of the agent's purpose (min 10 chars)"
                                         rows={3}
                                     />
                                 </div>
-                                <div className="space-y-2">
 
-                                    <Label htmlFor="system_prompt">System Prompt</Label>
+                                <div className="space-y-2">
+                                    <Label htmlFor="system_prompt">System Prompt *</Label>
                                     <Textarea
                                         id="system_prompt"
                                         value={formData.system_prompt}
-                                        onChange={(e) =>
-                                            handleInputChange("system_prompt", e.target.value)
-                                        }
-                                        placeholder="System prompt that defines the agent's behavior"
+                                        onChange={e => handleInputChange("system_prompt", e.target.value)}
+                                        placeholder="System prompt that defines the agent's behavior (min 20 chars)"
                                         rows={6}
                                     />
                                 </div>
+
                                 <div className="space-y-2">
                                     <Label htmlFor="question_processing_prompt">
                                         Question Processing Prompt
+                                        <span className="ml-1 text-xs text-muted-foreground">(optional)</span>
                                     </Label>
                                     <Textarea
                                         id="question_processing_prompt"
                                         value={formData.question_processing_prompt}
-                                        onChange={(e) =>
-                                            handleInputChange(
-                                                "question_processing_prompt",
-                                                e.target.value
-                                            )
-                                        }
+                                        onChange={e => handleInputChange("question_processing_prompt", e.target.value)}
                                         placeholder="Optional prompt for question processing"
                                         rows={4}
                                     />
                                 </div>
+
                                 <div className="flex items-center space-x-2">
                                     <Switch
                                         id="is_active"
                                         checked={formData.is_active}
-                                        onCheckedChange={(checked) =>
-                                            handleInputChange("is_active", checked)
-                                        }
+                                        onCheckedChange={checked => handleInputChange("is_active", checked)}
                                     />
                                     <Label htmlFor="is_active">Active</Label>
                                 </div>
                             </CardContent>
                         </Card>
-                        {/* Agent Tools */}
-                        <Card>
 
-                            <CardHeader className="flex flex-row items-center justify-between">
-
-                                <CardTitle>Agent Tools</CardTitle>
-                                <Button onClick={addTool} size="sm">
-
-                                    <Plus className="h-4 w-4 mr-2" /> Add Tool
-                                </Button>
-                            </CardHeader>
-                            <CardContent>
-
-                                {tools.length === 0 ? (
-                                    <p className="text-muted-foreground text-center py-4">
-                                        No tools configured
-                                    </p>
-                                ) : (
-                                    <div className="space-y-4">
-
-                                        {tools.map((tool, index) => (
-                                            <div key={index} className="border rounded-lg p-4">
-
-                                                <div className="flex items-start justify-between mb-3">
-
-                                                    <h4 className="font-medium">Tool {index + 1}</h4>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => removeTool(index)}
-                                                    >
-
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                                                    <div className="space-y-2">
-
-                                                        <Label>Tool Name</Label>
-                                                        <Input
-                                                            value={tool.tool_name}
-                                                            onChange={(e) =>
-                                                                updateTool(index, "tool_name", e.target.value)
-                                                            }
-                                                            placeholder="e.g., database_query"
-                                                        />
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-
-                                                        <Switch
-                                                            checked={tool.is_enabled}
-                                                            onCheckedChange={(checked) =>
-                                                                updateTool(index, "is_enabled", checked)
-                                                            }
-                                                        />
-                                                        <Label>Enabled</Label>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-3 space-y-2">
-
-                                                    <Label>Tool Description</Label>
-                                                    <Textarea
-                                                        value={tool.tool_description || ""}
-                                                        onChange={(e) =>
-                                                            updateTool(
-                                                                index,
-                                                                "tool_description",
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                        placeholder="Description of what this tool does"
-                                                        rows={2}
-                                                    />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                        {/* Few-Shot Examples */}
-                        <Card>
-
-                            <CardHeader className="flex flex-row items-center justify-between">
-
-                                <CardTitle>Few-Shot Examples</CardTitle>
-                                <Button onClick={addExample} size="sm">
-
-                                    <Plus className="h-4 w-4 mr-2" /> Add Example
-                                </Button>
-                            </CardHeader>
-                            <CardContent>
-
-                                {examples.length === 0 ? (
-                                    <p className="text-muted-foreground text-center py-4">
-                                        No examples configured
-                                    </p>
-                                ) : (
-                                    <div className="space-y-4">
-
-                                        {examples.map((example, index) => (
-                                            <div key={index} className="border rounded-lg p-4">
-
-                                                <div className="flex items-start justify-between mb-3">
-
-                                                    <h4 className="font-medium">
-                                                        Example {index + 1}
-                                                    </h4>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => removeExample(index)}
-                                                    >
-
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-
-                                                    <div className="space-y-2">
-
-                                                        <Label>Example Type</Label>
-                                                        <Input
-                                                            value={example.example_type}
-                                                            onChange={(e) =>
-                                                                updateExample(
-                                                                    index,
-                                                                    "example_type",
-                                                                    e.target.value
-                                                                )
-                                                            }
-                                                            placeholder="e.g., sql_query, concept_explanation"
-                                                        />
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-
-                                                        <Switch
-                                                            checked={example.is_active}
-                                                            onCheckedChange={(checked) =>
-                                                                updateExample(index, "is_active", checked)
-                                                            }
-                                                        />
-                                                        <Label>Active</Label>
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-3">
-                                                    <div className="space-y-2">
-                                                        <Label>User Query</Label>
-                                                        <Textarea
-                                                            value={example.user_query}
-                                                            onChange={(e) =>
-                                                                updateExample(
-                                                                    index,
-                                                                    "user_query",
-                                                                    e.target.value
-                                                                )
-                                                            }
-                                                            placeholder="Example question from user"
-                                                            rows={3}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2">
-
-                                                        <Label>Expected Output (JSON)</Label>
-                                                        <Textarea
-                                                            value={
-                                                                typeof example.expected_output === "string"
-                                                                    ? example.expected_output
-                                                                    : JSON.stringify(
-                                                                        example.expected_output,
-                                                                        null,
-                                                                        2
-                                                                    )
-                                                            }
-                                                            onChange={(e) => {
-                                                                try {
-                                                                    const parsed = JSON.parse(e.target.value);
-                                                                    updateExample(
-                                                                        index,
-                                                                        "expected_output",
-                                                                        parsed
-                                                                    );
-                                                                } catch {
-                                                                    updateExample(
-                                                                        index,
-                                                                        "expected_output",
-                                                                        e.target.value
-                                                                    );
-                                                                }
-                                                            }}
-                                                            placeholder="Expected response in JSON format"
-                                                            rows={4}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2">
-
-                                                        <Label>Description</Label>
-                                                        <Input
-                                                            value={example.description || ""}
-                                                            onChange={(e) =>
-                                                                updateExample(
-                                                                    index,
-                                                                    "description",
-                                                                    e.target.value
-                                                                )
-                                                            }
-                                                            placeholder="Brief description of this example"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                        {/* Action Buttons */}
                         <div className="flex justify-between">
-
-                            <Button
-                                variant="outline"
-                                onClick={() => router.push("/dashboard/agents")}
-                            >
-
+                            <Button variant="outline" onClick={() => router.push("/dashboard/agents")}>
                                 <ArrowLeft className="h-4 w-4 mr-2" /> Back to Agents
                             </Button>
-                            <Button onClick={handleSave} disabled={saving}>
-
+                            <Button onClick={handleSave} disabled={saving} loading={saving}>
                                 <Save className="h-4 w-4 mr-2" />
                                 {saving ? "Saving..." : "Save Changes"}
                             </Button>
