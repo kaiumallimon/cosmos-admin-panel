@@ -5,10 +5,12 @@ import * as d3 from 'd3';
 import { ArrowLeftIcon, HistoryIcon, Loader2, Mic, MicOff, RefreshCwIcon, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { RoadmapChatPanel } from '@/components/roadmap/RoadmapChatPanel';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth';
+import { useTheme } from 'next-themes';
 
 // ─────────────────────── Types ───────────────────────────────────────────────
 
@@ -61,7 +63,9 @@ interface D3NodeData {
 
 export default function RoadmapPage() {
   const { user } = useAuthStore();
+  const { resolvedTheme } = useTheme();
   const svgRef = useRef<SVGSVGElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Roadmap state
   const [roadmapData, setRoadmapData] = useState<RoadmapData | null>(null);
@@ -103,6 +107,21 @@ export default function RoadmapPage() {
     fetchChatHistory();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
+    }
+  }, [query]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!isLoading && query.trim()) generateRoadmap();
+    }
+  };
 
   const toggleVoice = () => {
     if (!recognition) { setError('Speech recognition not supported.'); return; }
@@ -178,47 +197,64 @@ export default function RoadmapPage() {
     });
   }, []);
 
-  // ── D3 Rendering ───────────────────────────────────────────────────────────
-  const transformData = (data: RoadmapData): D3NodeData | null => {
-    if (!data?.stages?.length) return null;
-    return {
-      name: data.topic,
-      type: 'root',
-      description: data.introduction || '',
-      children: data.stages.map((stage, si) => ({
-        name: stage.title,
-        type: 'stage',
-        description: stage.description,
-        stageIndex: si,
-        children: stage.items.map((item, ii) => ({
-          name: item.name,
-          type: 'item',
-          description: item.description,
-          difficulty: item.difficulty,
-          id: `${si}-${ii}`,
-          stageIndex: si,
-          itemIndex: ii,
-        })),
-      })),
-    };
-  };
-
-  const getItemFill = (difficulty?: string) => {
-    if (difficulty === 'Easy') return '#22c55e';
-    if (difficulty === 'Medium') return '#f59e0b';
-    if (difficulty === 'Hard') return '#ef4444';
-    return '#6366f1';
-  };
-
+  // ── D3 Rendering (roadmap.sh-style) ───────────────────────────────────────
   useEffect(() => {
     if (!roadmapData?.stages?.length || !svgRef.current) return;
 
+    const dark = resolvedTheme === 'dark';
+
+    // ── Palette ────────────────────────────────────────────────────────────
+    const palette = {
+      spine:       dark ? '#60a5fa' : '#3b82f6',
+      stageFill:   dark ? '#92400e' : '#fbbf24',
+      stageStroke: dark ? '#b45309' : '#f59e0b',
+      stageText:   dark ? '#fef3c7' : '#1c1917',
+      itemFill:    dark ? '#1c1917' : '#fef9c3',
+      itemStroke:  dark ? '#44403c' : '#fde68a',
+      itemText:    dark ? '#e7e5e4' : '#1c1917',
+      doneFill:    dark ? '#14532d' : '#dcfce7',
+      doneStroke:  dark ? '#166534' : '#86efac',
+      doneText:    dark ? '#86efac' : '#15803d',
+      dot:         dark ? '#60a5fa' : '#3b82f6',
+      topicText:   '#f97316',
+    };
+
+    // ── Layout constants ───────────────────────────────────────────────────
+    const SVG_W      = 1200;
+    const CX         = SVG_W / 2;   // center x
+    const STAGE_W    = 210;
+    const STAGE_H    = 50;
+    const STAGE_R    = 8;
+    const ITEM_W     = 210;
+    const ITEM_H     = 40;
+    const ITEM_R     = 6;
+    const ITEM_GAP_X = 320;         // center of items from CX
+    const ITEM_SPACING = 52;        // vertical gap between items
+    const STAGE_PAD  = 80;          // extra padding between stage blocks
+    const TOP_PAD    = 90;
+
+    // ── Calculate stage Y positions ────────────────────────────────────────
+    const stages = roadmapData.stages;
+    const stageYs: number[] = [];
+    let curY = TOP_PAD;
+
+    stages.forEach((stage, i) => {
+      const fan = ((stage.items.length - 1) / 2) * ITEM_SPACING;
+      if (i === 0) {
+        curY += fan;
+      } else {
+        const prevFan = ((stages[i - 1].items.length - 1) / 2) * ITEM_SPACING;
+        curY += prevFan + STAGE_PAD + fan;
+      }
+      stageYs.push(curY);
+    });
+    const lastFan = ((stages[stages.length - 1].items.length - 1) / 2) * ITEM_SPACING;
+    const SVG_H = stageYs[stageYs.length - 1] + lastFan + TOP_PAD;
+
+    // ── SVG setup ──────────────────────────────────────────────────────────
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
-
-    const WIDTH = 1400;
-    const HEIGHT = 1800;
-    svg.attr('width', WIDTH).attr('height', HEIGHT);
+    svg.attr('width', SVG_W).attr('height', SVG_H);
 
     const g = svg.append('g');
 
@@ -227,151 +263,222 @@ export default function RoadmapPage() {
       .on('zoom', (event) => g.attr('transform', event.transform));
     svg.call(zoom as any);
 
-    const treeData = transformData(roadmapData);
-    if (!treeData) return;
+    // ── Spine line ─────────────────────────────────────────────────────────
+    g.append('line')
+      .attr('x1', CX).attr('y1', stageYs[0] - STAGE_H / 2 - 30)
+      .attr('x2', CX).attr('y2', stageYs[stageYs.length - 1] + STAGE_H / 2 + 30)
+      .attr('stroke', palette.spine)
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', '5,4')
+      .attr('opacity', 0.55);
 
-    const root = d3.hierarchy<D3NodeData>(treeData);
-    const treeLayout = d3.tree<D3NodeData>().size([WIDTH - 200, 500]);
-    treeLayout(root);
+    // ── Topic title ────────────────────────────────────────────────────────
+    g.append('text')
+      .attr('x', CX).attr('y', stageYs[0] - STAGE_H / 2 - 44)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '18px').attr('font-weight', '700')
+      .attr('letter-spacing', '0.5')
+      .attr('fill', palette.topicText)
+      .text(roadmapData.topic);
 
-    // Zigzag items left/right
-    root.descendants().forEach((d) => {
-      if (d.data.type === 'item' && d.data.itemIndex !== undefined) {
-        (d as any).y = (d as any).y + (d.data.itemIndex % 2 === 0 ? 20 : -500);
+    // ── SVG text-wrap helper ───────────────────────────────────────────────
+    function svgWrapText(
+      el: d3.Selection<SVGTextElement, unknown, null, undefined>,
+      text: string,
+      maxW: number,
+      lineH: number,
+      maxLines = 2,
+    ) {
+      const words = text.split(/\s+/);
+      let line: string[] = [];
+      let lineNum = 0;
+      el.text('');
+      let tspan = el.append('tspan').attr('x', 0).attr('dy', '0em');
+
+      for (const word of words) {
+        line.push(word);
+        tspan.text(line.join(' '));
+        const node = tspan.node() as SVGTSpanElement | null;
+        if (node && node.getComputedTextLength() > maxW && line.length > 1) {
+          line.pop();
+          tspan.text(line.join(' '));
+          line = [word];
+          lineNum++;
+          if (lineNum >= maxLines) {
+            // truncate last line
+            let t = tspan.text();
+            if (t.length > 24) tspan.text(t.substring(0, 22) + '…');
+            break;
+          }
+          tspan = el.append('tspan').attr('x', 0).attr('dy', `${lineH}em`);
+          tspan.text(word);
+        }
       }
-    });
-
-    // Center spinal line through stage nodes
-    const stageNodes = root.descendants().filter((d) => d.data.type === 'stage');
-    if (stageNodes.length) {
-      const topX = d3.min(stageNodes, (d) => (d as any).x) as number;
-      const botX = d3.max(stageNodes, (d) => (d as any).x) as number;
-      const centerY = d3.mean(stageNodes, (d) => (d as any).y) as number;
-      g.append('line')
-        .attr('x1', centerY).attr('y1', topX - 150)
-        .attr('x2', centerY).attr('y2', botX)
-        .attr('stroke', '#6366f1').attr('stroke-width', 2);
-      g.append('text')
-        .attr('x', centerY).attr('y', topX - 165)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '17px').attr('font-weight', 'bold').attr('fill', '#f97316')
-        .text(roadmapData.topic);
     }
 
-    // Links (skip root)
-    g.selectAll('.link')
-      .data(root.links().filter((d) => d.source.data.type !== 'root'))
-      .enter().append('path')
-      .attr('class', 'link')
-      .attr('d', d3.linkHorizontal<any, any>().x((d) => d.y).y((d) => d.x))
-      .attr('fill', 'none')
-      .attr('stroke', '#6366f1')
-      .attr('stroke-width', 1.5)
-      .attr('stroke-dasharray', 4)
-      .attr('opacity', 0.7);
+    // ── Render each stage ─────────────────────────────────────────────────
+    stages.forEach((stage, si) => {
+      const stageY = stageYs[si];
+      const side   = si % 2 === 0 ? 1 : -1;   // +1 = items right, -1 = items left
+      const itemCX = CX + side * ITEM_GAP_X;
+      const stageEdgeX  = CX + side * STAGE_W / 2;
+      const itemEdgeX   = itemCX - side * ITEM_W / 2;
 
-    // Nodes (skip root)
-    const nodes = g.selectAll('.node')
-      .data(root.descendants().filter((d) => d.data.type !== 'root'))
-      .enter().append('g')
-      .attr('class', 'node')
-      .attr('transform', (d) => `translate(${(d as any).y},${(d as any).x})`)
-      .style('cursor', 'pointer');
+      // ── Stage node ───────────────────────────────────────────────────
+      const stageG = g.append('g')
+        .attr('transform', `translate(${CX},${stageY})`)
+        .style('cursor', 'pointer');
 
-    nodes.on('click', (_event, d) => {
-      setSelectedNode(d.data);
-      setShowDetails(true);
-      setShowChatbot(true);
-      if (d.data.type === 'item' && d.data.id) toggleCompletion(d.data.id);
-    });
+      stageG.append('rect')
+        .attr('x', -STAGE_W / 2).attr('y', -STAGE_H / 2)
+        .attr('width', STAGE_W).attr('height', STAGE_H)
+        .attr('rx', STAGE_R)
+        .attr('fill', palette.stageFill)
+        .attr('stroke', palette.stageStroke)
+        .attr('stroke-width', 1.5)
+        .attr('filter', 'drop-shadow(0 2px 6px rgba(0,0,0,0.18))');
 
-    // Measure text dimensions via temporary invisible elements
-    const textDims = new Map<any, { width: number; height: number; lines: string[]; lineH: number; fontSize: number }>();
-    const tempGroup = g.append('g').attr('visibility', 'hidden');
+      // Stage label — multi-line
+      const stageTxt = stageG.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'middle')
+        .attr('font-size', '13px').attr('font-weight', '700')
+        .attr('fill', palette.stageText)
+        .attr('pointer-events', 'none');
 
-    root.descendants().filter((d) => d.data.type !== 'root').forEach((d) => {
-      const el = tempGroup.append('text')
-        .attr('font-size', d.data.type === 'stage' ? '12px' : '10px')
-        .attr('font-weight', d.data.type === 'stage' ? '600' : 'normal');
-
-      const maxWidth = d.data.type === 'stage' ? 150 : 140;
-      const words = d.data.name.split(/\s+/);
-      let line: string[] = [];
-      const lines: string[] = [];
-
-      words.forEach((word) => {
-        line.push(word);
-        el.text(line.join(' '));
-        const node = el.node();
-        if (node && node.getComputedTextLength() > maxWidth && line.length > 1) {
-          line.pop();
-          lines.push(line.join(' '));
-          line = [word];
+      const stageWords = stage.title.split(/\s+/);
+      let stageLine: string[] = [];
+      let stageLines: string[] = [];
+      const stageTmpSpan = stageTxt.append('tspan').attr('x', 0).attr('dy', '0em');
+      for (const w of stageWords) {
+        stageLine.push(w);
+        stageTmpSpan.text(stageLine.join(' '));
+        const sn = stageTmpSpan.node() as SVGTSpanElement | null;
+        if (sn && sn.getComputedTextLength() > STAGE_W - 24 && stageLine.length > 1) {
+          stageLine.pop();
+          stageLines.push(stageLine.join(' '));
+          stageLine = [w];
         }
+      }
+      if (stageLine.length) stageLines.push(stageLine.join(' '));
+      stageTxt.select('tspan').remove();
+      stageTxt.text('');
+      const stageLH = 1.2;
+      const stageOffsetY = -((stageLines.length - 1) * stageLH) / 2;
+      stageLines.forEach((l, li) => {
+        stageTxt.append('tspan')
+          .attr('x', 0)
+          .attr('dy', li === 0 ? `${stageOffsetY}em` : `${stageLH}em`)
+          .text(l);
       });
-      if (line.length) lines.push(line.join(' '));
 
-      const fontSize = d.data.type === 'stage' ? 12 : 10;
-      let maxLen = 0;
-      lines.forEach((l) => {
-        el.text(l);
-        const n = el.node();
-        if (n) maxLen = Math.max(maxLen, n.getComputedTextLength());
+      stageG.on('click', () => {
+        setSelectedNode({ name: stage.title, type: 'stage', description: stage.description, stageIndex: si });
+        setShowDetails(true);
+        setShowChatbot(true);
       });
 
-      textDims.set(d, { width: maxLen + 20, height: lines.length * fontSize * 1.3 + 12, lines, lineH: 1.2, fontSize });
-      el.remove();
-    });
-    tempGroup.remove();
+      // ── Items ─────────────────────────────────────────────────────────
+      stage.items.forEach((item, ii) => {
+        const offsetY = (ii - (stage.items.length - 1) / 2) * ITEM_SPACING;
+        const itemY   = stageY + offsetY;
+        const nodeId  = `${si}-${ii}`;
+        const done    = completedItems.has(nodeId);
 
-    // Render node rectangles
-    nodes.append('rect')
-      .attr('rx', 5).attr('ry', 5)
-      .attr('x', (d) => -(textDims.get(d)?.width ?? 60) / 2)
-      .attr('y', (d) => {
-        const dims = textDims.get(d);
-        if (!dims) return -15;
-        return -dims.fontSize + dims.fontSize * 0.2 - 6;
-      })
-      .attr('width', (d) => textDims.get(d)?.width ?? 60)
-      .attr('height', (d) => textDims.get(d)?.height ?? 24)
-      .attr('fill', (d) => d.data.type === 'stage' ? '#6366f1' : getItemFill(d.data.difficulty))
-      .attr('stroke', 'rgba(0,0,0,0.15)')
-      .attr('stroke-width', 1);
+        // Bezier connector
+        const midX = (stageEdgeX + itemEdgeX) / 2;
+        g.append('path')
+          .attr('d', `M ${stageEdgeX},${stageY} C ${midX},${stageY} ${midX},${itemY} ${itemEdgeX},${itemY}`)
+          .attr('fill', 'none')
+          .attr('stroke', palette.spine)
+          .attr('stroke-width', 1.5)
+          .attr('stroke-dasharray', '4,3')
+          .attr('opacity', 0.55);
 
-    // Completion checkmark overlay
-    nodes.filter((d) => d.data.type === 'item' && !!d.data.id && completedItems.has(d.data.id))
-      .append('text')
-      .attr('text-anchor', 'middle').attr('dy', '-0.2em')
-      .attr('font-size', '10px').attr('fill', 'rgba(255,255,255,0.7)')
-      .text('✓');
+        // Dot at stage edge
+        g.append('circle')
+          .attr('cx', stageEdgeX).attr('cy', stageY)
+          .attr('r', 3)
+          .attr('fill', palette.dot)
+          .attr('opacity', 0.8);
 
-    // Render text labels
-    nodes.append('text')
-      .attr('text-anchor', 'middle')
-      .attr('font-size', (d) => d.data.type === 'stage' ? '12px' : '10px')
-      .attr('font-weight', (d) => d.data.type === 'stage' ? '600' : 'normal')
-      .attr('fill', 'white')
-      .each(function (d) {
-        const el = d3.select(this);
-        const dims = textDims.get(d);
-        if (!dims) { el.text(d.data.name); return; }
-        dims.lines.forEach((lineText, i) => {
-          if (i === 0) el.text(lineText);
-          else el.append('tspan').attr('x', 0).attr('dy', `${dims.lineH}em`).text(lineText);
+        // Dot at item edge
+        g.append('circle')
+          .attr('cx', itemEdgeX).attr('cy', itemY)
+          .attr('r', 3)
+          .attr('fill', palette.dot)
+          .attr('opacity', 0.8);
+
+        // Item node
+        const itemG = g.append('g')
+          .attr('transform', `translate(${itemCX},${itemY})`)
+          .style('cursor', 'pointer');
+
+        itemG.on('click', () => {
+          const nodeData: D3NodeData = {
+            name: item.name, type: 'item', description: item.description,
+            difficulty: item.difficulty, id: nodeId, stageIndex: si, itemIndex: ii,
+          };
+          setSelectedNode(nodeData);
+          setShowDetails(true);
+          setShowChatbot(true);
+          toggleCompletion(nodeId);
         });
-      });
 
-    // Auto-fit
+        itemG.append('rect')
+          .attr('x', -ITEM_W / 2).attr('y', -ITEM_H / 2)
+          .attr('width', ITEM_W).attr('height', ITEM_H)
+          .attr('rx', ITEM_R)
+          .attr('fill', done ? palette.doneFill : palette.itemFill)
+          .attr('stroke', done ? palette.doneStroke : palette.itemStroke)
+          .attr('stroke-width', 1.5)
+          .attr('filter', 'drop-shadow(0 1px 4px rgba(0,0,0,0.10))');
+
+        // Done badge
+        if (done) {
+          itemG.append('text')
+            .attr('x', -ITEM_W / 2 + 11).attr('y', 1)
+            .attr('dominant-baseline', 'middle')
+            .attr('font-size', '10px')
+            .attr('fill', palette.doneText)
+            .text('✓');
+        }
+
+        const itemTxt = itemG.append('text')
+          .attr('text-anchor', 'middle')
+          .attr('dominant-baseline', 'middle')
+          .attr('font-size', '11px')
+          .attr('font-weight', '500')
+          .attr('fill', done ? palette.doneText : palette.itemText)
+          .attr('pointer-events', 'none');
+
+        svgWrapText(itemTxt as any, item.name, ITEM_W - (done ? 32 : 20), 1.15, 2);
+
+        // Difficulty dot
+        const diffColor =
+          item.difficulty === 'Easy' ? '#22c55e' :
+          item.difficulty === 'Hard' ? '#ef4444' : '#f59e0b';
+        itemG.append('circle')
+          .attr('cx', ITEM_W / 2 - 10).attr('cy', 0)
+          .attr('r', 4)
+          .attr('fill', diffColor)
+          .attr('opacity', 0.8);
+      });
+    });
+
+    // ── Auto-fit ───────────────────────────────────────────────────────────
+    const containerEl = svgRef.current!.parentElement!;
+    const cW = containerEl.clientWidth  || 800;
+    const cH = containerEl.clientHeight || 600;
     const bounds = (g.node() as SVGGElement).getBBox();
-    const scale = Math.min(WIDTH / bounds.width, HEIGHT / bounds.height) * 0.75;
+    const scale  = Math.min(cW / (bounds.width + 80), cH / (bounds.height + 80)) * 0.9;
+    const tx = cW / 2 - (bounds.x + bounds.width  / 2) * scale;
+    const ty = cH / 2 - (bounds.y + bounds.height / 2) * scale;
     svg.call(
       zoom.transform as any,
-      d3.zoomIdentity
-        .translate(WIDTH / 2 - bounds.width * scale / 2, HEIGHT / 2 - bounds.height * scale / 2)
-        .scale(scale)
+      d3.zoomIdentity.translate(tx, ty).scale(scale),
     );
-  }, [roadmapData, completedItems, toggleCompletion]);
+  }, [roadmapData, completedItems, toggleCompletion, resolvedTheme]);
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const totalItems = roadmapData?.stages?.reduce((t, s) => t + s.items.length, 0) ?? 0;
@@ -630,40 +737,45 @@ export default function RoadmapPage() {
       </div>
 
       {/* Bottom Input Bar */}
-      <div className="shrink-0 border-t border-border/60 bg-card/80 backdrop-blur-sm px-4 py-3 z-20">
-        <div className="max-w-2xl mx-auto">
+      <div className="shrink-0 border-t bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+        <div className="max-w-3xl mx-auto p-4">
           {error && (
-            <div className="mb-2 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg text-xs text-destructive flex items-center gap-1.5">
+            <div className="mb-3 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg text-xs text-destructive flex items-center gap-1.5">
               <span>⚠</span> {error}
             </div>
           )}
-          <form onSubmit={handleSubmit} className="flex items-center gap-2">
-            {/* History toggle (mobile & as shortcut) */}
-            <Button
-              type="button"
-              variant={showHistoryPanel ? 'default' : 'outline'}
-              size="icon"
-              className="h-9 w-9 shrink-0"
-              onClick={() => setShowHistoryPanel((v) => !v)}
-              title="Toggle history"
-            >
-              <HistoryIcon className="h-4 w-4" />
-            </Button>
 
-            <div className="flex-1 relative">
-              <Input
+          <form onSubmit={handleSubmit}>
+            <div className="relative flex items-end gap-2 rounded-2xl border bg-background p-2">
+              {/* History toggle */}
+              <Button
+                type="button"
+                variant={showHistoryPanel ? 'default' : 'ghost'}
+                size="icon"
+                className="shrink-0 rounded-xl h-9 w-9 self-end"
+                onClick={() => setShowHistoryPanel((v) => !v)}
+                title="Toggle history"
+              >
+                <HistoryIcon className="h-4 w-4" />
+              </Button>
+
+              {/* Textarea */}
+              <Textarea
+                ref={textareaRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="Enter a learning topic (e.g. Data Structures, Python, DBMS)…"
+                className="min-h-11 max-h-[200px] flex-1 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
                 disabled={isLoading}
-                className="pr-10 text-sm"
               />
+
               {/* Voice button */}
               <button
                 type="button"
                 onClick={toggleVoice}
                 disabled={isLoading}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded transition-colors ${
+                className={`shrink-0 self-end mb-1 p-1.5 rounded-lg transition-colors ${
                   isListening
                     ? 'text-destructive animate-pulse'
                     : 'text-muted-foreground hover:text-foreground'
@@ -672,36 +784,44 @@ export default function RoadmapPage() {
               >
                 {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </button>
-            </div>
 
-            <Button type="submit" disabled={isLoading || !query.trim()} className="shrink-0">
-              {isLoading ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating…</>
-              ) : (
-                <><Send className="h-4 w-4 mr-2" />Generate</>
+              {/* Reset */}
+              {roadmapData && (
+                <button
+                  type="button"
+                  className="shrink-0 self-end mb-1 p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                  title="Reset roadmap"
+                  onClick={() => {
+                    setRoadmapData(null);
+                    setQuery('');
+                    setSelectedNode(null);
+                    setCompletedItems(new Set());
+                    setError(null);
+                    setThreadId(null);
+                  }}
+                >
+                  <RefreshCwIcon className="h-4 w-4" />
+                </button>
               )}
-            </Button>
 
-            {roadmapData && (
+              {/* Submit */}
               <Button
-                type="button"
-                variant="outline"
+                type="submit"
                 size="icon"
-                className="shrink-0 h-9 w-9"
-                title="Reset roadmap"
-                onClick={() => {
-                  setRoadmapData(null);
-                  setQuery('');
-                  setSelectedNode(null);
-                  setCompletedItems(new Set());
-                  setError(null);
-                  setThreadId(null);
-                }}
+                disabled={isLoading || !query.trim()}
+                className="shrink-0 rounded-xl self-end"
+                title="Generate roadmap"
               >
-                <RefreshCwIcon className="h-4 w-4" />
+                {isLoading
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Send className="h-4 w-4" />}
               </Button>
-            )}
+            </div>
           </form>
+
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Press Enter to generate · Shift+Enter for new line
+          </p>
         </div>
       </div>
     </div>
