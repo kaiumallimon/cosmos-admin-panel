@@ -42,9 +42,9 @@ export function useRoadmapD3({
     const STAGE_W      = 280;
     const STAGE_H      = 76;
     const STAGE_R      = 14;
-    const ITEM_W       = 252;
-    const ITEM_H       = 60;
-    const ITEM_R       = 12;
+    const ITEM_W       = 268;
+    const ITEM_H       = 70;
+    const ITEM_R       = 14;
     const ITEM_GAP_X   = 400;
     const ITEM_SPACING = 80;
     const STAGE_PAD    = 120;
@@ -100,6 +100,38 @@ export function useRoadmapD3({
     const doneShadow = defs.append('filter').attr('id', 'shade-done');
     doneShadow.append('feDropShadow').attr('dx', 0).attr('dy', 3).attr('stdDeviation', 7)
       .attr('flood-color', 'rgba(34,197,94,0.35)');
+
+    // Per-stage linear gradients (item + stage card)
+    stages.forEach((_, si) => {
+      const sc = STAGE_COLORS[si % STAGE_COLORS.length];
+      // Item gradient: accent tint on left → neutral on right
+      const ig = defs.append('linearGradient').attr('id', `item-grad-${si}`)
+        .attr('x1', '0%').attr('y1', '0%').attr('x2', '100%').attr('y2', '0%');
+      ig.append('stop').attr('offset', '0%')
+        .attr('stop-color', sc.accent).attr('stop-opacity', dark ? 0.28 : 0.16);
+      ig.append('stop').attr('offset', '42%')
+        .attr('stop-color', dark ? '#141414' : '#ffffff').attr('stop-opacity', 1);
+      ig.append('stop').attr('offset', '100%')
+        .attr('stop-color', dark ? '#141414' : '#ffffff').attr('stop-opacity', 1);
+      // Stage gradient
+      const sg = defs.append('linearGradient').attr('id', `stage-grad-${si}`)
+        .attr('x1', '0%').attr('y1', '0%').attr('x2', '100%').attr('y2', '0%');
+      sg.append('stop').attr('offset', '0%')
+        .attr('stop-color', sc.accent).attr('stop-opacity', dark ? 0.38 : 0.24);
+      sg.append('stop').attr('offset', '55%')
+        .attr('stop-color', sc.fill).attr('stop-opacity', 1);
+      sg.append('stop').attr('offset', '100%')
+        .attr('stop-color', sc.fill).attr('stop-opacity', 1);
+    });
+    // Done item gradient
+    const dg = defs.append('linearGradient').attr('id', 'done-grad')
+      .attr('x1', '0%').attr('y1', '0%').attr('x2', '100%').attr('y2', '0%');
+    dg.append('stop').attr('offset', '0%')
+      .attr('stop-color', '#22c55e').attr('stop-opacity', dark ? 0.30 : 0.18);
+    dg.append('stop').attr('offset', '45%')
+      .attr('stop-color', dark ? '#0a1a10' : '#f0fdf4').attr('stop-opacity', 1);
+    dg.append('stop').attr('offset', '100%')
+      .attr('stop-color', dark ? '#0a1a10' : '#f0fdf4').attr('stop-opacity', 1);
 
     // Dot-grid pattern
     const dotSpacing = 24;
@@ -180,12 +212,13 @@ export function useRoadmapD3({
       maxW: number,
       lineH: number,
       maxLines = 2,
+      xCenter = 0,
     ) {
       const words = text.split(/\s+/);
       let line: string[] = [];
       let lineNum = 0;
       el.text('');
-      let tspan = el.append('tspan').attr('x', 0).attr('dy', '0em');
+      let tspan = el.append('tspan').attr('x', xCenter).attr('dy', '0em');
       for (const word of words) {
         line.push(word);
         tspan.text(line.join(' '));
@@ -200,7 +233,7 @@ export function useRoadmapD3({
             if (t.length > 22) tspan.text(t.substring(0, 20) + '…');
             break;
           }
-          tspan = el.append('tspan').attr('x', 0).attr('dy', `${lineH}em`);
+          tspan = el.append('tspan').attr('x', xCenter).attr('dy', `${lineH}em`);
           tspan.text(word);
         }
       }
@@ -251,48 +284,44 @@ export function useRoadmapD3({
         .style('cursor', 'pointer')
         .attr('opacity', 0);
 
-      // Card body
+      // Card body — gradient fill, no header strip
       stageG.append('rect')
         .attr('x', -STAGE_W / 2).attr('y', -STAGE_H / 2)
         .attr('width', STAGE_W).attr('height', STAGE_H)
         .attr('rx', STAGE_R)
-        .attr('fill', sc.fill)
+        .attr('fill', `url(#stage-grad-${si})`)
         .attr('stroke', sc.stroke)
         .attr('stroke-width', 1.5)
         .attr('filter', `url(#shade-stage-${si})`);
 
-      // Colored header strip (top band)
-      const headerH = 24;
-      stageG.append('rect')
-        .attr('x', -STAGE_W / 2).attr('y', -STAGE_H / 2)
-        .attr('width', STAGE_W).attr('height', headerH)
-        .attr('rx', STAGE_R)
-        .attr('fill', sc.header);
-      // Cover bottom rounded corners of header strip
-      stageG.append('rect')
-        .attr('x', -STAGE_W / 2).attr('y', -STAGE_H / 2 + headerH - 4)
-        .attr('width', STAGE_W).attr('height', 4)
-        .attr('fill', sc.header);
-
-      // Stage number badge inside header
-      const badgeX  = -STAGE_W / 2 + 10;
-      const badgeY  = -STAGE_H / 2 + headerH / 2;
-      stageG.append('rect')
-        .attr('x', badgeX - 2).attr('y', badgeY - 8)
-        .attr('width', 40).attr('height', 16)
-        .attr('rx', 8)
-        .attr('fill', sc.accent)
-        .attr('opacity', 0.9);
+      // Stage number badge — floating above the card, centered on top edge
+      const bR = 16; // circle radius
+      const badgeOutY = -STAGE_H / 2; // sits centered on top border
+      // Badge shadow circle (glow ring)
+      stageG.append('circle')
+        .attr('cx', 0).attr('cy', badgeOutY)
+        .attr('r', bR + 4)
+        .attr('fill', sc.accent).attr('opacity', dark ? 0.18 : 0.12);
+      // Badge circle
+      stageG.append('circle')
+        .attr('cx', 0).attr('cy', badgeOutY)
+        .attr('r', bR)
+        .attr('fill', sc.accent);
+      // Inner highlight
+      stageG.append('circle')
+        .attr('cx', 0).attr('cy', badgeOutY)
+        .attr('r', bR - 5)
+        .attr('fill', 'rgba(255,255,255,0.20)');
+      // Number text
       stageG.append('text')
-        .attr('x', badgeX + 18).attr('y', badgeY)
+        .attr('x', 0).attr('y', badgeOutY + 0.5)
         .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
-        .attr('font-size', '9.5px').attr('font-weight', '700')
-        .attr('fill', '#fff').attr('letter-spacing', '0.5')
-        .attr('pointer-events', 'none')
-        .text(`STAGE ${si + 1}`);
+        .attr('font-size', '12px').attr('font-weight', '900')
+        .attr('fill', '#fff').attr('pointer-events', 'none')
+        .text(`${si + 1}`);
 
-      // Stage title text
-      const stageBodyCY = -STAGE_H / 2 + headerH + (STAGE_H - headerH) / 2;
+      // Stage title — truly centered in card
+      const stageBodyCY = 4;
       const stageTxt = stageG.append('text')
         .attr('text-anchor', 'middle')
         .attr('dominant-baseline', 'middle')
@@ -366,60 +395,65 @@ export function useRoadmapD3({
           .style('cursor', 'pointer')
           .attr('opacity', 0);
 
-        // Item card
+        // Item card — gradient fill
         itemG.append('rect')
           .attr('x', -ITEM_W / 2).attr('y', -ITEM_H / 2)
           .attr('width', ITEM_W).attr('height', ITEM_H)
           .attr('rx', ITEM_R)
-          .attr('fill', done ? (dark ? '#052e16' : '#f0fdf4') : (dark ? '#1a1a1a' : '#ffffff'))
+          .attr('fill', done ? 'url(#done-grad)' : `url(#item-grad-${si})`)
           .attr('stroke', done ? '#22c55e' : sc.stroke)
-          .attr('stroke-width', done ? 1.8 : 1.4)
+          .attr('stroke-width', done ? 2 : 1.5)
           .attr('filter', done ? 'url(#shade-done)' : 'url(#shade-item)');
 
-        // Left accent strip (stage color)
-        const accentW = 5;
-        itemG.append('rect')
-          .attr('x', -ITEM_W / 2).attr('y', -ITEM_H / 2)
-          .attr('width', accentW).attr('height', ITEM_H)
-          .attr('rx', ITEM_R)
-          .attr('fill', done ? '#22c55e' : sc.accent);
-        // Square off right side of left strip
-        itemG.append('rect')
-          .attr('x', -ITEM_W / 2 + accentW - 3).attr('y', -ITEM_H / 2)
-          .attr('width', 3).attr('height', ITEM_H)
-          .attr('fill', done ? '#22c55e' : sc.accent);
-
-        // Done checkmark
-        if (done) {
-          itemG.append('circle')
-            .attr('cx', -ITEM_W / 2 + 20).attr('cy', 0)
-            .attr('r', 9)
-            .attr('fill', '#22c55e').attr('opacity', 0.2);
-          itemG.append('text')
-            .attr('x', -ITEM_W / 2 + 20).attr('y', 0.5)
-            .attr('dominant-baseline', 'middle').attr('text-anchor', 'middle')
-            .attr('font-size', '11px').attr('fill', '#22c55e')
-            .text('✓');
-        }
+        // Left colored circle badge (number or checkmark)
+        const badgeCX = -ITEM_W / 2 + 24;
+        itemG.append('circle')
+          .attr('cx', badgeCX).attr('cy', 0)
+          .attr('r', 15)
+          .attr('fill', done ? '#22c55e' : sc.accent)
+          .attr('opacity', done ? 1 : 0.90);
+        // Inner circle for depth
+        itemG.append('circle')
+          .attr('cx', badgeCX).attr('cy', 0)
+          .attr('r', 10)
+          .attr('fill', 'rgba(255,255,255,0.18)');
+        itemG.append('text')
+          .attr('x', badgeCX).attr('y', 0.5)
+          .attr('dominant-baseline', 'middle').attr('text-anchor', 'middle')
+          .attr('font-size', '11px').attr('font-weight', '800')
+          .attr('fill', '#fff').attr('pointer-events', 'none')
+          .text(done ? '✓' : `${ii + 1}`);
 
         // Item title
-        const textX = done ? -ITEM_W / 2 + 38 : -ITEM_W / 2 + 18;
-        const textMaxW = ITEM_W - (done ? 70 : 44);
+        const textStartX = -ITEM_W / 2 + 24 + 15 + 10; // right of badge
+        const textEndX   = ITEM_W / 2 - 20;             // left of right pill
+        const textMaxW   = textEndX - textStartX;
+        const textMidX   = textStartX + textMaxW / 2;
         const itemTxt = itemG.append('text')
-          .attr('x', textX + textMaxW / 2).attr('y', 0)
+          .attr('x', textMidX).attr('y', 0)
           .attr('text-anchor', 'middle')
           .attr('dominant-baseline', 'middle')
           .attr('font-size', '11.5px').attr('font-weight', '600')
-          .attr('fill', done ? (dark ? '#86efac' : '#15803d') : (dark ? '#e5e5e5' : '#1c1917'))
+          .attr('fill', done ? (dark ? '#86efac' : '#15803d') : (dark ? '#e2e2e2' : '#1c1917'))
           .attr('pointer-events', 'none');
-        svgWrapText(itemTxt as any, item.name, textMaxW, 1.2, 2);
+        svgWrapText(itemTxt as any, item.name, textMaxW, 1.2, 2, textMidX);
 
-        // Right indicator dot
+        // Right status pill
+        const pillCX = ITEM_W / 2 - 16;
         itemG.append('circle')
-          .attr('cx', ITEM_W / 2 - 12).attr('cy', 0)
-          .attr('r', 5)
-          .attr('fill', done ? '#22c55e' : sc.accent)
-          .attr('opacity', done ? 0.9 : 0.7);
+          .attr('cx', pillCX).attr('cy', 0)
+          .attr('r', 7)
+          .attr('fill', done ? '#22c55e' : (dark ? '#2a2a2a' : sc.header))
+          .attr('stroke', done ? '#16a34a' : sc.accent)
+          .attr('stroke-width', 1.5)
+          .attr('opacity', 1);
+        if (done) {
+          itemG.append('text')
+            .attr('x', pillCX).attr('y', 0.5)
+            .attr('dominant-baseline', 'middle').attr('text-anchor', 'middle')
+            .attr('font-size', '8px').attr('fill', '#fff').attr('font-weight', '700')
+            .attr('pointer-events', 'none').text('✓');
+        }
 
         // Staggered fade-in
         itemG.transition().delay(itemDelay).duration(350).ease(d3.easeCubicOut).attr('opacity', 1);
