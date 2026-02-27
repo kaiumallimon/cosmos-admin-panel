@@ -5,9 +5,10 @@ import { User, logoutUser, AUTH_STORAGE_KEY } from '@/lib/auth-client';
 interface AuthState {
   user: User;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; role?: string }>;
   logout: () => Promise<void>;
   isAuthenticated: () => boolean;
+  isUserAuthenticated: () => boolean;
   initializeAuth: () => Promise<void>;
 }
 
@@ -21,12 +22,12 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: false,
       },
       isLoading: false,
-      
+
       login: async (email: string, password: string) => {
         try {
           set({ isLoading: true });
           console.log("Auth store: Starting MongoDB login process...");
-          
+
           const response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: {
@@ -34,24 +35,24 @@ export const useAuthStore = create<AuthState>()(
             },
             body: JSON.stringify({ email, password }),
           });
-          
+
           const result = await response.json();
-          
+
           if (response.ok && result.success && result.user) {
             console.log("Auth store: Login successful, setting user:", result.user);
-            
+
             // Update Zustand state
             set({ user: result.user, isLoading: false });
-            
+
             // Store auth data in localStorage for consistency
             localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: result.user }));
             console.log("Auth store: Stored in localStorage");
-            
+
             // Set session cookie for middleware access
             document.cookie = `auth-session=${JSON.stringify({ user: result.user })}; path=/; max-age=3600; SameSite=Lax`;
             console.log("Auth store: Set session cookie");
-            
-            return { success: true };
+
+            return { success: true, role: result.user.role };
           } else {
             console.log("Auth store: Login failed:", result.error);
             set({ isLoading: false });
@@ -63,23 +64,23 @@ export const useAuthStore = create<AuthState>()(
           return { success: false, error: 'An unexpected error occurred' };
         }
       },
-      
+
       logout: async () => {
         try {
           console.log("Auth store: Starting logout process...");
-          
+
           // Call logout API
           await fetch('/api/auth/logout', {
             method: 'POST',
           });
-          
+
           // Clear local state
           const user = logoutUser();
           set({ user, isLoading: false });
-          
+
           // Clear auth data from localStorage
           localStorage.removeItem(AUTH_STORAGE_KEY);
-          
+
           // Clear session cookie
           document.cookie = 'auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
           console.log("Auth store: Logout completed");
@@ -87,32 +88,38 @@ export const useAuthStore = create<AuthState>()(
           console.error('Auth store: Logout error:', error);
         }
       },
-      
+
       isAuthenticated: () => {
         const user = get().user;
         return user.isAuthenticated && user.role === 'admin';
       },
-      
+
+      isUserAuthenticated: () => {
+        const user = get().user;
+        return user.isAuthenticated && user.role === 'user';
+      },
+
+
       initializeAuth: async () => {
         try {
           console.log("Auth store: Initializing auth...");
-          
+
           const response = await fetch('/api/auth/me', {
             method: 'GET',
             credentials: 'include',
           });
-          
+
           if (response.ok) {
             const result = await response.json();
-            if (result.success && result.user && result.user.role === 'admin') {
-              console.log("Auth store: Found authenticated admin user:", result.user.email);
+            if (result.success && result.user) {
+              console.log("Auth store: Found authenticated user:", result.user.email, 'role:', result.user.role);
               set({ user: result.user });
-              
+
               // Update localStorage and cookie
               localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: result.user }));
               document.cookie = `auth-session=${JSON.stringify({ user: result.user })}; path=/; max-age=3600; SameSite=Lax`;
             } else {
-              console.log("Auth store: No authenticated admin user found");
+              console.log("Auth store: No authenticated user found");
               const user = logoutUser();
               set({ user });
             }
@@ -122,27 +129,27 @@ export const useAuthStore = create<AuthState>()(
               method: 'POST',
               credentials: 'include',
             });
-            
+
             if (refreshResponse.ok) {
               // Retry getting user after refresh
               const retryResponse = await fetch('/api/auth/me', {
                 method: 'GET',
                 credentials: 'include',
               });
-              
+
               if (retryResponse.ok) {
                 const retryResult = await retryResponse.json();
-                if (retryResult.success && retryResult.user && retryResult.user.role === 'admin') {
-                  console.log("Auth store: Found authenticated admin user after refresh:", retryResult.user.email);
+                if (retryResult.success && retryResult.user) {
+                  console.log("Auth store: Found authenticated user after refresh:", retryResult.user.email, 'role:', retryResult.user.role);
                   set({ user: retryResult.user });
-                  
+
                   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: retryResult.user }));
                   document.cookie = `auth-session=${JSON.stringify({ user: retryResult.user })}; path=/; max-age=3600; SameSite=Lax`;
                   return;
                 }
               }
             }
-            
+
             console.log("Auth store: No authenticated admin user found");
             const user = logoutUser();
             set({ user });

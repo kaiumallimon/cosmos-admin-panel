@@ -17,19 +17,22 @@ export default function LoginPage() {
 
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated); 
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isUserAuthenticated = useAuthStore((state) => state.isUserAuthenticated);
 
   // Redirect to dashboard if already authenticated
   useEffect(() => {
     try {
       if (isAuthenticated()) {
         router.push('/dashboard');
+      } else if (isUserAuthenticated()) {
+        router.push('/user');
       }
     } catch (e) {
       // swallow errors during initial render/hydration
       console.warn('Auth redirect check failed', e);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isUserAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +48,11 @@ export default function LoginPage() {
 
       if (result.success) {
         toast.success("Login successful!");
-        router.push('/dashboard');
+        if (result.role === 'admin') {
+          router.push('/dashboard');
+        } else {
+          router.push('/user');
+        }
       } else {
         toast.error("Login failed. " + result.error);
       }
@@ -81,7 +88,7 @@ export default function LoginPage() {
               COSMOS-ITS
             </Link>
             <h3 className="text-md mb-6 text-center text-gray-500">
-              Sign in with your administrator info
+              Sign in to your account
             </h3>
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div>

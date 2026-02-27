@@ -25,13 +25,13 @@ export function withAuth<T = any>(
     const startTime = Date.now();
     let response: Response;
     let logData: any = {};
-    
+
     try {
       // Get access token
       const cookieHeader = request.headers.get('cookie');
       const cookies = parseCookies(cookieHeader || '');
       const accessToken = cookies[ACCESS_TOKEN_COOKIE] || cookies['token'];
-      
+
       if (!accessToken) {
         return NextResponse.json({ error: 'Access token required' }, { status: 401 });
       }
@@ -49,7 +49,7 @@ export function withAuth<T = any>(
       // Prepare logging data if this is a logged operation
       const method = request.method as 'POST' | 'PUT' | 'DELETE';
       const shouldLog = ['POST', 'PUT', 'DELETE'].includes(method);
-      
+
       if (shouldLog) {
         const url = new URL(request.url);
         logData = {
@@ -57,7 +57,7 @@ export function withAuth<T = any>(
           endpoint: url.pathname,
           ...extractRequestMetadata(request)
         };
-        
+
         // Capture request data for logging (if applicable)
         try {
           if (request.headers.get('content-type')?.includes('application/json')) {
@@ -70,14 +70,14 @@ export function withAuth<T = any>(
       }
 
       // Execute the handler
-      response = context !== undefined 
+      response = context !== undefined
         ? await (handler as TwoParamHandler)(authenticatedRequest, context)
         : await (handler as SingleParamHandler)(authenticatedRequest);
-      
+
       // Log successful operations
       if (shouldLog && response.status >= 200 && response.status < 400) {
         const duration = Date.now() - startTime;
-        
+
         // Try to get response data for logging
         let responseData: any = null;
         try {
@@ -88,10 +88,10 @@ export function withAuth<T = any>(
         } catch (e) {
           // Skip if can't parse response
         }
-        
+
         // Extract resource ID from URL or response
         const resourceId = extractResourceId(logData.endpoint, responseData);
-        
+
         await SystemLogService.logAction(user, method, logData.endpoint, {
           resource_id: resourceId,
           request_data: logData.request_data,
@@ -105,16 +105,16 @@ export function withAuth<T = any>(
       }
 
       return response;
-      
+
     } catch (error: any) {
       console.error('API middleware error:', error);
-      
+
       const duration = Date.now() - startTime;
       const errorResponse = NextResponse.json(
-        { error: error.message || 'Internal server error' }, 
+        { error: error.message || 'Internal server error' },
         { status: error.status || 500 }
       );
-      
+
       // Log failed operations
       if (logData.method && ['POST', 'PUT', 'DELETE'].includes(logData.method)) {
         try {
@@ -122,7 +122,7 @@ export function withAuth<T = any>(
           const cookieHeader = request.headers.get('cookie');
           const cookies = parseCookies(cookieHeader || '');
           const accessToken = cookies[ACCESS_TOKEN_COOKIE] || cookies['token'];
-          
+
           if (accessToken) {
             const user = await getCurrentUser(accessToken);
             if (user) {
@@ -141,8 +141,42 @@ export function withAuth<T = any>(
           console.error('Failed to log error:', logError);
         }
       }
-      
+
       return errorResponse;
+    }
+  };
+}
+
+// withAuthAny: like withAuth but accepts any authenticated role (admin OR user)
+export function withAuthAny<T = any>(
+  handler: SingleParamHandler | TwoParamHandler<T>
+) {
+  return async (request: Request, context?: T) => {
+    try {
+      const cookieHeader = request.headers.get('cookie');
+      const cookies = parseCookies(cookieHeader || '');
+      const accessToken = cookies[ACCESS_TOKEN_COOKIE] || cookies['token'];
+
+      if (!accessToken) {
+        return NextResponse.json({ error: 'Access token required' }, { status: 401 });
+      }
+
+      const user = await getCurrentUser(accessToken);
+      if (!user) {
+        return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+      }
+
+      const authenticatedRequest = request as AuthenticatedRequest;
+      authenticatedRequest.user = user;
+
+      const response = context !== undefined
+        ? await (handler as TwoParamHandler)(authenticatedRequest, context)
+        : await (handler as SingleParamHandler)(authenticatedRequest);
+
+      return response;
+    } catch (error: any) {
+      console.error('Auth middleware error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
   };
 }
@@ -151,14 +185,14 @@ export function withAuth<T = any>(
 function parseCookies(cookieHeader: string): Record<string, string> {
   const cookies: Record<string, string> = {};
   if (!cookieHeader) return cookies;
-  
+
   cookieHeader.split(';').forEach(cookie => {
     const [name, value] = cookie.trim().split('=');
     if (name && value) {
       cookies[name] = decodeURIComponent(value);
     }
   });
-  
+
   return cookies;
 }
 
@@ -167,7 +201,7 @@ function extractResourceId(endpoint: string, responseData: any): string | undefi
   // Try to extract ID from URL path (e.g., /api/users/123 -> 123)
   const pathParts = endpoint.split('/');
   const lastPart = pathParts[pathParts.length - 1];
-  
+
   // Check if last part looks like an ID (UUID, number, or alphanumeric)
   if (lastPart && (
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lastPart) || // UUID
@@ -176,12 +210,12 @@ function extractResourceId(endpoint: string, responseData: any): string | undefi
   )) {
     return lastPart;
   }
-  
+
   // Try to extract from response data
   if (responseData?.data?.id) return responseData.data.id;
   if (responseData?.id) return responseData.id;
   if (responseData?.data?._id) return responseData.data._id?.toString();
   if (responseData?._id) return responseData._id?.toString();
-  
+
   return undefined;
 }

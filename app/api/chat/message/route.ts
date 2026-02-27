@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware-with-logging';
+import { withAuthAny, AuthenticatedRequest } from '@/lib/api-middleware-with-logging';
 
 const SERVER_BASE_URL = process.env.SERVER_BASE_URL;
 
@@ -99,4 +99,4 @@ function parseCookies(cookieHeader: string): Record<string, string> {
   return cookies;
 }
 
-export const POST = withAuth(postHandler);
+export const POST = withAuthAny(postHandler);

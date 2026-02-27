@@ -142,3 +142,9 @@
     display: none;  /* Safari and Chrome */
   }
 }
+
+/* ── User panel: iOS blue primary ── */
+[data-user-panel] {
+  --primary: #007AFF;
+  --primary-foreground: #ffffff;
+}

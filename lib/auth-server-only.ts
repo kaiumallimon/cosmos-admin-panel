@@ -121,15 +121,15 @@ export function verifyRefreshToken(token: string): TokenPayload | null {
 // Database operations (Server-side only)
 export async function createAccount(email: string, password: string, role: 'admin' | 'user' = 'user'): Promise<Account> {
   const accountsCollection = await getCollection<Account>('accounts');
-  
+
   // Check if user already exists (case-insensitive)
-  const existingAccount = await accountsCollection.findOne({ 
-    email: { $regex: new RegExp(`^${email}$`, 'i') } 
+  const existingAccount = await accountsCollection.findOne({
+    email: { $regex: new RegExp(`^${email}$`, 'i') }
   });
   if (existingAccount) {
     throw new Error('Account with this email already exists');
   }
-  
+
   const hashedPassword = await hashPassword(password);
   const account: Account = {
     id: uuidv4(),
@@ -139,15 +139,15 @@ export async function createAccount(email: string, password: string, role: 'admi
     created_at: new Date(),
     updated_at: new Date(),
   };
-  
+
   await accountsCollection.insertOne(account);
   return account;
 }
 
 export async function findAccountByEmail(email: string): Promise<Account | null> {
   const accountsCollection = await getCollection<Account>('accounts');
-  return accountsCollection.findOne({ 
-    email: { $regex: new RegExp(`^${email}$`, 'i') } 
+  return accountsCollection.findOne({
+    email: { $regex: new RegExp(`^${email}$`, 'i') }
   });
 }
 
@@ -158,10 +158,10 @@ export async function findAccountById(id: string): Promise<Account | null> {
 
 export async function storeRefreshToken(userId: string, token: string): Promise<void> {
   const refreshTokensCollection = await getCollection<RefreshToken>('refresh_tokens');
-  
+
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
-  
+
   const refreshToken: RefreshToken = {
     userId,
     token,
@@ -169,14 +169,14 @@ export async function storeRefreshToken(userId: string, token: string): Promise<
     expires_at: expiresAt,
     is_revoked: false,
   };
-  
+
   await refreshTokensCollection.insertOne(refreshToken);
 }
 
 export async function findRefreshToken(token: string): Promise<RefreshToken | null> {
   const refreshTokensCollection = await getCollection<RefreshToken>('refresh_tokens');
-  return refreshTokensCollection.findOne({ 
-    token, 
+  return refreshTokensCollection.findOne({
+    token,
     is_revoked: false,
     expires_at: { $gt: new Date() }
   });
@@ -207,40 +207,34 @@ export async function signInWithEmail(email: string, password: string): Promise<
 }> {
   try {
     console.log("Auth: Attempting MongoDB sign in...");
-    
+
     // Find account by email
     const account = await findAccountByEmail(email);
     if (!account) {
       console.error("Auth: Account not found");
       return { success: false, error: 'Invalid email or password' };
     }
-    
+
     // Verify password
     const isPasswordValid = await verifyPassword(password, account.password);
     if (!isPasswordValid) {
       console.error("Auth: Invalid password");
       return { success: false, error: 'Invalid email or password' };
     }
-    
-    // Only allow admin users to login
-    if (account.role !== 'admin') {
-      console.error("Auth: User is not admin, access restricted");
-      return { success: false, error: 'Access restricted - admin privileges required' };
-    }
-    
+
     // Generate tokens
     const tokenPayload = {
       userId: account.id,
       email: account.email,
       role: account.role,
     };
-    
+
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
-    
+
     // Store refresh token in database
     await storeRefreshToken(account.id, refreshToken);
-    
+
     // Fetch profile data (if exists)
     let profileData: Profile | undefined;
     try {
@@ -249,7 +243,7 @@ export async function signInWithEmail(email: string, password: string): Promise<
     } catch (error) {
       console.error("Auth: Profile fetch error:", error);
     }
-    
+
     const user: User = {
       id: account.id,
       email: account.email,
@@ -257,12 +251,12 @@ export async function signInWithEmail(email: string, password: string): Promise<
       isAuthenticated: true,
       profile: profileData,
     };
-    
+
     const tokens: AuthTokens = {
       accessToken,
       refreshToken,
     };
-    
+
     console.log("Auth: Login successful for admin user:", user.email);
     return { success: true, user, tokens };
   } catch (error) {
@@ -282,38 +276,38 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
     if (!payload) {
       return { success: false, error: 'Invalid refresh token' };
     }
-    
+
     // Check if refresh token exists in database
     const storedToken = await findRefreshToken(refreshToken);
     if (!storedToken) {
       return { success: false, error: 'Refresh token not found or expired' };
     }
-    
+
     // Get account
     const account = await findAccountById(payload.userId);
     if (!account || account.role !== 'admin') {
       return { success: false, error: 'Account not found or access restricted' };
     }
-    
+
     // Generate new tokens
     const tokenPayload = {
       userId: account.id,
       email: account.email,
       role: account.role,
     };
-    
+
     const newAccessToken = generateAccessToken(tokenPayload);
     const newRefreshToken = generateRefreshToken(tokenPayload);
-    
+
     // Revoke old refresh token and store new one
     await revokeRefreshToken(refreshToken);
     await storeRefreshToken(account.id, newRefreshToken);
-    
+
     const tokens: AuthTokens = {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
     };
-    
+
     return { success: true, tokens };
   } catch (error) {
     console.error("Auth: Error refreshing token:", error);
@@ -336,19 +330,19 @@ export const getCurrentUser = async (accessToken: string): Promise<User | null> 
     if (!accessToken) {
       return null;
     }
-    
+
     // Verify access token
     const payload = verifyAccessToken(accessToken);
     if (!payload) {
       return null;
     }
-    
+
     // Get account
     const account = await findAccountById(payload.userId);
     if (!account) {
       return null;
     }
-    
+
     // Fetch profile data
     let profileData: Profile | undefined;
     try {
@@ -357,7 +351,7 @@ export const getCurrentUser = async (accessToken: string): Promise<User | null> 
     } catch (error) {
       console.error("Auth: Profile fetch error:", error);
     }
-    
+
     return {
       id: account.id,
       email: account.email,
