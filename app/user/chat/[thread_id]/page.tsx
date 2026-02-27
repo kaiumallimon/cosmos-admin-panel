@@ -18,7 +18,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { ArrowRight, Bot, FileText, X, Copy, Check } from "lucide-react";
+import { ArrowRight, Bot, FileText, X, Copy, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -282,7 +282,15 @@ export default function UserChatThreadPage() {
                 ))}
                 {sending && (
                   <div className="flex justify-start mb-6">
-                    <div className="max-w-[85%]"><LoadingSkeleton /></div>
+                    <div className="flex gap-3 items-center">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Bot className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Thinking...</span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </>
