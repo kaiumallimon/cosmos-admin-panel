@@ -102,6 +102,15 @@ const markdownComponents = {
   p({ children, ...props }: any) {
     return <p className="my-2" {...props}>{children}</p>;
   },
+  hr() {
+    return (
+      <div className="my-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-linear-to-r from-transparent via-border to-transparent" />
+        <div className="h-1.5 w-1.5 rounded-full bg-border" />
+        <div className="h-px flex-1 bg-linear-to-l from-transparent via-border to-transparent" />
+      </div>
+    );
+  },
 };
 
 export default function ChatPage() {
