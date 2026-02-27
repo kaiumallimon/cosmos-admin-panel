@@ -25,7 +25,7 @@ export function RoadmapTopNav({
   roadmapId, onNew,
 }: RoadmapTopNavProps) {
   return (
-    <div className="shrink-0 border-b border-border/50 bg-card/95 backdrop-blur-md px-3 sm:px-4 h-13 flex items-center justify-between z-20 shadow-sm">
+    <div className="shrink-0 border-b  bg-card/95 backdrop-blur-md px-3 sm:px-4 h-16 flex items-center justify-between z-20 ">
 
       {/* ── Left: back + brand ─────────────────────────────────── */}
       <div className="flex items-center gap-2 min-w-0">
