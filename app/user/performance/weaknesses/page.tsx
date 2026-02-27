@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
+import { FrostedHeader } from '@/components/custom/frosted-header';
+import { useMobileMenu } from '@/components/mobile-menu-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,6 +46,7 @@ interface Weakness {
 
 export default function WeaknessesPage() {
   const { user } = useAuthStore();
+  const { toggleMobileMenu } = useMobileMenu();
   const studentId = user.profile?.id;
   const trimester = user.profile?.current_trimester ?? '';
 
@@ -153,7 +156,9 @@ export default function WeaknessesPage() {
   });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex flex-col h-full">
+      <FrostedHeader title="Weaknesses" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h2 className="text-xl font-bold">Weaknesses</h2>
@@ -298,6 +303,7 @@ export default function WeaknessesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
+import { FrostedHeader } from '@/components/custom/frosted-header';
+import { useMobileMenu } from '@/components/mobile-menu-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -57,6 +59,7 @@ const EMPTY_COURSE: CourseInput = {
 
 export default function PredictPage() {
   const { user } = useAuthStore();
+  const { toggleMobileMenu } = useMobileMenu();
   const studentId = user.profile?.id;
   const trimester = user.profile?.current_trimester;
   const cgpa = user.profile?.cgpa;
@@ -173,7 +176,9 @@ export default function PredictPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex flex-col h-full">
+      <FrostedHeader title="Grade Prediction" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-xl font-bold">Grade Prediction</h2>
         {result && (
@@ -445,6 +450,7 @@ export default function PredictPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

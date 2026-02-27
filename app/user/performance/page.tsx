@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
+import { FrostedHeader } from '@/components/custom/frosted-header';
+import { useMobileMenu } from '@/components/mobile-menu-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,6 +41,7 @@ interface Weakness {
 
 export default function PerformanceOverviewPage() {
   const { user } = useAuthStore();
+  const { toggleMobileMenu } = useMobileMenu();
   const studentId = user.profile?.id;
   const trimester = user.profile?.current_trimester;
   const cgpa = user.profile?.cgpa;
@@ -129,7 +132,9 @@ export default function PerformanceOverviewPage() {
   ];
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="flex flex-col h-full">
+      <FrostedHeader title="Performance Overview" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-8">
       {/* Welcome Banner */}
       <div className="rounded-2xl bg-[#007AFF] text-white p-6 shadow-md">
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -240,6 +245,7 @@ export default function PerformanceOverviewPage() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }

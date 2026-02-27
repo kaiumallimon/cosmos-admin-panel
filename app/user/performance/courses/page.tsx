@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
+import { FrostedHeader } from '@/components/custom/frosted-header';
+import { useMobileMenu } from '@/components/mobile-menu-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,9 +18,9 @@ import { BookOpenIcon, PlusIcon, Trash2Icon, RefreshCwIcon } from 'lucide-react'
 
 interface AvailableCourse {
   id: string;
-  course_name: string;
-  course_code: string;
-  credits?: number;
+  title: string;
+  code: string;
+  credit?: number;
 }
 
 interface EnrolledCourse {
@@ -32,6 +34,7 @@ interface EnrolledCourse {
 
 export default function MyCoursesPage() {
   const { user } = useAuthStore();
+  const { toggleMobileMenu } = useMobileMenu();
   const studentId = user.profile?.id;
   const trimester = user.profile?.current_trimester ?? '';
 
@@ -100,7 +103,9 @@ export default function MyCoursesPage() {
   const unenrolledCourses = available.filter((c) => !enrolledCourseIds.has(c.id));
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex flex-col h-full">
+      <FrostedHeader title="My Courses" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
       {/* Header Row */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
@@ -198,8 +203,8 @@ export default function MyCoursesPage() {
                   className="flex items-center justify-between gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{course.course_name}</p>
-                    <p className="text-xs text-muted-foreground">{course.course_code}</p>
+                    <p className="text-sm font-medium truncate">{course.title}</p>
+                    <p className="text-xs text-muted-foreground">{course.code}</p>
                   </div>
                   <Button
                     size="sm"
@@ -220,6 +225,7 @@ export default function MyCoursesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

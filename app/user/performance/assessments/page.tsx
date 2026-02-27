@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
+import { FrostedHeader } from '@/components/custom/frosted-header';
+import { useMobileMenu } from '@/components/mobile-menu-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,6 +54,7 @@ const DEFAULT_FORM = { course_id: '', assessment_type: 'ct' as AssessmentType, s
 
 export default function AssessmentsPage() {
   const { user } = useAuthStore();
+  const { toggleMobileMenu } = useMobileMenu();
   const studentId = user.profile?.id;
   const trimester = user.profile?.current_trimester ?? '';
 
@@ -152,7 +155,9 @@ export default function AssessmentsPage() {
   const courseMap = Object.fromEntries(courses.map((c) => [c.id, c]));
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex flex-col h-full">
+      <FrostedHeader title="Assessments" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h2 className="text-xl font-bold">Assessments</h2>
@@ -338,6 +343,7 @@ export default function AssessmentsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
