@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Lock, Loader2, Mic, MicOff, RefreshCwIcon, Send } from 'lucide-react';
+import { AlertTriangle, Lock, Loader2, RefreshCwIcon, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { motion, AnimatePresence } from 'motion/react';
@@ -12,18 +12,15 @@ interface RoadmapInputBarProps {
   isLoading: boolean;
   error: string | null;
   roadmapData: RoadmapData | null;
-  isListening: boolean;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   handleSubmit: (e: React.FormEvent) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  toggleVoice: () => void;
   onReset: () => void;
 }
 
 export function RoadmapInputBar({
   query, setQuery, isLoading, error, roadmapData,
-  isListening, textareaRef, handleSubmit, handleKeyDown,
-  toggleVoice, onReset,
+  textareaRef, handleSubmit, handleKeyDown, onReset,
 }: RoadmapInputBarProps) {
   const isLocked = !!roadmapData;
 
@@ -73,7 +70,9 @@ export function RoadmapInputBar({
 
         <form onSubmit={handleSubmit}>
           <div className={`relative flex items-end gap-2 rounded-2xl border bg-background p-2 transition-colors duration-200 ${
-            isLocked ? 'opacity-60 border-border/40 bg-muted/30 pointer-events-none select-none' : 'border-border hover:border-primary/40 focus-within:border-primary/60'
+            isLocked
+              ? 'opacity-60 border-border/40 bg-muted/30 pointer-events-none select-none'
+              : 'border-border hover:border-primary/40 focus-within:border-primary/60'
           }`}>
             <Textarea
               ref={textareaRef}
@@ -85,22 +84,6 @@ export function RoadmapInputBar({
               disabled={isLoading || isLocked}
               tabIndex={isLocked ? -1 : 0}
             />
-
-            {/* Voice */}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={toggleVoice}
-              disabled={isLoading || isLocked}
-              tabIndex={isLocked ? -1 : 0}
-              className={`shrink-0 self-end mb-1 h-8 w-8 ${
-                isListening ? 'text-destructive animate-pulse' : 'text-muted-foreground hover:text-foreground'
-              }`}
-              title={isListening ? 'Stop listening' : 'Voice input'}
-            >
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </Button>
 
             {/* Submit */}
             <Button

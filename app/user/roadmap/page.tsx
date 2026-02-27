@@ -51,10 +51,6 @@ export default function RoadmapPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
 
-  // ── Voice ──────────────────────────────────────────────────────────────────
-  const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<any>(null);
-
   // ── URL sync helpers ───────────────────────────────────────────────────────
   const pushRoadmapId = useCallback((id: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -107,19 +103,8 @@ export default function RoadmapPage() {
     if (idFromUrl) loadRoadmapById(idFromUrl);
   }, [searchParams, loadRoadmapById]);
 
-  // ── Init speech recognition + fetch history on mount ──────────────────────
+  // ── Fetch history on mount ─────────────────────────────────────────────
   useEffect(() => {
-    if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-      const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const r = new SR();
-      r.continuous = false;
-      r.interimResults = false;
-      r.lang = 'en-US';
-      r.onresult = (e: any) => { setQuery(e.results[0][0].transcript); setIsListening(false); };
-      r.onerror = () => { setIsListening(false); setError('Speech recognition failed.'); };
-      r.onend = () => setIsListening(false);
-      setRecognition(r);
-    }
     fetchChatHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -227,12 +212,6 @@ export default function RoadmapPage() {
       e.preventDefault();
       if (!isLoading && query.trim()) generateRoadmap();
     }
-  };
-
-  const toggleVoice = () => {
-    if (!recognition) { setError('Speech recognition not supported.'); return; }
-    if (isListening) { recognition.stop(); setIsListening(false); }
-    else { setError(null); recognition.start(); setIsListening(true); }
   };
 
   const handleReset = () => {
@@ -389,11 +368,9 @@ export default function RoadmapPage() {
         isLoading={isLoading}
         error={error}
         roadmapData={roadmapData}
-        isListening={isListening}
         textareaRef={textareaRef}
         handleSubmit={handleSubmit}
         handleKeyDown={handleKeyDown}
-        toggleVoice={toggleVoice}
         onReset={handleReset}
       />
     </div>
