@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { FrostedHeader } from '@/components/custom/frosted-header';
 import { StatsCard } from '@/components/dashboard/stats-card';
@@ -44,6 +45,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -55,6 +57,7 @@ import {
   MoreHorizontal,
   Search,
   X,
+  ClipboardListIcon,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -121,6 +124,7 @@ export default function MyCoursesPage() {
   const [latestTrimester, setLatestTrimester] = useState<TrimesterOption | null>(null);
   const [viewTrimester, setViewTrimester] = useState<string>(profileTrimester);
   const [searchInput, setSearchInput] = useState('');
+  const router = useRouter();
 
   // ─── Data fetching ──────────────────────────────────────────────────────────
 
@@ -444,7 +448,13 @@ export default function MyCoursesPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredEnrolled.map((course) => (
-                      <TableRow key={course.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
+                      <TableRow
+                        key={course.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors cursor-pointer"
+                        onClick={() => router.push(
+                          `/user/performance/courses/${course.course_id}?enrollment_id=${encodeURIComponent(course.id)}&name=${encodeURIComponent(course.course_name)}&code=${encodeURIComponent(course.course_code)}`
+                        )}
+                      >
                         <TableCell className="py-4">
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
@@ -480,6 +490,15 @@ export default function MyCoursesPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem
+                                onClick={() => router.push(
+                                  `/user/performance/courses/${course.course_id}?enrollment_id=${encodeURIComponent(course.id)}&name=${encodeURIComponent(course.course_name)}&code=${encodeURIComponent(course.course_code)}`
+                                )}
+                              >
+                                <ClipboardListIcon className="mr-2 h-4 w-4" />
+                                Assessments
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() => handleUnenroll(course.course_id)}
                                 disabled={unenrolling === course.course_id}

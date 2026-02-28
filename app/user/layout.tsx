@@ -160,7 +160,6 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           {([
             { href: '/user/performance', label: 'Overview', icon: TrendingUpIcon, exact: true },
             { href: '/user/performance/courses', label: 'My Courses', icon: BookOpenIcon, exact: false },
-            { href: '/user/performance/assessments', label: 'Assessments', icon: ClipboardListIcon, exact: false },
             { href: '/user/performance/weaknesses', label: 'Weaknesses', icon: AlertTriangleIcon, exact: false },
             { href: '/user/performance/quiz', label: 'Quiz', icon: BrainCircuitIcon, exact: false },
             { href: '/user/performance/predict', label: 'Grade Prediction', icon: SparklesIcon, exact: false },
