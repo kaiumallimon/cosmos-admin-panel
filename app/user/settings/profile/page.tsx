@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { FrostedHeader } from '@/components/custom/frosted-header';
 import { useMobileMenu } from '@/components/mobile-menu-context';
@@ -32,6 +32,8 @@ import {
   HashIcon,
   BookOpenIcon,
   PencilIcon,
+  CameraIcon,
+  LoaderIcon,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -53,36 +55,21 @@ interface ProfileData {
   avatar_url?: string;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Password input helper ────────────────────────────────────────────────────
 
 function PasswordInput({
-  id,
-  placeholder,
-  value,
-  onChange,
+  id, placeholder, value, onChange,
 }: {
-  id: string;
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
+  id: string; placeholder: string; value: string; onChange: (v: string) => void;
 }) {
   const [show, setShow] = useState(false);
   return (
     <div className="relative">
       <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-      <Input
-        id={id}
-        type={show ? 'text' : 'password'}
-        className="pl-9 pr-10 h-10"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <button
-        type="button"
-        onClick={() => setShow((v) => !v)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-      >
+      <Input id={id} type={show ? 'text' : 'password'} className="pl-9 pr-10 h-10"
+        placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+      <button type="button" onClick={() => setShow(v => !v)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
         {show ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
       </button>
     </div>
@@ -110,6 +97,11 @@ export default function ProfileSettingsPage() {
   const [program, setProgram] = useState('');
 
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // ── Avatar upload ───────────────────────────────────────────────────────────
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // ── Password fields ─────────────────────────────────────────────────────────
   const [currentPw, setCurrentPw] = useState('');
@@ -140,7 +132,47 @@ export default function ProfileSettingsPage() {
     })();
   }, []);
 
-  // ── Save profile ────────────────────────────────────────────────────────────
+  // ── Avatar upload handler ───────────────────────────────────────────────────
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show local preview immediately
+    const objectUrl = URL.createObjectURL(file);
+    setAvatarPreview(objectUrl);
+
+    setUploadingAvatar(true);
+    try {
+      // 1. Upload to CDN
+      const fd = new FormData();
+      fd.append('file', file);
+      const uploadRes = await fetch('/api/cdn/upload', { method: 'POST', body: fd });
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok || !uploadData.url) throw new Error(uploadData.error || 'Upload failed');
+
+      // 2. Save URL to profile
+      const patchRes = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url: uploadData.url }),
+      });
+      const patchData = await patchRes.json();
+      if (!patchRes.ok) throw new Error(patchData.error || 'Failed to save avatar');
+
+      setProfile(patchData.profile);
+      toast.success('Avatar updated');
+      await initializeAuth();
+    } catch (err: unknown) {
+      setAvatarPreview(null); // revert preview
+      toast.error(err instanceof Error ? err.message : 'Avatar upload failed');
+    } finally {
+      setUploadingAvatar(false);
+      // reset input so same file can be re-selected
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
+
+  // ── Save personal / academic info ───────────────────────────────────────────
   const handleSaveProfile = async () => {
     if (!fullName.trim() || fullName.trim().length < 2) {
       toast.error('Full name must be at least 2 characters');
@@ -148,11 +180,7 @@ export default function ProfileSettingsPage() {
     }
     setSavingProfile(true);
     try {
-      const body: Record<string, string> = {
-        full_name: fullName.trim(),
-        phone,
-        gender,
-      };
+      const body: Record<string, string> = { full_name: fullName.trim(), phone, gender };
       if (!profile?.student_id && studentId) body.student_id = studentId;
       if (!profile?.department && department) body.department = department;
       if (!profile?.batch && batch) body.batch = batch;
@@ -177,18 +205,9 @@ export default function ProfileSettingsPage() {
 
   // ── Change password ─────────────────────────────────────────────────────────
   const handleChangePassword = async () => {
-    if (!currentPw || !newPw || !confirmPw) {
-      toast.error('Please fill in all password fields');
-      return;
-    }
-    if (newPw.length < 6) {
-      toast.error('New password must be at least 6 characters');
-      return;
-    }
-    if (newPw !== confirmPw) {
-      toast.error('Passwords do not match');
-      return;
-    }
+    if (!currentPw || !newPw || !confirmPw) { toast.error('Please fill in all password fields'); return; }
+    if (newPw.length < 6) { toast.error('New password must be at least 6 characters'); return; }
+    if (newPw !== confirmPw) { toast.error('Passwords do not match'); return; }
     setSavingPw(true);
     try {
       const res = await fetch('/api/user/profile/password', {
@@ -199,9 +218,7 @@ export default function ProfileSettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Password change failed');
       toast.success('Password changed successfully');
-      setCurrentPw('');
-      setNewPw('');
-      setConfirmPw('');
+      setCurrentPw(''); setNewPw(''); setConfirmPw('');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to change password');
     } finally {
@@ -219,6 +236,7 @@ export default function ProfileSettingsPage() {
       (!profile.batch && !!batch) ||
       (!profile.program && !!program));
 
+  const displayAvatar = avatarPreview || profile?.avatar_url;
   const initials = (profile?.full_name || profile?.email || 'U').charAt(0).toUpperCase();
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -231,38 +249,81 @@ export default function ProfileSettingsPage() {
         showSearch={false}
       />
 
-      <div className="flex-1 p-4 md:p-6 space-y-6 max-w-5xl">
+      <div className="flex-1 p-4 md:p-6 space-y-6">
 
-        {/* ── Avatar banner ── */}
-        {loading ? (
-          <div className="flex items-center gap-4 p-4 rounded-xl border border-border/60 bg-card">
-            <Skeleton className="h-16 w-16 rounded-full shrink-0" />
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-4 w-56" />
-              <Skeleton className="h-5 w-16 rounded-full" />
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-4 p-4 rounded-xl border border-border/60 bg-card">
-            {profile?.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt="Avatar"
-                className="h-16 w-16 rounded-full object-cover ring-2 ring-primary/30 shrink-0"
-              />
-            ) : (
-              <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-2xl font-bold ring-2 ring-primary/30 shrink-0">
-                {initials}
+        {/* ── Hero / Avatar banner ── */}
+        <Card className="p-0 border-border/60 overflow-hidden">
+          {/* Gradient strip */}
+
+          <CardContent className="px-6 py-6">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4 ">
+
+              {/* Avatar with upload overlay */}
+              <div className="relative shrink-0 group">
+                {loading ? (
+                  <Skeleton className="h-20 w-20 rounded-full ring-4 ring-background" />
+                ) : displayAvatar ? (
+                  <img
+                    src={displayAvatar}
+                    alt="Avatar"
+                    className="h-20 w-20 rounded-full object-cover ring-4 ring-background shadow"
+                  />
+                ) : (
+                  <div className="h-20 w-20 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-3xl font-bold ring-4 ring-background shadow">
+                    {initials}
+                  </div>
+                )}
+
+                {/* Upload overlay */}
+                <button
+                  type="button"
+                  disabled={uploadingAvatar}
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer disabled:cursor-not-allowed"
+                  title="Change avatar"
+                >
+                  {uploadingAvatar
+                    ? <LoaderIcon className="h-5 w-5 text-white animate-spin" />
+                    : <CameraIcon className="h-5 w-5 text-white" />}
+                </button>
+
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
               </div>
-            )}
-            <div className="min-w-0">
-              <p className="text-lg font-semibold truncate">{profile?.full_name || 'Student'}</p>
-              <p className="text-sm text-muted-foreground truncate">{profile?.email}</p>
-              <Badge variant="outline" className="mt-1 text-xs capitalize">{profile?.role}</Badge>
+
+              {/* Name / email */}
+              {loading ? (
+                <div className="space-y-2 pb-1">
+                  <Skeleton className="h-6 w-40" />
+                  <Skeleton className="h-4 w-52" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+              ) : (
+                <div className="pb-1 min-w-0">
+                  <p className="text-xl font-bold truncate">{profile?.full_name || 'Student'}</p>
+                  <p className="text-sm text-muted-foreground truncate">{profile?.email}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="text-xs capitalize">{profile?.role}</Badge>
+                    {uploadingAvatar && (
+                      <span className="text-xs text-muted-foreground animate-pulse">Uploading avatar…</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Hint */}
+              <p className="sm:ml-auto text-xs text-muted-foreground shrink-0 pb-1 flex items-center gap-1">
+                <CameraIcon className="h-3 w-3" />
+                Hover avatar to change photo
+              </p>
             </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
 
         {/* ── Cards grid ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -307,13 +368,8 @@ export default function ProfileSettingsPage() {
                     <Label htmlFor="full_name" className="text-xs">Full Name</Label>
                     <div className="relative">
                       <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                      <Input
-                        id="full_name"
-                        className="h-10 pl-9"
-                        placeholder="Your full name"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                      />
+                      <Input id="full_name" className="h-10 pl-9" placeholder="Your full name"
+                        value={fullName} onChange={(e) => setFullName(e.target.value)} />
                     </div>
                   </div>
 
@@ -325,13 +381,8 @@ export default function ProfileSettingsPage() {
                     </Label>
                     <div className="relative">
                       <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                      <Input
-                        id="phone"
-                        className="h-10 pl-9"
-                        placeholder="+880 1xxx xxxxxx"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                      />
+                      <Input id="phone" className="h-10 pl-9" placeholder="+880 1xxx xxxxxx"
+                        value={phone} onChange={(e) => setPhone(e.target.value)} />
                     </div>
                   </div>
 
@@ -352,12 +403,8 @@ export default function ProfileSettingsPage() {
                   </div>
 
                   <div className="pt-1 flex justify-end">
-                    <Button
-                      size="sm"
-                      onClick={handleSaveProfile}
-                      disabled={savingProfile || !hasChanges}
-                      className="gap-2 h-9"
-                    >
+                    <Button size="sm" onClick={handleSaveProfile}
+                      disabled={savingProfile || !hasChanges} className="gap-2 h-9">
                       <SaveIcon className="h-3.5 w-3.5" />
                       {savingProfile ? 'Saving…' : 'Save Changes'}
                     </Button>
@@ -377,11 +424,7 @@ export default function ProfileSettingsPage() {
                 <div>
                   <CardTitle className="text-sm font-semibold">Academic Information</CardTitle>
                   <CardDescription className="text-xs">
-                    {profile &&
-                    profile.student_id &&
-                    profile.department &&
-                    profile.batch &&
-                    profile.program
+                    {profile && profile.student_id && profile.department && profile.batch && profile.program
                       ? 'Your academic profile (read-only)'
                       : 'Fill in any missing academic details'}
                   </CardDescription>
@@ -406,19 +449,13 @@ export default function ProfileSettingsPage() {
                     <Label htmlFor="student_id" className="text-xs">Student ID</Label>
                     {profile?.student_id ? (
                       <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-border/60 bg-muted/40 text-sm text-muted-foreground">
-                        <HashIcon className="h-3.5 w-3.5 shrink-0" />
-                        <span>{profile.student_id}</span>
+                        <HashIcon className="h-3.5 w-3.5 shrink-0" /><span>{profile.student_id}</span>
                       </div>
                     ) : (
                       <div className="relative">
                         <HashIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                        <Input
-                          id="student_id"
-                          className="h-10 pl-9"
-                          placeholder="e.g. 221-15-5678"
-                          value={studentId}
-                          onChange={(e) => setStudentId(e.target.value)}
-                        />
+                        <Input id="student_id" className="h-10 pl-9" placeholder="e.g. 221-15-5678"
+                          value={studentId} onChange={(e) => setStudentId(e.target.value)} />
                       </div>
                     )}
                   </div>
@@ -428,19 +465,13 @@ export default function ProfileSettingsPage() {
                     <Label htmlFor="department" className="text-xs">Department</Label>
                     {profile?.department ? (
                       <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-border/60 bg-muted/40 text-sm text-muted-foreground">
-                        <BuildingIcon className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{profile.department}</span>
+                        <BuildingIcon className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{profile.department}</span>
                       </div>
                     ) : (
                       <div className="relative">
                         <BuildingIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                        <Input
-                          id="department"
-                          className="h-10 pl-9"
-                          placeholder="e.g. CSE"
-                          value={department}
-                          onChange={(e) => setDepartment(e.target.value)}
-                        />
+                        <Input id="department" className="h-10 pl-9" placeholder="e.g. CSE"
+                          value={department} onChange={(e) => setDepartment(e.target.value)} />
                       </div>
                     )}
                   </div>
@@ -450,19 +481,13 @@ export default function ProfileSettingsPage() {
                     <Label htmlFor="program" className="text-xs">Program</Label>
                     {profile?.program ? (
                       <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-border/60 bg-muted/40 text-sm text-muted-foreground">
-                        <BookOpenIcon className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{profile.program}</span>
+                        <BookOpenIcon className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{profile.program}</span>
                       </div>
                     ) : (
                       <div className="relative">
                         <BookOpenIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                        <Input
-                          id="program"
-                          className="h-10 pl-9"
-                          placeholder="e.g. B.Sc in CSE"
-                          value={program}
-                          onChange={(e) => setProgram(e.target.value)}
-                        />
+                        <Input id="program" className="h-10 pl-9" placeholder="e.g. B.Sc in CSE"
+                          value={program} onChange={(e) => setProgram(e.target.value)} />
                       </div>
                     )}
                   </div>
@@ -472,40 +497,26 @@ export default function ProfileSettingsPage() {
                     <Label htmlFor="batch" className="text-xs">Batch</Label>
                     {profile?.batch ? (
                       <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-border/60 bg-muted/40 text-sm text-muted-foreground">
-                        <GraduationCapIcon className="h-3.5 w-3.5 shrink-0" />
-                        <span>{profile.batch}</span>
+                        <GraduationCapIcon className="h-3.5 w-3.5 shrink-0" /><span>{profile.batch}</span>
                       </div>
                     ) : (
                       <div className="relative">
                         <GraduationCapIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                        <Input
-                          id="batch"
-                          className="h-10 pl-9"
-                          placeholder="e.g. 60"
-                          value={batch}
-                          onChange={(e) => setBatch(e.target.value)}
-                        />
+                        <Input id="batch" className="h-10 pl-9" placeholder="e.g. 60"
+                          value={batch} onChange={(e) => setBatch(e.target.value)} />
                       </div>
                     )}
                   </div>
 
-                  {profile &&
-                    (!profile.student_id ||
-                      !profile.department ||
-                      !profile.batch ||
-                      !profile.program) && (
-                      <div className="pt-1 flex justify-end">
-                        <Button
-                          size="sm"
-                          onClick={handleSaveProfile}
-                          disabled={savingProfile || !hasChanges}
-                          className="gap-2 h-9"
-                        >
-                          <SaveIcon className="h-3.5 w-3.5" />
-                          {savingProfile ? 'Saving…' : 'Save Changes'}
-                        </Button>
-                      </div>
-                    )}
+                  {profile && (!profile.student_id || !profile.department || !profile.batch || !profile.program) && (
+                    <div className="pt-1 flex justify-end">
+                      <Button size="sm" onClick={handleSaveProfile}
+                        disabled={savingProfile || !hasChanges} className="gap-2 h-9">
+                        <SaveIcon className="h-3.5 w-3.5" />
+                        {savingProfile ? 'Saving…' : 'Save Changes'}
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
             </CardContent>
@@ -531,30 +542,18 @@ export default function ProfileSettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="current_pw" className="text-xs">Current Password</Label>
-                  <PasswordInput
-                    id="current_pw"
-                    placeholder="Enter current password"
-                    value={currentPw}
-                    onChange={setCurrentPw}
-                  />
+                  <PasswordInput id="current_pw" placeholder="Enter current password"
+                    value={currentPw} onChange={setCurrentPw} />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="new_pw" className="text-xs">New Password</Label>
-                  <PasswordInput
-                    id="new_pw"
-                    placeholder="At least 6 characters"
-                    value={newPw}
-                    onChange={setNewPw}
-                  />
+                  <PasswordInput id="new_pw" placeholder="At least 6 characters"
+                    value={newPw} onChange={setNewPw} />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="confirm_pw" className="text-xs">Confirm New Password</Label>
-                  <PasswordInput
-                    id="confirm_pw"
-                    placeholder="Repeat new password"
-                    value={confirmPw}
-                    onChange={setConfirmPw}
-                  />
+                  <PasswordInput id="confirm_pw" placeholder="Repeat new password"
+                    value={confirmPw} onChange={setConfirmPw} />
                   {confirmPw && newPw !== confirmPw && (
                     <p className="text-xs text-destructive">Passwords do not match</p>
                   )}
@@ -562,19 +561,9 @@ export default function ProfileSettingsPage() {
               </div>
 
               <div className="mt-4 flex justify-end">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleChangePassword}
-                  disabled={
-                    savingPw ||
-                    !currentPw ||
-                    !newPw ||
-                    !confirmPw ||
-                    newPw !== confirmPw
-                  }
-                  className="gap-2 h-9"
-                >
+                <Button variant="destructive" size="sm" onClick={handleChangePassword}
+                  disabled={savingPw || !currentPw || !newPw || !confirmPw || newPw !== confirmPw}
+                  className="gap-2 h-9">
                   <ShieldCheckIcon className="h-3.5 w-3.5" />
                   {savingPw ? 'Updating…' : 'Update Password'}
                 </Button>

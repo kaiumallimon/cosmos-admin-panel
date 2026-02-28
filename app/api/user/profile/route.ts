@@ -37,6 +37,7 @@ interface SelfUpdateRequest {
   full_name?: string;
   phone?: string;
   gender?: string;
+  avatar_url?: string;
   student_id?: string;
   department?: string;
   batch?: string;
@@ -49,7 +50,7 @@ export const PATCH = withAnyAuth(async (req: AuthenticatedRequest) => {
     const body: SelfUpdateRequest = await req.json();
 
     // Only allow safe, self-editable fields
-    const freeEditFields: (keyof SelfUpdateRequest)[] = ["full_name", "phone", "gender"];
+    const freeEditFields: (keyof SelfUpdateRequest)[] = ["full_name", "phone", "gender", "avatar_url"];
     // Academic fields: only editable when currently empty/null
     const academicFields: (keyof SelfUpdateRequest)[] = ["student_id", "department", "batch", "program"];
 
