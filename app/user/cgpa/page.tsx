@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { FrostedHeader } from '@/components/custom/frosted-header';
 import { useMobileMenu } from '@/components/mobile-menu-context';
-import { useAuthStore } from '@/store/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -15,57 +15,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { PlusIcon, Trash2Icon, CalculatorIcon, TrendingUpIcon, RefreshCwIcon } from 'lucide-react';
 
-// 4-point grading scale (common Bangladeshi university standard)
-const GRADE_POINTS: Record<string, number> = {
-  'A+': 4.00,
-  'A':  3.75,
-  'A-': 3.50,
-  'B+': 3.25,
-  'B':  3.00,
-  'B-': 2.75,
-  'C+': 2.50,
-  'C':  2.25,
-  'D':  2.00,
-  'F':  0.00,
-};
-
-const GRADES = Object.keys(GRADE_POINTS);
+// UIU grading scale
+const GRADES = [
+  { label: 'A',   value: 4.00 },
+  { label: 'A-',  value: 3.67 },
+  { label: 'B+',  value: 3.33 },
+  { label: 'B',   value: 3.00 },
+  { label: 'B-',  value: 2.67 },
+  { label: 'C+',  value: 2.33 },
+  { label: 'C',   value: 2.00 },
+  { label: 'C-',  value: 1.67 },
+  { label: 'D+',  value: 1.33 },
+  { label: 'D',   value: 1.00 },
+  { label: 'F',   value: 0.00 },
+];
 
 interface CourseRow {
   id: number;
-  name: string;
-  credit: string;
-  grade: string;
+  courseName: string;
+  creditHours: number;
+  gradePoint: number;
 }
 
-interface Trimester {
-  id: number;
-  label: string;
-  courses: CourseRow[];
-}
-
-let nextId = 1;
-const newCourse = (): CourseRow => ({ id: nextId++, name: '', credit: '3', grade: 'A' });
-const newTrimester = (idx: number): Trimester => ({
-  id: nextId++,
-  label: `Trimester ${idx}`,
-  courses: [newCourse()],
-});
-
-function calcGPA(courses: CourseRow[]): number | null {
-  const valid = courses.filter((c) => c.credit && c.grade && Number(c.credit) > 0);
-  if (valid.length === 0) return null;
-  const totalPoints = valid.reduce((s, c) => s + GRADE_POINTS[c.grade] * Number(c.credit), 0);
-  const totalCredits = valid.reduce((s, c) => s + Number(c.credit), 0);
-  return totalCredits > 0 ? totalPoints / totalCredits : null;
-}
-
-function calcCGPA(trimesters: Trimester[]): number | null {
-  const allCourses = trimesters.flatMap((t) => t.courses);
-  return calcGPA(allCourses);
-}
+let _id = 1;
+const newCourse = (): CourseRow => ({ id: _id++, courseName: '', creditHours: 3, gradePoint: 4.00 });
 
 function gpaBadgeColor(gpa: number) {
   if (gpa >= 3.75) return 'bg-green-500/15 text-green-600 border-green-500/30';
@@ -75,83 +58,101 @@ function gpaBadgeColor(gpa: number) {
   return 'bg-red-500/15 text-red-600 border-red-500/30';
 }
 
+function gpaLabel(gpa: number) {
+  if (gpa >= 3.75) return 'Excellent';
+  if (gpa >= 3.00) return 'Good';
+  if (gpa >= 2.50) return 'Average';
+  if (gpa >= 2.00) return 'Pass';
+  return 'Fail';
+}
+
 export default function CGPACalculatorPage() {
   const { toggleMobileMenu } = useMobileMenu();
-  const { user } = useAuthStore();
-  const existingCGPA = user.profile?.cgpa;
 
-  const [trimesters, setTrimesters] = useState<Trimester[]>([newTrimester(1)]);
+  const [previousCGPA, setPreviousCGPA] = useState<string>('');
+  const [creditsCompleted, setCreditsCompleted] = useState<string>('');
+  const [courses, setCourses] = useState<CourseRow[]>([newCourse()]);
 
-  // ── Course helpers ────────────────────────────────────────────────────────
-  const updateCourse = (tId: number, cId: number, field: keyof CourseRow, value: string) => {
-    setTrimesters((prev) =>
-      prev.map((t) =>
-        t.id !== tId
-          ? t
-          : { ...t, courses: t.courses.map((c) => (c.id !== cId ? c : { ...c, [field]: value })) }
-      )
-    );
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const handleCourseChange = (id: number, field: keyof CourseRow, value: string | number) => {
+    setCourses((prev) => prev.map((c) => (c.id !== id ? c : { ...c, [field]: value })));
   };
 
-  const addCourse = (tId: number) => {
-    setTrimesters((prev) =>
-      prev.map((t) => (t.id !== tId ? t : { ...t, courses: [...t.courses, newCourse()] }))
-    );
-  };
+  const addCourse = () => setCourses((prev) => [...prev, newCourse()]);
 
-  const removeCourse = (tId: number, cId: number) => {
-    setTrimesters((prev) =>
-      prev.map((t) =>
-        t.id !== tId ? t : { ...t, courses: t.courses.filter((c) => c.id !== cId) }
-      )
-    );
-  };
-
-  // ── Trimester helpers ─────────────────────────────────────────────────────
-  const addTrimester = () => {
-    setTrimesters((prev) => [...prev, newTrimester(prev.length + 1)]);
-  };
-
-  const removeTrimester = (tId: number) => {
-    setTrimesters((prev) => prev.filter((t) => t.id !== tId));
-  };
-
-  const updateTrimesterLabel = (tId: number, label: string) => {
-    setTrimesters((prev) => prev.map((t) => (t.id !== tId ? t : { ...t, label })));
+  const removeCourse = (id: number) => {
+    if (courses.length > 1) setCourses((prev) => prev.filter((c) => c.id !== id));
   };
 
   const reset = () => {
-    nextId = 1;
-    setTrimesters([newTrimester(1)]);
+    _id = 1;
+    setPreviousCGPA('');
+    setCreditsCompleted('');
+    setCourses([newCourse()]);
   };
 
-  // ── Calculated values ─────────────────────────────────────────────────────
-  const cgpa = calcCGPA(trimesters);
-  const totalCredits = trimesters
-    .flatMap((t) => t.courses)
-    .filter((c) => c.credit && Number(c.credit) > 0 && c.grade !== 'F')
-    .reduce((s, c) => s + Number(c.credit), 0);
+  // ── Calculations ──────────────────────────────────────────────────────────
+  const semesterGPA = (() => {
+    const valid = courses.filter((c) => c.creditHours > 0);
+    if (!valid.length) return null;
+    const pts = valid.reduce((s, c) => s + c.gradePoint * c.creditHours, 0);
+    const creds = valid.reduce((s, c) => s + c.creditHours, 0);
+    return creds > 0 ? pts / creds : null;
+  })();
+
+  const prevCGPANum = parseFloat(previousCGPA) || 0;
+  const prevCreditsNum = parseInt(creditsCompleted) || 0;
+  const semesterCredits = courses.reduce((s, c) => s + c.creditHours, 0);
+  const totalCredits = prevCreditsNum + semesterCredits;
+
+  const cumulativeCGPA = (() => {
+    if (totalCredits === 0) return null;
+    const prevPts = prevCGPANum * prevCreditsNum;
+    const semPts = courses.reduce((s, c) => s + c.gradePoint * c.creditHours, 0);
+    return (prevPts + semPts) / totalCredits;
+  })();
+
+  const hasPrevData = prevCGPANum > 0 || prevCreditsNum > 0;
 
   return (
     <div className="flex flex-col h-full">
       <FrostedHeader title="CGPA Calculator" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-        {/* Summary Cards */}
+        {/* ── Summary cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="border shadow-sm">
             <CardContent className="p-5 flex items-center gap-4">
-              <div className="rounded-xl p-3 bg-[#007AFF]/10 shrink-0">
-                <CalculatorIcon className="h-5 w-5 text-[#007AFF]" />
+              <div className="rounded-xl p-3 bg-purple-500/10 shrink-0">
+                <CalculatorIcon className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Calculated CGPA</p>
+                <p className="text-xs text-muted-foreground">Semester GPA</p>
                 <p className="text-2xl font-bold">
-                  {cgpa !== null ? cgpa.toFixed(2) : '—'}
+                  {semesterGPA !== null ? semesterGPA.toFixed(2) : '—'}
                 </p>
-                {cgpa !== null && (
-                  <Badge className={`mt-1 text-xs border ${gpaBadgeColor(cgpa)}`}>
-                    {cgpa >= 3.75 ? 'Excellent' : cgpa >= 3.0 ? 'Good' : cgpa >= 2.5 ? 'Average' : cgpa >= 2.0 ? 'Pass' : 'Fail'}
+                {semesterGPA !== null && (
+                  <Badge className={`mt-1 text-xs border ${gpaBadgeColor(semesterGPA)}`}>
+                    {gpaLabel(semesterGPA)}
+                  </Badge>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border shadow-sm">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="rounded-xl p-3 bg-[#007AFF]/10 shrink-0">
+                <TrendingUpIcon className="h-5 w-5 text-[#007AFF]" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Cumulative CGPA</p>
+                <p className="text-2xl font-bold">
+                  {cumulativeCGPA !== null ? cumulativeCGPA.toFixed(2) : '—'}
+                </p>
+                {cumulativeCGPA !== null && (
+                  <Badge className={`mt-1 text-xs border ${gpaBadgeColor(cumulativeCGPA)}`}>
+                    {gpaLabel(cumulativeCGPA)}
                   </Badge>
                 )}
               </div>
@@ -164,167 +165,172 @@ export default function CGPACalculatorPage() {
                 <TrendingUpIcon className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Total Earned Credits</p>
+                <p className="text-xs text-muted-foreground">Total Credits</p>
                 <p className="text-2xl font-bold">{totalCredits}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">excluding F grades</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {hasPrevData ? `${prevCreditsNum} prev + ${semesterCredits} this sem` : `${semesterCredits} this semester`}
+                </p>
               </div>
             </CardContent>
           </Card>
-
-          {existingCGPA !== undefined && existingCGPA !== null && (
-            <Card className="border shadow-sm">
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="rounded-xl p-3 bg-purple-500/10 shrink-0">
-                  <TrendingUpIcon className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Current CGPA (Profile)</p>
-                  <p className="text-2xl font-bold">{existingCGPA}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">from your profile</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
-        {/* Grade Reference */}
+        {/* ── Previous academic record ── */}
         <Card className="border shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">Grading Scale Reference</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Previous Academic Record</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(GRADE_POINTS).map(([g, p]) => (
-                <div key={g} className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs">
-                  <span className="font-bold">{g}</span>
-                  <span className="text-muted-foreground">= {p.toFixed(2)}</span>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Previous CGPA</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="4"
+                  placeholder="e.g. 3.75"
+                  value={previousCGPA}
+                  onWheel={(e) => e.currentTarget.blur()}
+                  onChange={(e) => setPreviousCGPA(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Credits Completed</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  placeholder="e.g. 90"
+                  value={creditsCompleted}
+                  onWheel={(e) => e.currentTarget.blur()}
+                  onChange={(e) => setCreditsCompleted(e.target.value)}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Trimesters */}
-        {trimesters.map((trimester, tIdx) => {
-          const gpa = calcGPA(trimester.courses);
-          return (
-            <Card key={trimester.id} className="border shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between gap-3">
-                  <Input
-                    value={trimester.label}
-                    onChange={(e) => updateTrimesterLabel(trimester.id, e.target.value)}
-                    className="h-8 text-sm font-semibold w-48 border-0 border-b rounded-none px-0 focus-visible:ring-0 bg-transparent"
-                  />
-                  <div className="flex items-center gap-2">
-                    {gpa !== null && (
-                      <Badge className={`text-xs border ${gpaBadgeColor(gpa)}`}>
-                        GPA: {gpa.toFixed(2)}
-                      </Badge>
-                    )}
-                    {trimesters.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => removeTrimester(trimester.id)}
-                      >
-                        <Trash2Icon className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {/* Column Headers */}
-                <div className="grid grid-cols-12 gap-2 px-1 text-xs font-medium text-muted-foreground">
-                  <span className="col-span-6">Course Name</span>
-                  <span className="col-span-2 text-center">Credits</span>
-                  <span className="col-span-3 text-center">Grade</span>
-                  <span className="col-span-1" />
-                </div>
-
-                {trimester.courses.map((course) => (
-                  <div key={course.id} className="grid grid-cols-12 gap-2 items-center">
-                    <Input
-                      className="col-span-6 h-8 text-sm"
-                      placeholder="Course name (optional)"
-                      value={course.name}
-                      onChange={(e) => updateCourse(trimester.id, course.id, 'name', e.target.value)}
-                    />
-                    <Select
-                      value={course.credit}
-                      onValueChange={(v) => updateCourse(trimester.id, course.id, 'credit', v)}
-                    >
-                      <SelectTrigger className="col-span-2 h-8 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[1, 2, 3, 4].map((c) => (
-                          <SelectItem key={c} value={String(c)}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={course.grade}
-                      onValueChange={(v) => updateCourse(trimester.id, course.id, 'grade', v)}
-                    >
-                      <SelectTrigger className="col-span-3 h-8 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {GRADES.map((g) => (
-                          <SelectItem key={g} value={g}>
-                            {g} ({GRADE_POINTS[g].toFixed(2)})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="col-span-1 h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      disabled={trimester.courses.length === 1}
-                      onClick={() => removeCourse(trimester.id, course.id)}
-                    >
-                      <Trash2Icon className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
-
+        {/* ── Current semester courses ── */}
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Current Semester Courses</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+                onClick={reset}
+              >
+                <RefreshCwIcon className="h-3.5 w-3.5" />
+                Reset
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {courses.map((course) => (
+              <div key={course.id} className="grid grid-cols-12 gap-2 items-center p-3 sm:p-0 rounded-xl border sm:border-0 sm:rounded-none bg-muted/20 sm:bg-transparent">
+                <Input
+                  className="col-span-11 sm:col-span-5 h-9 text-sm"
+                  placeholder="Course name (optional)"
+                  value={course.courseName}
+                  onChange={(e) => handleCourseChange(course.id, 'courseName', e.target.value)}
+                />
+                <Select
+                  value={String(course.creditHours)}
+                  onValueChange={(v) => handleCourseChange(course.id, 'creditHours', parseInt(v))}
+                >
+                  <SelectTrigger className="col-span-5 sm:col-span-2 h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4].map((c) => (
+                      <SelectItem key={c} value={String(c)}>{c} cr</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={course.gradePoint.toFixed(2)}
+                  onValueChange={(v) => handleCourseChange(course.id, 'gradePoint', parseFloat(v))}
+                >
+                  <SelectTrigger className="col-span-6 sm:col-span-4 h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GRADES.map((g) => (
+                      <SelectItem key={g.label} value={g.value.toFixed(2)}>
+                        {g.label} ({g.value.toFixed(2)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="mt-1 gap-1.5 text-xs text-[#007AFF] hover:text-[#007AFF] hover:bg-[#007AFF]/10"
-                  onClick={() => addCourse(trimester.id)}
+                  className="col-span-1 h-9 w-full p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  disabled={courses.length === 1}
+                  onClick={() => removeCourse(course.id)}
                 >
-                  <PlusIcon className="h-3.5 w-3.5" />
-                  Add Course
+                  <Trash2Icon className="h-4 w-4" />
                 </Button>
-              </CardContent>
-            </Card>
-          );
-        })}
+              </div>
+            ))}
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={addTrimester}
-          >
-            <PlusIcon className="h-4 w-4" />
-            Add Trimester
-          </Button>
-          <Button
-            variant="ghost"
-            className="gap-2 text-muted-foreground"
-            onClick={reset}
-          >
-            <RefreshCwIcon className="h-4 w-4" />
-            Reset
-          </Button>
-        </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs text-[#007AFF] hover:text-[#007AFF] hover:bg-[#007AFF]/10"
+              onClick={addCourse}
+            >
+              <PlusIcon className="h-3.5 w-3.5" />
+              Add Course
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* ── Results table ── */}
+        {courses.some((c) => c.courseName.trim() || c.gradePoint > 0) && (
+          <Card className="border shadow-sm">
+            <CardHeader className="pb-0">
+              <CardTitle className="text-sm">Results</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 mt-3">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-xs">Course</TableHead>
+                    <TableHead className="text-xs text-center">Credits</TableHead>
+                    <TableHead className="text-xs text-center">Grade</TableHead>
+                    <TableHead className="text-xs text-center">Quality Points</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {courses
+                    .filter((c) => c.courseName.trim() || c.gradePoint > 0)
+                    .map((course, i) => {
+                      const gradeLabel = GRADES.find((g) => g.value === course.gradePoint)?.label ?? '—';
+                      return (
+                        <TableRow key={i}>
+                          <TableCell className="text-sm font-medium">
+                            {course.courseName || `Course ${i + 1}`}
+                          </TableCell>
+                          <TableCell className="text-center text-sm">{course.creditHours}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge className="text-xs border bg-[#007AFF]/10 text-[#007AFF] border-[#007AFF]/20 hover:bg-[#007AFF]/10">
+                              {gradeLabel} ({course.gradePoint.toFixed(2)})
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center text-sm font-mono">
+                            {(course.gradePoint * course.creditHours).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
 
       </div>
     </div>
