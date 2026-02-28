@@ -6,6 +6,7 @@ export function middleware(req: NextRequest) {
 
     // Allow public and static paths
     const isPublicPath = pathname === '/' ||
+                        pathname === '/meet-the-team' ||
                         pathname.startsWith('/public') ||
                         pathname.startsWith('/api/auth/') ||
                         pathname.startsWith('/api/reset-password') ||
