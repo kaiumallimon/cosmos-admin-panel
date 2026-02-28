@@ -73,7 +73,7 @@ const team: TeamMember[] = [
   {
     name: 'Kaium Al Limon',
     role: 'Software Engineer (Full-Stack, Cross Platform)',
-    image: '/kaium-al-limon.png',
+    image: '/bordered.png',
     description:
       'Architected and built the entire COSMOS-ITS platform end-to-end — from the multi-agent AI backend and RAG pipeline to the responsive frontend with bento-grid dashboards. Specializes in full-stack TypeScript, cross-platform development, and AI-integrated systems.',
     icon: CodeIcon,
@@ -165,16 +165,16 @@ function MemberCard({ member, index }: { member: TeamMember; index: number }) {
       />
 
       {/* Image */}
-      <div className={cn('relative h-52 w-full overflow-hidden bg-linear-to-br', member.gradient)}>
+      <div className={cn('relative h-72 w-full overflow-hidden bg-linear-to-br', member.gradient)}>
         <Image
           src={member.image}
           alt={member.name}
           unoptimized
           fill
-          className="object-cover mix-blend-overlay opacity-90 group-hover:scale-105 transition-transform duration-500"
+          className="object-cover  group-hover:scale-105 transition-transform duration-500"
         />
         {/* Bottom fade */}
-        <div className="absolute inset-0 bg-linear-to-t from-card/80 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-card/40 via-transparent to-transparent" />
         {/* Number */}
         <div className="absolute top-3.5 left-3.5 h-7 w-7 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-[10px] font-bold text-white">
           {String(index + 1).padStart(2, '0')}
@@ -303,12 +303,12 @@ export default function MeetTheTeamPage() {
       <SectionSeparator />
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <section className="relative z-10 py-16 sm:py-24 px-4 sm:px-6">
+      <section className="relative z-10 py-14 sm:py-18 px-4 sm:px-6">
         <FadeIn>
-          <div className="mx-auto max-w-3xl">
-            <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-orange-500 to-amber-500 p-8 sm:p-14 text-center text-white shadow-2xl shadow-orange-500/20">
-              <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-              <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+          <div className="mx-auto max-w-5xl">
+            <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-orange-500 via-orange-500 to-amber-400 p-8 sm:p-14 text-center text-white shadow-2xl shadow-orange-500/30 ring-1 ring-white/10">
+              <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-white/20 blur-2xl" />
+              <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-amber-300/20 blur-2xl" />
               <div
                 className="absolute inset-0 opacity-[0.06]"
                 style={{
@@ -326,8 +326,8 @@ export default function MeetTheTeamPage() {
                 >
                   <SparklesIcon className="mx-auto h-10 w-10 mb-5 opacity-90" />
                 </motion.div>
-                <h2 className="text-2xl sm:text-3xl font-bold mb-3">Want to try what we built?</h2>
-                <p className="mx-auto max-w-sm text-sm text-white/80 mb-8">
+                <h2 className="text-2xl sm:text-4xl font-extrabold mb-3 drop-shadow-sm">Want to try what we built?</h2>
+                <p className="mx-auto max-w-sm text-sm text-white/90 mb-8">
                   Experience COSMOS-ITS — the AI-powered tutoring system built with passion by UIU students, for UIU students.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -339,9 +339,11 @@ export default function MeetTheTeamPage() {
                     </motion.div>
                   </Link>
                   <Link href="/">
-                    <Button variant="outline" size="lg" className="h-12 px-8 text-sm font-medium rounded-full border-white/30 text-white hover:bg-white/10 hover:text-white">
-                      Back to Home
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button size="lg" className="h-12 px-8 text-sm font-semibold rounded-full bg-white/15 border border-white/50 text-white hover:bg-white/25 hover:border-white/80 shadow-md backdrop-blur-sm transition-all duration-200">
+                        Back to Home
+                      </Button>
+                    </motion.div>
                   </Link>
                 </div>
               </div>
