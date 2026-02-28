@@ -108,7 +108,20 @@ interface PredictionData {
   current_marks: CurrentMarks;
 }
 
+interface TrimesterOption {
+  code: string;
+  label: string;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function formatTrimesterLabel(code: string): string {
+  if (code.length !== 3) return code;
+  const year = code.slice(0, 2);
+  const sem = code[2];
+  const semLabel = sem === '1' ? 'Spring' : sem === '2' ? 'Summer' : 'Fall';
+  return `${semLabel} ${year}`;
+}
 
 function gradeColor(grade: string | null | undefined): string {
   if (!grade) return 'text-muted-foreground';
@@ -135,6 +148,10 @@ export default function GradePredictionPage() {
   // ── Step state ──
   const [step, setStep] = useState<0 | 1 | 2>(0);
 
+  // ── Trimester selection ──
+  const [trimesters, setTrimesters] = useState<TrimesterOption[]>([]);
+  const [viewTrimester, setViewTrimester] = useState<string>(profileTrimester);
+
   // ── Step 1 ──
   const [courses, setCourses] = useState<EnrolledCourse[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
@@ -153,12 +170,12 @@ export default function GradePredictionPage() {
   const [result, setResult] = useState<PredictionData | null>(null);
   const [error, setError] = useState('');
 
-  // ─── Load enrolled courses (same pattern as /user/performance/courses) ────
+  // ─── Load enrolled courses ────────────────────────────────────────────────
 
-  useEffect(() => {
-    if (!studentId || !profileTrimester) return;
+  const fetchEnrolled = (sem: string) => {
+    if (!studentId || !sem) { setCourses([]); setCoursesLoading(false); return; }
     setCoursesLoading(true);
-    fetch(`/api/performance/students/${studentId}/courses/${encodeURIComponent(profileTrimester)}`)
+    fetch(`/api/performance/students/${studentId}/courses/${encodeURIComponent(sem)}`)
       .then((r) => r.json())
       .then((data) => {
         const list: EnrolledCourse[] = Array.isArray(data)
@@ -177,7 +194,37 @@ export default function GradePredictionPage() {
       })
       .catch(() => setCourses([]))
       .finally(() => setCoursesLoading(false));
-  }, [studentId, profileTrimester]);
+  };
+
+  useEffect(() => { fetchEnrolled(viewTrimester); }, [viewTrimester, studentId]);
+
+  // ─── Load trimesters ──────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const fetchTrimesters = async () => {
+      try {
+        const res = await fetch('/api/course-management/trimesters');
+        const data = await res.json();
+        const raw: { trimester: string; created_at?: string }[] = Array.isArray(data?.trimesters)
+          ? data.trimesters
+          : [];
+        const sorted = [...raw].sort(
+          (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
+        );
+        const list: TrimesterOption[] = sorted.map((t) => ({
+          code: t.trimester,
+          label: formatTrimesterLabel(t.trimester),
+        }));
+        setTrimesters(list);
+        // If profileTrimester is missing, fall back to the latest trimester
+        setViewTrimester((current) => {
+          if (current) return current;
+          return list.length > 0 ? list[0].code : current;
+        });
+      } catch { /* silent */ }
+    };
+    fetchTrimesters();
+  }, []);
 
   // ─── Auto-fill marks when course selected ────────────────────────────────
 
@@ -399,35 +446,33 @@ export default function GradePredictionPage() {
                         <BookOpenIcon className="h-5 w-5" />
                         Enrolled Courses
                       </CardTitle>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (!studentId || !profileTrimester) return;
-                          setCoursesLoading(true);
-                          fetch(`/api/performance/students/${studentId}/courses/${encodeURIComponent(profileTrimester)}`)
-                            .then((r) => r.json())
-                            .then((data) => {
-                              const list: EnrolledCourse[] = Array.isArray(data)
-                                ? data.map((c: any) => ({
-                                    id: c.enrollment_id ?? c.id ?? '',
-                                    course_id: c.course_id ?? '',
-                                    course_name: c.title ?? c.course_name ?? '',
-                                    course_code: c.code ?? c.course_code ?? '',
-                                    trimester: c.trimester ?? '',
-                                    section: c.section,
-                                    faculty: c.faculty_name ?? c.faculty,
-                                    credits: c.credits,
-                                  }))
-                                : [];
-                              setCourses(list);
-                            })
-                            .catch(() => setCourses([]))
-                            .finally(() => setCoursesLoading(false));
-                        }}
-                      >
-                        <RefreshCwIcon className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {trimesters.length > 0 && (
+                          <Select
+                            value={viewTrimester}
+                            onValueChange={(val) => { setSelectedCourseId(''); setViewTrimester(val); }}
+                          >
+                            <SelectTrigger className="w-[180px] h-9 text-sm">
+                              <SelectValue placeholder="Select trimester" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {trimesters.map((t) => (
+                                <SelectItem key={t.code} value={t.code}>
+                                  <span>{t.label}</span>
+                                  <span className="ml-2 text-muted-foreground text-xs">{t.code}</span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fetchEnrolled(viewTrimester)}
+                        >
+                          <RefreshCwIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
 
@@ -513,7 +558,7 @@ export default function GradePredictionPage() {
                                     ? <Badge variant="outline" className="font-semibold">{course.credits} cr</Badge>
                                     : <span className="text-muted-foreground text-sm">—</span>}
                                 </TableCell>
-                                <TableCell className="py-4 text-sm text-muted-foreground">{course.trimester || profileTrimester}</TableCell>
+                                <TableCell className="py-4 text-sm text-muted-foreground">{course.trimester || viewTrimester}</TableCell>
                                 <TableCell className="py-4 text-right">
                                   <Button
                                     size="sm"
