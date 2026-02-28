@@ -11,8 +11,8 @@ const inter = Inter({
 
 
 export const metadata: Metadata = {
-  title: "Admin | COSMOS-ITS",
-  description: "Admin dashboard for COSMOS-ITS",
+  title: "COSMOS-ITS",
+  description: "COSMOS-ITS is a comprehensive ai-powered university tutoring system featuring multi-agent orchestration, advanced query classification, retrieval-augmented generation, multimodal answers, memory-aware learning, and personalized study paths",
 };
 
 export default function RootLayout({

@@ -67,6 +67,7 @@ interface Topic {
 
 interface QuizStats {
   total_attempts: number;
+  avg_score: number | null;
   avg_percentage: number | null;
   topics_covered: number;
   avg_precision: number | null;
@@ -299,7 +300,7 @@ export default function QuizIndexPage() {
               <StatsCard
                 icon={TrendingUpIcon}
                 title="Avg Score"
-                value={stats?.avg_percentage != null ? `${stats.avg_percentage}%` : '—'}
+                value={stats?.avg_score != null ? stats.avg_score : '—'}
                 description="Average across all quizzes"
               />
               <StatsCard

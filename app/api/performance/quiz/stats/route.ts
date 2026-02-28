@@ -23,10 +23,27 @@ export async function GET(req: NextRequest) {
     // total attempts = sum of attempt_no across all records
     const totalAttempts = records.reduce((sum, r) => sum + (r.attempt_no ?? 0), 0);
 
+    // helper: resolve percentage from stored field or compute from marks
+    const resolvePercentage = (r: Record<string, unknown>): number => {
+      const stored = r.percentage as number | null | undefined;
+      if (stored != null && stored !== 0) return stored;
+      const marks = r.marks as number | null | undefined;
+      const full = r.full_marks as number | null | undefined;
+      if (marks != null && full) return (marks / full) * 100;
+      return 0;
+    };
+
+    // helper: resolve precision (fallback to percentage)
+    const resolvePrecision = (r: Record<string, unknown>): number => {
+      const stored = r.precision as number | null | undefined;
+      if (stored != null && stored !== 0) return stored;
+      return resolvePercentage(r);
+    };
+
     // avg percentage
     const avgPercentage =
       Math.round(
-        (records.reduce((sum, r) => sum + (r.percentage ?? 0), 0) / records.length) * 10,
+        (records.reduce((sum, r) => sum + resolvePercentage(r), 0) / records.length) * 10,
       ) / 10;
 
     // unique topics
@@ -39,11 +56,17 @@ export async function GET(req: NextRequest) {
     // avg precision
     const avgPrecision =
       Math.round(
-        (records.reduce((sum, r) => sum + (r.precision ?? 0), 0) / records.length) * 10,
+        (records.reduce((sum, r) => sum + resolvePrecision(r), 0) / records.length) * 10,
+      ) / 10;
+
+    const avgScore =
+      Math.round(
+        (records.reduce((sum, r) => sum + (r.marks ?? 0), 0) / records.length) * 10,
       ) / 10;
 
     return NextResponse.json({
       total_attempts: totalAttempts,
+      avg_score: avgScore,
       avg_percentage: avgPercentage,
       topics_covered: topicSet.size,
       avg_precision: avgPrecision,

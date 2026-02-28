@@ -32,6 +32,14 @@ import {
   CalendarDaysIcon,
   HistoryIcon,
 } from "lucide-react";
+import { IconNotification } from "@tabler/icons-react";
+
+
+export const metadata = {
+  title: "COSMOS-ITS - Student Portal",
+  description: "Access your personalized dashboard, AI assistant, performance insights, and official notices in the COSMOS-ITS student portal.",
+};
+
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -167,7 +175,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             const isActive = exact
               ? pathname === href
               : pathname.startsWith(href) &&
-                !(href === '/user/performance/quiz' && pathname.startsWith('/user/performance/quiz/history'));
+              !(href === '/user/performance/quiz' && pathname.startsWith('/user/performance/quiz/history'));
             return (
               <Link
                 key={href}
@@ -183,7 +191,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           })}
         </div>
 
-                <div className="my-4 h-px bg-border" />
+        <div className="my-4 h-px bg-border" />
 
         <div>
           <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
@@ -206,6 +214,26 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           >
             <CalendarDaysIcon className="h-4 w-4 shrink-0" />
             <span className="font-medium truncate">Exam & Class Routines</span>
+          </Link>
+        </div>
+
+
+
+
+        <div className="my-4 h-px bg-border" />
+
+        <div>
+          <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
+            Official
+          </div>
+          <Link
+            href="/user/notices"
+            onClick={onLinkClick}
+            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/notices') ? 'bg-primary text-primary-foreground font-semibold' : ''
+              }`}
+          >
+            <IconNotification className="h-4 w-4 shrink-0" />
+            <span className="font-medium truncate">Notices</span>
           </Link>
         </div>
       </div>

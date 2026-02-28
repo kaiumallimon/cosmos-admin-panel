@@ -39,6 +39,12 @@ import { MobileMenuProvider } from "@/components/mobile-menu-context";
 import { IconRobot } from "@tabler/icons-react";
 import { signOutAndRedirect } from "@/lib/auth-client";
 
+
+export const metadata = {
+    title: "COSMOS-ITS - Admin Panel",
+    description: "COSMOS-ITS Admin Panel provides comprehensive tools for managing courses, questions, agents, and system settings in the COSMOS-ITS university tutoring system.",
+};
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { user } = useAuthStore();

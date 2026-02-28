@@ -57,6 +57,7 @@ interface HistoryEntry {
 
 interface QuizStats {
   total_attempts: number;
+  avg_score: number | null;
   avg_percentage: number | null;
   topics_covered: number;
   avg_precision: number | null;
@@ -193,7 +194,7 @@ export default function QuizHistoryPage() {
           ) : (
             <>
               <StatsCard icon={TrophyIcon} title="Total Attempts" value={stats?.total_attempts ?? 0} description="Quiz attempts made so far" />
-              <StatsCard icon={TrendingUpIcon} title="Avg Score" value={stats?.avg_percentage != null ? `${stats.avg_percentage}%` : '—'} description="Average across all quizzes" />
+              <StatsCard icon={TrendingUpIcon} title="Avg Score" value={stats?.avg_score != null ? stats.avg_score : '—'} description="Average marks across all quizzes" />
               <StatsCard icon={BookOpenIcon} title="Topics Covered" value={stats?.topics_covered ?? 0} description="Unique topics practised" />
               <StatsCard icon={TargetIcon} title="Avg Precision" value={stats?.avg_precision != null ? `${stats.avg_precision}%` : '—'} description="Accuracy on answered questions" />
             </>
