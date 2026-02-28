@@ -285,8 +285,8 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
 
     // Get account
     const account = await findAccountById(payload.userId);
-    if (!account || account.role !== 'admin') {
-      return { success: false, error: 'Account not found or access restricted' };
+    if (!account) {
+      return { success: false, error: 'Account not found' };
     }
 
     // Generate new tokens
