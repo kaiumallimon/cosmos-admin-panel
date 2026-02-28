@@ -63,6 +63,7 @@ import {
   Trophy,
   BrainCircuitIcon,
   Info,
+  MessageCircle,
 } from 'lucide-react';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -817,26 +818,37 @@ export default function CourseAssessmentsPage() {
                     <AlertTriangleIcon className="h-5 w-5 text-amber-500" />
                     Weaknesses
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={fetchWeaknesses}>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={fetchWeaknesses} title="Refresh">
                       <RefreshCwIcon className="h-4 w-4" />
                     </Button>
                     <Button
                       size="sm"
-                      className="gap-2 bg-primary hover:bg-primary/90"
+                      className="gap-1.5 bg-primary hover:bg-primary/90"
                       onClick={openWeaknessDialog}
                     >
                       <PlusIcon className="h-4 w-4" />
-                      Add Weakness
+                      <span className="hidden sm:inline">Add Weakness</span>
                     </Button>
-
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={openQuizDialog}
-                      className="gap-2"
+                      className="gap-1.5"
+                      title="Attempt Quiz"
                     >
-                      <Trophy className="h-4 w-4" /> Attempt Quiz
+                      <Trophy className="h-4 w-4" />
+                      <span className="hidden sm:inline">Attempt Quiz</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={openQuizDialog}
+                      className="gap-1.5"
+                      title="Talk to Agent"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      <span className="hidden sm:inline">Talk to Agent</span>
                     </Button>
                   </div>
                 </div>
