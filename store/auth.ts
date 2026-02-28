@@ -82,7 +82,7 @@ export const useAuthStore = create<AuthState>()(
 
             // Schedule a proactive refresh before the access token expires
             if (result.tokens?.accessToken) {
-              scheduleProactiveRefresh(result.tokens.accessToken, () => get().silentRefresh());
+              scheduleProactiveRefresh(result.tokens.accessToken, async () => { await get().silentRefresh(); });
             }
 
             return { success: true, role: result.user.role };
@@ -159,7 +159,7 @@ export const useAuthStore = create<AuthState>()(
 
           // Schedule the next proactive refresh
           if (data.accessToken) {
-            scheduleProactiveRefresh(data.accessToken, () => get().silentRefresh());
+            scheduleProactiveRefresh(data.accessToken, async () => { await get().silentRefresh(); });
           }
 
           console.log("Auth store: Token refreshed silently");
