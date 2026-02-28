@@ -5,6 +5,7 @@ import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/auth";
 import { Label } from "@radix-ui/react-label";
+import { EyeIcon, EyeOffIcon, Loader2, MailIcon, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,6 +14,7 @@ import { toast } from "sonner";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
@@ -20,7 +22,6 @@ export default function LoginPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isUserAuthenticated = useAuthStore((state) => state.isUserAuthenticated);
 
-  // Redirect to dashboard if already authenticated
   useEffect(() => {
     try {
       if (isAuthenticated()) {
@@ -29,23 +30,19 @@ export default function LoginPage() {
         router.push('/user');
       }
     } catch (e) {
-      // swallow errors during initial render/hydration
       console.warn('Auth redirect check failed', e);
     }
   }, [isAuthenticated, isUserAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!email || !password) {
       toast.error("Please enter both email and password.");
       return;
     }
-
     setLoading(true);
     try {
       const result = await login(email, password);
-
       if (result.success) {
         toast.success("Login successful!");
         if (result.role === 'admin') {
@@ -64,7 +61,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="fixed overflow-hidden w-full h-full">
+    <div className="fixed inset-0 overflow-hidden w-full h-full">
       <DottedGlowBackground
         className="pointer-events-none mask-radial-to-90% mask-radial-at-center"
         opacity={1}
@@ -80,64 +77,98 @@ export default function LoginPage() {
         speedScale={2}
       />
 
-      {/* centered login form with card style */}
-      <div className="relative z-10 flex items-center justify-center h-full px-4">
-        <div className="bg-transparent backdrop-blur-sm border rounded-lg">
-          <div className="p-12 min-w-[300px]">
-            <Link href="/" className="flex justify-center text-2xl font-bold mb-4 text-center text-orange-500">
-              COSMOS-ITS
-            </Link>
-            <h3 className="text-md mb-6 text-center text-gray-500">
-              Sign in to your account
-            </h3>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <div>
-                <Label htmlFor="email" className="block text-sm font-medium mb-1">
+      <div className="relative z-10 flex items-center justify-center h-full px-4 py-8">
+        <div className="w-full max-w-[420px] bg-background/60 backdrop-blur-md border border-border/60 rounded-2xl shadow-xl shadow-black/10">
+          <div className="p-6 sm:p-10">
+            {/* Logo & heading */}
+            <div className="mb-8 text-center">
+              <Link
+                href="/"
+                className="inline-block text-2xl sm:text-3xl font-extrabold tracking-tight text-orange-500 hover:text-orange-600 transition-colors"
+              >
+                COSMOS-ITS
+              </Link>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Sign in to your account
+              </p>
+            </div>
+
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              {/* Email */}
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-sm font-medium">
                   Email
                 </Label>
-                <Input
-                  type="email"
-                  id="email"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    type="email"
+                    id="email"
+                    className="pl-9 h-11 text-sm focus-visible:ring-orange-500/50 focus-visible:border-orange-500"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                    autoComplete="email"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="password" className="block text-sm font-medium mb-1">
-                  Password
-                </Label>
-                <Input
-                  type="password"
-                  id="password"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                />
+
+              {/* Password */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-medium">
+                    Password
+                  </Label>
+                  <Link
+                    href="/reset-password"
+                    className="text-xs text-muted-foreground hover:text-orange-500 transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    className="pl-9 pr-10 h-11 text-sm focus-visible:ring-orange-500/50 focus-visible:border-orange-500"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword
+                      ? <EyeOffIcon className="h-4 w-4" />
+                      : <EyeIcon className="h-4 w-4" />
+                    }
+                  </button>
+                </div>
               </div>
-              <div className="flex justify-end">
-                <Link
-                  href="/reset-password"
-                  className="text-xs text-muted-foreground hover:text-orange-500 transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+
+              {/* Submit */}
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-md transition-colors"
+                className="w-full h-11 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold rounded-lg transition-colors mt-1"
               >
-                {loading ? "Signing in..." : "Sign in"}
+                {loading
+                  ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Signing in…</>
+                  : "Sign in"
+                }
               </Button>
 
               <p className="text-center text-xs text-muted-foreground pt-1">
                 Don&apos;t have an account?{' '}
-                <Link href="/register" className="text-orange-500 hover:text-orange-600 font-medium">
+                <Link href="/register" className="text-orange-500 hover:text-orange-600 font-semibold transition-colors">
                   Sign up
                 </Link>
               </p>
