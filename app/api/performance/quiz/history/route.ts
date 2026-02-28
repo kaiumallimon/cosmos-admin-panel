@@ -25,8 +25,12 @@ export async function GET(req: NextRequest) {
       attempt_no: r.attempt_no ?? 0,
       marks: r.marks ?? 0,
       full_marks: r.full_marks ?? 0,
-      precision: r.precision ?? 0,
-      percentage: r.percentage ?? 0,
+      precision: r.precision ?? null,
+      percentage: r.percentage != null && r.percentage !== 0
+        ? r.percentage
+        : r.marks != null && r.full_marks
+          ? Math.round((r.marks / r.full_marks) * 100)
+          : null,
       quiz_ids: Array.isArray(r.quiz_id) ? r.quiz_id : r.quiz_id ? [r.quiz_id] : [],
       right_answers: r.right_answers ?? [],
       wrong_answers: r.wrong_answers ?? [],
