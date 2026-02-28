@@ -544,9 +544,6 @@ export default function PerformanceOverviewPage() {
                               style={{ width: `${c.avg ?? 0}%`, backgroundColor: color }}
                             />
                           </div>
-                          <span className="text-xs text-muted-foreground tabular-nums shrink-0 w-9 text-right">
-                            {c.avg !== null ? `${c.avg}%` : '—'}
-                          </span>
                         </div>
                       </div>
 
