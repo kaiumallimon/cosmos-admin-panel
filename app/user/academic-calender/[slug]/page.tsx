@@ -23,6 +23,9 @@ import {
   DownloadIcon,
   InfoIcon,
   ClockIcon,
+  CalendarIcon,
+  AlignLeftIcon,
+  SunIcon,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -62,17 +65,28 @@ function isClassBegin(details: string): boolean {
 
 function TableSkeleton() {
   return (
-    <Card className="border overflow-hidden">
-      <div className="p-5 border-b border-border space-y-2">
-        <Skeleton className="h-5 w-48" />
-        <Skeleton className="h-3.5 w-32" />
+    <Card className="border-0 overflow-hidden shadow-sm rounded-xl bg-card">
+      <div className="grid grid-cols-[140px_90px_1fr] bg-muted border-b-2 border-border">
+        {['w-16', 'w-10', 'w-24'].map((w, i) => (
+          <div key={i} className={`flex items-center gap-2 px-4 py-3 ${i < 2 ? 'border-r border-border/60' : ''}`}>
+            <Skeleton className="h-3.5 w-3.5 rounded" />
+            <Skeleton className={`h-3.5 ${w}`} />
+          </div>
+        ))}
       </div>
       <div className="divide-y divide-border">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="grid grid-cols-[120px_90px_1fr] gap-4 p-4">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className={`h-4 w-${i % 2 === 0 ? 'full' : '3/4'}`} />
+          <div key={i} className="grid grid-cols-[140px_90px_1fr] border-l-[3px] border-l-transparent">
+            <div className="flex items-center gap-2 px-4 py-3.5 border-r border-border/60">
+              <Skeleton className="h-2 w-2 rounded-full" />
+              <Skeleton className="h-3.5 w-20" />
+            </div>
+            <div className="px-4 py-3.5 border-r border-border/60">
+              <Skeleton className="h-3.5 w-10" />
+            </div>
+            <div className="px-4 py-3.5">
+              <Skeleton className={`h-3.5 ${i % 3 === 0 ? 'w-full' : i % 3 === 1 ? 'w-4/5' : 'w-3/5'}`} />
+            </div>
           </div>
         ))}
       </div>
@@ -222,12 +236,21 @@ export default function AcademicCalendarDetailPage() {
             </div>
 
             {/* Events table */}
-            <Card className="border overflow-hidden">
+            <Card className="border-0 p-0 overflow-hidden shadow-sm rounded-xl">
               {/* Column headers */}
-              <div className="grid grid-cols-[130px_90px_1fr] bg-muted/50 border-b border-border">
-                <span className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-r border-border">Date</span>
-                <span className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-r border-border">Day</span>
-                <span className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Details</span>
+              <div className="grid grid-cols-[140px_90px_1fr] bg-primary/10 border-b border-border ">
+                <div className="flex items-center gap-2 px-4 py-3 border-r border-border/60">
+                  <CalendarIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="text-xs font-semibold text-foreground tracking-wide">Date</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-3 border-r border-border/60">
+                  <SunIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="text-xs font-semibold text-foreground tracking-wide">Day</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-3">
+                  <AlignLeftIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="text-xs font-semibold text-foreground tracking-wide">Details</span>
+                </div>
               </div>
 
               <div className="divide-y divide-border">
@@ -270,21 +293,23 @@ export default function AcademicCalendarDetailPage() {
                   return (
                     <div
                       key={idx}
-                      className={`relative grid grid-cols-[130px_90px_1fr] border-l-[3px] ${rowAccent} ${rowBg} transition-colors`}
+                      className={`relative grid grid-cols-[140px_90px_1fr] border-l-[3px] ${rowAccent} ${rowBg} transition-colors group`}
                     >
                       {/* Date */}
-                      <div className="flex items-start gap-1.5 px-4 py-3.5 border-r border-border">
-                        {dotColor && (
-                          <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${dotColor}`} />
+                      <div className="flex items-start gap-2 px-4 py-3.5 border-r border-border/60">
+                        {dotColor ? (
+                          <span className={`mt-[5px] h-2 w-2 rounded-full shrink-0 ${dotColor}`} />
+                        ) : (
+                          <span className="mt-[5px] h-2 w-2 rounded-full shrink-0 bg-transparent" />
                         )}
-                        <span className="text-xs font-medium text-foreground leading-snug">
+                        <span className="text-xs font-semibold text-foreground leading-snug tabular-nums">
                           {event.date}
                         </span>
                       </div>
 
                       {/* Day */}
-                      <div className="flex items-start px-4 py-3.5 border-r border-border">
-                        <span className="text-xs text-muted-foreground leading-snug">
+                      <div className="flex items-center px-4 py-3.5 border-r border-border/60">
+                        <span className="text-xs font-medium text-muted-foreground leading-snug">
                           {event.day}
                         </span>
                       </div>
@@ -301,7 +326,7 @@ export default function AcademicCalendarDetailPage() {
               </div>
 
               {/* Footer: event count */}
-              <div className="px-4 py-2.5 bg-muted/30 border-t border-border flex items-center gap-1.5">
+              <div className="px-4 py-2.5 bg-muted/50 border-t-2 border-border flex items-center gap-1.5">
                 <ClockIcon className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
                   {data.events.length} scheduled events
