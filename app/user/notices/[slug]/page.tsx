@@ -187,10 +187,25 @@ export default function NoticeDetailPage() {
             {/* Notice body */}
             <Card className="border">
               <CardContent className="p-5 sm:p-7">
-                <div
-                  className="notice-content text-sm leading-relaxed text-foreground space-y-3 [&_p]:leading-relaxed [&_p]:mb-3 [&_strong]:font-semibold [&_strong]:text-foreground [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:my-4 [&_a]:text-primary [&_a:hover]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1"
-                  dangerouslySetInnerHTML={{ __html: data.content_html }}
-                />
+                <div className="overflow-x-auto">
+                  <div
+                    className="prose prose-sm dark:prose-invert max-w-none
+                      prose-p:text-foreground prose-headings:text-foreground
+                      prose-strong:text-foreground
+                      prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground
+                      prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                      prose-table:w-full prose-table:border-collapse
+                      prose-thead:bg-muted/50
+                      prose-th:border prose-th:border-border prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold prose-th:text-foreground
+                      prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2 prose-td:text-foreground
+                      prose-tr:border-b prose-tr:border-border
+                      [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm
+                      [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:bg-muted/50
+                      [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2
+                      [&_tr:nth-child(even)]:bg-muted/20"
+                    dangerouslySetInnerHTML={{ __html: data.content_html }}
+                  />
+                </div>
               </CardContent>
             </Card>
           </div>
