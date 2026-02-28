@@ -47,6 +47,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ClipboardListIcon,
   PlusIcon,
@@ -58,6 +59,7 @@ import {
   BookOpenIcon,
   CheckSquareIcon,
   AwardIcon,
+  AlertTriangleIcon,
 } from 'lucide-react';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -81,6 +83,20 @@ interface CourseStats {
   avg_ct_percentage: number | null;
   ct_assessments_taken: number;
   total_assessments: number;
+}
+
+interface Weakness {
+  id: string;
+  topic_id: string;
+  topic_name: string;
+  course_id: string;
+  course_name: string;
+  course_code?: string;
+}
+
+interface Topic {
+  id: string;
+  topic_name: string;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -123,6 +139,16 @@ export default function CourseAssessmentsPage() {
   const [form, setForm] = useState(DEFAULT_FORM);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // ─── Weakness state ────────────────────────────────────────────────────
+  const [weaknesses, setWeaknesses] = useState<Weakness[]>([]);
+  const [weaknessLoading, setWeaknessLoading] = useState(false);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [topicsLoading, setTopicsLoading] = useState(false);
+  const [weaknessDialogOpen, setWeaknessDialogOpen] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState('');
+  const [addingWeakness, setAddingWeakness] = useState(false);
+  const [deletingWeaknessId, setDeletingWeaknessId] = useState<string | null>(null);
 
   // ─── Fetch ──────────────────────────────────────────────────────────────────
 
@@ -169,9 +195,80 @@ export default function CourseAssessmentsPage() {
     }
   };
 
+  const fetchWeaknesses = async () => {
+    if (!studentId) return;
+    setWeaknessLoading(true);
+    try {
+      const res = await fetch(`/api/performance/weaknesses/${studentId}`);
+      const data = await res.json();
+      const all: Weakness[] = Array.isArray(data) ? data : [];
+      setWeaknesses(all.filter((w) => w.course_id === courseId));
+    } catch {
+      setWeaknesses([]);
+    } finally {
+      setWeaknessLoading(false);
+    }
+  };
+
+  const loadTopics = async () => {
+    if (!courseId) return;
+    setTopicsLoading(true);
+    try {
+      const res = await fetch('/api/performance/course-topics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_id: courseId }),
+      });
+      const data = await res.json();
+      const raw: any[] = Array.isArray(data) ? data : data?.topics ?? [];
+      setTopics(raw.map((t: any) => ({ id: t.id, topic_name: t.topic_name ?? t.name ?? '' })));
+    } finally {
+      setTopicsLoading(false);
+    }
+  };
+
+  const handleAddWeakness = async () => {
+    if (!studentId || !selectedTopic) return;
+    setAddingWeakness(true);
+    try {
+      await fetch('/api/performance/weaknesses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, course_id: courseId, topic_id: selectedTopic }),
+      });
+      setWeaknessDialogOpen(false);
+      setSelectedTopic('');
+      await fetchWeaknesses();
+    } finally {
+      setAddingWeakness(false);
+    }
+  };
+
+  const handleDeleteWeakness = async (w: Weakness) => {
+    setDeletingWeaknessId(w.id);
+    try {
+      await fetch('/api/performance/weaknesses', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, topic_id: w.topic_id }),
+      });
+      await fetchWeaknesses();
+    } finally {
+      setDeletingWeaknessId(null);
+    }
+  };
+
+  const openWeaknessDialog = () => {
+    setSelectedTopic('');
+    setWeaknessDialogOpen(true);
+    if (topics.length === 0) loadTopics();
+  };
+
   useEffect(() => {
     fetchAssessments();
     fetchStats();
+    fetchWeaknesses();
+    loadTopics();
   }, [studentId, courseId]);
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
@@ -330,7 +427,7 @@ export default function CourseAssessmentsPage() {
   return (
     <div className="min-h-screen bg-background">
       <FrostedHeader
-        title="Assessments"
+        title="Course Performance"
         onMobileMenuToggle={toggleMobileMenu}
         showSearch={false}
       />
@@ -409,6 +506,19 @@ export default function CourseAssessmentsPage() {
           />
         </div>
 
+        <Tabs defaultValue="assessments">
+          <TabsList>
+            <TabsTrigger value="assessments" className="flex items-center gap-2">
+              <ClipboardListIcon className="h-4 w-4" />
+              Assessments
+            </TabsTrigger>
+            <TabsTrigger value="weaknesses" className="flex items-center gap-2">
+              <AlertTriangleIcon className="h-4 w-4" />
+              Weaknesses
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="assessments" className="mt-4">
         {/* Assessments table card */}
         <Card>
           <CardHeader>
@@ -541,8 +651,72 @@ export default function CourseAssessmentsPage() {
               )}
             </div>
           </CardContent>
-        </Card>
-      </div>
+        </Card>          </TabsContent>
+
+          <TabsContent value="weaknesses" className="mt-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangleIcon className="h-5 w-5 text-amber-500" />
+                    Weaknesses
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={fetchWeaknesses}>
+                      <RefreshCwIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="gap-2 bg-primary hover:bg-primary/90"
+                      onClick={openWeaknessDialog}
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                      Add Weakness
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {weaknessLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="rounded-lg border p-4 animate-pulse bg-muted/40 h-14" />
+                    ))}
+                  </div>
+                ) : weaknesses.length === 0 ? (
+                  <div className="p-10 flex flex-col items-center gap-3 text-center">
+                    <AlertTriangleIcon className="h-10 w-10 text-muted-foreground/40" />
+                    <p className="text-sm text-muted-foreground">
+                      No weaknesses recorded for this course. Mark topics you find difficult.
+                    </p>
+                    <Button size="sm" onClick={openWeaknessDialog} className="gap-2 bg-primary hover:bg-primary/90">
+                      <PlusIcon className="h-4 w-4" />
+                      Add Weakness
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2 py-2">
+                    {weaknesses.map((w) => (
+                      <div
+                        key={w.id}
+                        className="flex items-center gap-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-full px-3 py-1.5 text-sm font-medium"
+                      >
+                        {w.topic_name}
+                        <button
+                          disabled={deletingWeaknessId === w.id}
+                          onClick={() => handleDeleteWeakness(w)}
+                          className="ml-0.5 hover:text-destructive transition-colors"
+                        >
+                          <Trash2Icon className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>      </div>
 
       {/* ── Add / Edit Dialog ──────────────────────────────────────────────────── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -640,6 +814,54 @@ export default function CourseAssessmentsPage() {
               onClick={handleSave}
             >
               {saving ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Add Weakness Dialog ─────────────────────────────────────────────────── */}
+      <Dialog open={weaknessDialogOpen} onOpenChange={setWeaknessDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Weakness</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg border p-3 bg-muted/40">
+              <p className="text-xs font-medium text-muted-foreground">Course</p>
+              <p className="text-sm font-semibold mt-0.5">
+                {courseCode}{courseName ? ` — ${courseName}` : ''}
+              </p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Topic</label>
+              <Select
+                value={selectedTopic}
+                onValueChange={setSelectedTopic}
+                disabled={topicsLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={topicsLoading ? 'Loading topics…' : 'Select topic'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {topics.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.topic_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={() => setWeaknessDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={addingWeakness || !selectedTopic}
+              onClick={handleAddWeakness}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {addingWeakness ? 'Adding…' : 'Add'}
             </Button>
           </DialogFooter>
         </DialogContent>
