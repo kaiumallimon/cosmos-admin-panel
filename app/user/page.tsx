@@ -462,8 +462,7 @@ export default function UserDashboardPage() {
           {/* ╔═══════════════════════════════════════════════════════════════╗
               ║ 6  SCORE BY COURSE — bar chart, wide (3 cols)               ║
               ╚═══════════════════════════════════════════════════════════════╝ */}
-          <BentoCell className="lg:col-span-3">
-            <div className="p-0">
+          <div className="lg:col-span-3">
               {scoreByCourse.length > 0 ? (
                 <DashboardBarChart
                   data={scoreByCourse}
@@ -474,7 +473,7 @@ export default function UserDashboardPage() {
                   multiColor
                 />
               ) : (
-                <div className="p-6">
+                <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden transition-shadow hover:shadow-md p-6">
                   <p className="text-sm font-semibold mb-1">Average Score by Course</p>
                   <div className="h-[260px] flex flex-col items-center justify-center text-muted-foreground/40">
                     <BarChart3Icon className="h-10 w-10 mb-2" />
@@ -482,14 +481,12 @@ export default function UserDashboardPage() {
                   </div>
                 </div>
               )}
-            </div>
-          </BentoCell>
+          </div>
 
           {/* ╔═══════════════════════════════════════════════════════════════╗
               ║ 7  ASSESSMENT DISTRIBUTION — pie chart (1 col)              ║
               ╚═══════════════════════════════════════════════════════════════╝ */}
-          <BentoCell>
-            <div className="p-0">
+          <div>
               {typeDistribution.length > 0 ? (
                 <DashboardPieChart
                   data={typeDistribution}
@@ -497,7 +494,7 @@ export default function UserDashboardPage() {
                   description="Distribution breakdown"
                 />
               ) : (
-                <div className="p-6">
+                <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden transition-shadow hover:shadow-md p-6">
                   <p className="text-sm font-semibold mb-1">Assessment Types</p>
                   <div className="h-[260px] flex flex-col items-center justify-center text-muted-foreground/40">
                     <BarChart3Icon className="h-10 w-10 mb-2" />
@@ -505,14 +502,12 @@ export default function UserDashboardPage() {
                   </div>
                 </div>
               )}
-            </div>
-          </BentoCell>
+          </div>
 
           {/* ╔═══════════════════════════════════════════════════════════════╗
               ║ 8  SCORE BY TYPE — bar chart (2 cols)                       ║
               ╚═══════════════════════════════════════════════════════════════╝ */}
-          <BentoCell className="md:col-span-2">
-            <div className="p-0">
+          <div className="md:col-span-2">
               {scoreByType.length > 0 ? (
                 <DashboardBarChart
                   data={scoreByType}
@@ -523,7 +518,7 @@ export default function UserDashboardPage() {
                   multiColor
                 />
               ) : (
-                <div className="p-6">
+                <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden transition-shadow hover:shadow-md p-6">
                   <p className="text-sm font-semibold mb-1">Average Score by Type</p>
                   <div className="h-[260px] flex flex-col items-center justify-center text-muted-foreground/40">
                     <BarChart3Icon className="h-10 w-10 mb-2" />
@@ -531,13 +526,12 @@ export default function UserDashboardPage() {
                   </div>
                 </div>
               )}
-            </div>
-          </BentoCell>
+          </div>
 
           {/* ╔═══════════════════════════════════════════════════════════════╗
               ║ 9  PERFORMANCE RADAR — (2 cols)                             ║
               ╚═══════════════════════════════════════════════════════════════╝ */}
-          <BentoCell className="md:col-span-2">
+          <div className="md:col-span-2">
             {radarData.length >= 3 ? (
               <ChartCard title="Performance Radar" description="Strength across assessment categories">
                 <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
@@ -549,7 +543,7 @@ export default function UserDashboardPage() {
                 </RadarChart>
               </ChartCard>
             ) : (
-              <div className="p-6">
+              <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden transition-shadow hover:shadow-md p-6">
                 <p className="text-sm font-semibold mb-1">Performance Radar</p>
                 <div className="h-[260px] flex flex-col items-center justify-center text-muted-foreground/40">
                   <TargetIcon className="h-10 w-10 mb-2" />
@@ -557,7 +551,7 @@ export default function UserDashboardPage() {
                 </div>
               </div>
             )}
-          </BentoCell>
+          </div>
 
           {/* ╔═══════════════════════════════════════════════════════════════╗
               ║ 10  COURSE BREAKDOWN — spans 2 cols, taller                 ║
