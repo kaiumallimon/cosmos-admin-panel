@@ -76,6 +76,7 @@ interface Assessment {
   marks: number;
   full_marks: number;
   course_id: string;
+  grade?: string;
 }
 
 interface CourseStats {
@@ -115,6 +116,7 @@ const DEFAULT_FORM = {
   ct_no: '1',
   marks: '',
   full_marks: '',
+  grade: '',
 };
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -348,12 +350,15 @@ export default function CourseAssessmentsPage() {
       ct_no: String(a.ct_no ?? 1),
       marks: String(a.marks),
       full_marks: String(a.full_marks),
+      grade: a.grade ?? '',
     });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
-    if (!form.marks || !form.full_marks) return;
+    const isFinal = form.assessment_type === 'final';
+    const hasGrade = isFinal && !!form.grade.trim();
+    if (!hasGrade && (!form.marks || !form.full_marks)) return;
     if (form.assessment_type === 'ct' && !form.ct_no) return;
     setSaving(true);
     try {
@@ -362,9 +367,13 @@ export default function CourseAssessmentsPage() {
         student_id: studentId,
         course_id: courseId,
         assessment_type: form.assessment_type,
-        marks: Number(form.marks),
-        full_marks: Number(form.full_marks),
       };
+      if (hasGrade) {
+        payload.grade = form.grade.trim();
+      } else {
+        payload.marks = Number(form.marks);
+        payload.full_marks = Number(form.full_marks);
+      }
       if (form.assessment_type === 'ct') payload.ct_no = Number(form.ct_no);
 
       if (editItem) {
@@ -841,28 +850,44 @@ export default function CourseAssessmentsPage() {
               </div>
             )}
 
+            {form.assessment_type === 'final' && (
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                  Final Grade
+                  <span className="ml-1 text-muted-foreground/60 font-normal">(optional if marks provided)</span>
+                </label>
+                <Input
+                  placeholder="e.g. A+, A, A-, B+, B …"
+                  value={form.grade}
+                  onChange={(e) => setForm((f) => ({ ...f, grade: e.target.value }))}
+                />
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                  Marks
+                  Marks{form.assessment_type === 'final' && form.grade.trim() && <span className="ml-1 text-muted-foreground/60 font-normal">(auto from grade)</span>}
                 </label>
                 <Input
                   type="number"
                   min={0}
                   placeholder="e.g. 18"
                   value={form.marks}
+                  disabled={form.assessment_type === 'final' && !!form.grade.trim()}
                   onChange={(e) => setForm((f) => ({ ...f, marks: e.target.value }))}
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                  Full Marks
+                  Full Marks{form.assessment_type === 'final' && form.grade.trim() && <span className="ml-1 text-muted-foreground/60 font-normal">(auto from grade)</span>}
                 </label>
                 <Input
                   type="number"
                   min={1}
-                  placeholder="e.g. 20"
+                  placeholder="e.g. 100"
                   value={form.full_marks}
+                  disabled={form.assessment_type === 'final' && !!form.grade.trim()}
                   onChange={(e) => setForm((f) => ({ ...f, full_marks: e.target.value }))}
                 />
               </div>
@@ -877,9 +902,12 @@ export default function CourseAssessmentsPage() {
               className="bg-primary hover:bg-primary/90"
               disabled={
                 saving ||
-                !form.marks ||
-                !form.full_marks ||
-                (form.assessment_type === 'ct' && !form.ct_no)
+                (form.assessment_type === 'ct' && !form.ct_no) ||
+                (
+                  form.assessment_type === 'final'
+                    ? !form.grade.trim() && (!form.marks || !form.full_marks)
+                    : !form.marks || !form.full_marks
+                )
               }
               onClick={handleSave}
             >
