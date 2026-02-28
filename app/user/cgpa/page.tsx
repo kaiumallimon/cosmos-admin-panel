@@ -178,7 +178,7 @@ export default function CGPACalculatorPage() {
         {/* ── Previous academic record ── */}
         <Card className="border shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Previous Academic Record</CardTitle>
+            <CardTitle className="text-base font-bold">Previous Academic Record</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -215,7 +215,7 @@ export default function CGPACalculatorPage() {
         <Card className="border shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Current Semester Courses</CardTitle>
+              <CardTitle className="text-base font-bold">Current Semester Courses</CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
@@ -291,43 +291,45 @@ export default function CGPACalculatorPage() {
         {/* ── Results table ── */}
         {courses.some((c) => c.courseName.trim() || c.gradePoint > 0) && (
           <Card className="border shadow-sm">
-            <CardHeader className="pb-0">
-              <CardTitle className="text-sm">Results</CardTitle>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-bold">Results</CardTitle>
             </CardHeader>
-            <CardContent className="p-0 mt-3">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs">Course</TableHead>
-                    <TableHead className="text-xs text-center">Credits</TableHead>
-                    <TableHead className="text-xs text-center">Grade</TableHead>
-                    <TableHead className="text-xs text-center">Quality Points</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {courses
-                    .filter((c) => c.courseName.trim() || c.gradePoint > 0)
-                    .map((course, i) => {
-                      const gradeLabel = GRADES.find((g) => g.value === course.gradePoint)?.label ?? '—';
-                      return (
-                        <TableRow key={i}>
-                          <TableCell className="text-sm font-medium">
-                            {course.courseName || `Course ${i + 1}`}
-                          </TableCell>
-                          <TableCell className="text-center text-sm">{course.creditHours}</TableCell>
-                          <TableCell className="text-center">
-                            <Badge className="text-xs border bg-[#007AFF]/10 text-[#007AFF] border-[#007AFF]/20 hover:bg-[#007AFF]/10">
-                              {gradeLabel} ({course.gradePoint.toFixed(2)})
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-center text-sm font-mono">
-                            {(course.gradePoint * course.creditHours).toFixed(2)}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                </TableBody>
-              </Table>
+            <CardContent className="px-6 pb-6 pt-0">
+              <div className="rounded-xl border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent bg-muted/40">
+                      <TableHead className="text-xs font-semibold px-5 py-3.5">Course</TableHead>
+                      <TableHead className="text-xs font-semibold text-center px-5 py-3.5">Credits</TableHead>
+                      <TableHead className="text-xs font-semibold text-center px-5 py-3.5">Grade</TableHead>
+                      <TableHead className="text-xs font-semibold text-center px-5 py-3.5">Quality Points</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {courses
+                      .filter((c) => c.courseName.trim() || c.gradePoint > 0)
+                      .map((course, i) => {
+                        const gradeLabel = GRADES.find((g) => g.value === course.gradePoint)?.label ?? '—';
+                        return (
+                          <TableRow key={i}>
+                            <TableCell className="text-sm font-medium px-5 py-4">
+                              {course.courseName || `Course ${i + 1}`}
+                            </TableCell>
+                            <TableCell className="text-center text-sm px-5 py-4">{course.creditHours}</TableCell>
+                            <TableCell className="text-center px-5 py-4">
+                              <Badge className="text-xs border bg-[#007AFF]/10 text-[#007AFF] border-[#007AFF]/20 hover:bg-[#007AFF]/10">
+                                {gradeLabel} ({course.gradePoint.toFixed(2)})
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center text-sm font-mono px-5 py-4">
+                              {(course.gradePoint * course.creditHours).toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         )}
