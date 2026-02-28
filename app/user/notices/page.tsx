@@ -14,9 +14,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import Link from 'next/link';
 import {
   CalendarIcon,
-  ExternalLinkIcon,
+  ChevronRightIcon as ArrowRightIcon,
   RefreshCwIcon,
   BellIcon,
   ChevronLeftIcon,
@@ -170,41 +171,29 @@ export default function NoticesPage() {
                   <p className="text-sm text-muted-foreground">No notices found.</p>
                 </div>
               )
-              : data?.notices.map((notice, idx) => (
-                <Card
-                  key={idx}
-                  className="border hover:border-primary/30 hover:shadow-md transition-all"
-                >
-                  <CardContent className="p-4 sm:p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
-                          <span>{notice.date}</span>
+              : data?.notices.map((notice, idx) => {
+                const slug = notice.url.split('/notice/')[1]?.replace(/\/$/, '') ?? '';
+                return (
+                  <Link key={idx} href={slug ? `/user/notices/${slug}` : notice.url} target={slug ? undefined : '_blank'} rel={slug ? undefined : 'noopener noreferrer'}>
+                    <Card className="border hover:border-primary/30 hover:shadow-md transition-all cursor-pointer">
+                      <CardContent className="p-4 sm:p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+                              <span>{notice.date}</span>
+                            </div>
+                            <p className="text-sm font-medium leading-snug text-foreground">
+                              {notice.title}
+                            </p>
+                          </div>
+                          <ArrowRightIcon className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
                         </div>
-                        <p className="text-sm font-medium leading-snug text-foreground">
-                          {notice.title}
-                        </p>
-                      </div>
-                      <a
-                        href={notice.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0"
-                      >
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5 text-xs h-8 hover:border-primary/40 hover:text-primary"
-                        >
-                          <ExternalLinkIcon className="h-3.5 w-3.5" />
-                          View
-                        </Button>
-                      </a>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })
           }
         </div>
 
