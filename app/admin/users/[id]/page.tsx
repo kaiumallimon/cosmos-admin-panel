@@ -52,6 +52,7 @@ interface UserData {
     completed_credits?: number;
     cgpa?: number;
     trimester_credits?: number;
+    avatar_url?: string;
   };
 }
 
@@ -212,7 +213,17 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         <div className="p-6 pb-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <User className="h-6 w-6" />
+              {user.profile?.avatar_url ? (
+                <img
+                  src={user.profile.avatar_url}
+                  alt={user.profile?.full_name || user.email}
+                  className="h-12 w-12 rounded-full object-cover ring-2 ring-border shrink-0"
+                />
+              ) : (
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg shrink-0">
+                  {(user.profile?.full_name || user.email).charAt(0).toUpperCase()}
+                </div>
+              )}
               <div>
                 <h1 className="text-2xl font-bold">{user.profile?.full_name}</h1>
                 <p className="text-muted-foreground">{user.email}</p>
@@ -244,9 +255,17 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
           <div className="grid gap-4 md:grid-cols-3 mb-6">
             <Card className="bg-white dark:bg-card shadow rounded-lg p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                  <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
+                {user.profile?.avatar_url ? (
+                  <img
+                    src={user.profile.avatar_url}
+                    alt={user.profile?.full_name || user.email}
+                    className="h-10 w-10 rounded-full object-cover ring-2 ring-border shrink-0"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-base shrink-0">
+                    {(user.profile?.full_name || user.email).charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <h2 className="text-lg font-medium">User Profile</h2>
               </div>
               <p className="text-3xl font-bold">{user.profile?.full_name}</p>
@@ -352,7 +371,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                     <div className="flex justify-between items-center py-2">
                       <span className="text-sm font-medium text-muted-foreground">Current Trimester</span>
                       <span className="font-medium">
-                        {user.profile?.current_trimester 
+                        {user.profile?.current_trimester
                           ? user.profile.current_trimester.replace('_', ' ').toUpperCase()
                           : 'Not specified'
                         }

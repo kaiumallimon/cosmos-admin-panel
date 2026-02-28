@@ -93,6 +93,7 @@ interface User {
     completed_credits?: number;
     cgpa?: number;
     trimester_credits?: number;
+    avatar_url?: string;
   };
 }
 
@@ -526,9 +527,17 @@ export default function UsersPage() {
                       <TableRow key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
                         <TableCell className="py-4">
                           <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
-                              <User className="h-5 w-5 text-primary" />
-                            </div>
+                            {user.profile?.avatar_url ? (
+                              <img
+                                src={user.profile.avatar_url}
+                                alt={user.profile?.full_name || user.email}
+                                className="h-10 w-10 rounded-full object-cover ring-2 ring-border shrink-0"
+                              />
+                            ) : (
+                              <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-semibold text-sm shrink-0">
+                                {(user.profile?.full_name || user.email).charAt(0).toUpperCase()}
+                              </div>
+                            )}
                             <div>
                               <div className="font-medium">{user.profile?.full_name || 'No name'}</div>
                               <div className="text-sm text-muted-foreground">{user.email}</div>
