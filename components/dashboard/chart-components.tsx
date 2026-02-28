@@ -193,54 +193,62 @@ export const DashboardBarChart: React.FC<BarChartProps> = ({
         boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
     };
 
-    // Build legend payload from data when multiColor
-    const legendPayload = multiColor
-        ? data.map((entry, i) => ({
-            value: entry[xAxisKey],
-            type: 'square' as const,
-            color: PIE_COLORS[i % PIE_COLORS.length],
-          }))
-        : undefined;
-
     return (
-        <ChartCard title={title} description={description}>
-            <BarChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" />
-                <XAxis
-                    dataKey={xAxisKey}
-                    tick={{ fontSize: 11, fill: '#888' }}
-                    axisLine={false}
-                    tickLine={false}
-                />
-                <YAxis
-                    tick={{ fontSize: 11, fill: '#888' }}
-                    axisLine={false}
-                    tickLine={false}
-                    domain={[0, 100]}
-                />
-                <Tooltip
-                    contentStyle={tooltipStyle}
-                    cursor={{ fill: 'rgba(128,128,128,0.08)' }}
-                    formatter={(val: number) => [`${val}%`, dataKey === 'avg' ? 'Avg Score' : dataKey]}
-                />
-                {multiColor && legendPayload && (
-                    <Legend
-                        payload={legendPayload}
-                        wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
-                    />
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-lg">{title}</CardTitle>
+                {description && <p className="text-sm text-muted-foreground">{description}</p>}
+            </CardHeader>
+            <CardContent>
+                <div className="h-[260px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 4 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" />
+                            <XAxis
+                                dataKey={xAxisKey}
+                                tick={{ fontSize: 11, fill: '#888' }}
+                                axisLine={false}
+                                tickLine={false}
+                            />
+                            <YAxis
+                                tick={{ fontSize: 11, fill: '#888' }}
+                                axisLine={false}
+                                tickLine={false}
+                                domain={[0, 100]}
+                            />
+                            <Tooltip
+                                contentStyle={tooltipStyle}
+                                cursor={{ fill: 'rgba(128,128,128,0.08)' }}
+                                formatter={(val: number) => [`${val}%`, 'Avg Score']}
+                            />
+                            <Bar dataKey={dataKey} radius={[4, 4, 0, 0]}>
+                                {data.map((_, i) => (
+                                    <Cell
+                                        key={i}
+                                        fill={multiColor ? PIE_COLORS[i % PIE_COLORS.length] : color}
+                                    />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* Custom legend rendered as HTML — works reliably with Cell-colored bars */}
+                {multiColor && (
+                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-3">
+                        {data.map((entry, i) => (
+                            <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <span
+                                    className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
+                                    style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+                                />
+                                {entry[xAxisKey]}
+                            </div>
+                        ))}
+                    </div>
                 )}
-                <Bar dataKey={dataKey} radius={[4, 4, 0, 0]}>
-                    {multiColor
-                        ? data.map((_, i) => (
-                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                          ))
-                        : data.map((_, i) => (
-                            <Cell key={i} fill={color} />
-                          ))
-                    }
-                </Bar>
-            </BarChart>
-        </ChartCard>
+            </CardContent>
+        </Card>
     );
 };
 
