@@ -56,6 +56,7 @@ import {
   FlaskConicalIcon,
   TagIcon,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -131,6 +132,8 @@ const STATUS_ICON: Record<EventStatus, React.ElementType> = {
 };
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Thu (4) and Fri (5) are university holidays
+const HOLIDAY_COLS = new Set([4, 5]);
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -282,8 +285,11 @@ export default function StudyPlannerPage() {
   };
 
   const openAdd = (prefillDate?: string) => {
+    const today = todayIso();
+    // Never prefill a past date — clamp to today
+    const safeDate = prefillDate && prefillDate >= today ? prefillDate : today;
     setEditItem(null);
-    setForm({ ...DEFAULT_FORM, event_date: prefillDate ?? todayIso() });
+    setForm({ ...DEFAULT_FORM, event_date: safeDate });
     setDialogOpen(true);
   };
 
@@ -330,6 +336,8 @@ export default function StudyPlannerPage() {
             event_time: form.event_time || null,
           }),
         });
+
+        toast.success('Event created successfully');
       }
       setDialogOpen(false);
       await fetchEvents();
@@ -398,19 +406,19 @@ export default function StudyPlannerPage() {
     <div className="flex flex-col h-full overflow-hidden">
       <FrostedHeader title="Study Planner" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
 
-      <div className="flex-1 min-h-0 flex flex-col px-4 sm:px-6 py-4 gap-3">
+      <div className="flex-1 min-h-0 flex flex-col px-3 sm:px-6 py-3 sm:py-4 gap-2 sm:gap-3">
 
           {/* ── Header row ── */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Month nav */}
-            <div className="flex items-center gap-1.5">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" onClick={prevMonth}>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-lg" onClick={prevMonth}>
                 <ChevronLeftIcon className="h-4 w-4" />
               </Button>
-              <span className="text-lg font-bold tracking-tight w-44 text-center">
+              <span className="text-sm sm:text-lg font-bold tracking-tight text-center px-1 sm:px-2 whitespace-nowrap">
                 {MONTHS[viewMonth]} {viewYear}
               </span>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" onClick={nextMonth}>
+              <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-lg" onClick={nextMonth}>
                 <ChevronRightIcon className="h-4 w-4" />
               </Button>
             </div>
@@ -418,7 +426,7 @@ export default function StudyPlannerPage() {
             {(viewYear !== now.getFullYear() || viewMonth !== now.getMonth()) && (
               <button
                 onClick={goToday}
-                className="text-[11px] font-medium text-primary hover:underline underline-offset-2"
+                className="text-[11px] font-medium text-primary hover:underline underline-offset-2 whitespace-nowrap"
               >
                 Today
               </button>
@@ -426,7 +434,7 @@ export default function StudyPlannerPage() {
 
             <div className="flex-1" />
 
-            {/* Stats pills */}
+            {/* Stats pills — hidden on mobile */}
             <div className="hidden sm:flex items-center gap-1.5">
               {stats.overdue > 0 && (
                 <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 font-medium tabular-nums">
@@ -441,12 +449,19 @@ export default function StudyPlannerPage() {
               </span>
             </div>
 
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg text-muted-foreground" onClick={fetchEvents} title="Refresh">
+            {/* Overdue badge on mobile only */}
+            {stats.overdue > 0 && (
+              <span className="sm:hidden text-[11px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 font-medium tabular-nums">
+                {stats.overdue} overdue
+              </span>
+            )}
+
+            <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-lg text-muted-foreground" onClick={fetchEvents} title="Refresh">
               <RefreshCwIcon className="h-3.5 w-3.5" />
             </Button>
-            <Button size="sm" className="h-8 gap-1.5 rounded-lg text-xs font-semibold" onClick={() => openAdd()}>
+            <Button size="sm" className="h-7 sm:h-8 gap-1.5 rounded-lg text-xs font-semibold px-2 sm:px-3" onClick={() => openAdd()}>
               <PlusIcon className="h-3.5 w-3.5" />
-              <span>Add Event</span>
+              <span className="hidden sm:inline">Add Event</span>
             </Button>
           </div>
 
@@ -454,9 +469,17 @@ export default function StudyPlannerPage() {
           <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
             {/* Weekday header */}
             <div className="grid grid-cols-7 border-b border-border shrink-0">
-              {WEEKDAYS.map((d) => (
-                <div key={d} className="py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
-                  {d}
+              {WEEKDAYS.map((d, i) => (
+                <div
+                  key={d}
+                  className={`py-2 sm:py-2.5 text-center text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest ${
+                    HOLIDAY_COLS.has(i)
+                      ? 'text-red-400 bg-red-500/8'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  <span className="sm:hidden">{d[0]}</span>
+                  <span className="hidden sm:inline">{d}</span>
                 </div>
               ))}
             </div>
@@ -466,11 +489,12 @@ export default function StudyPlannerPage() {
               {calendarGrid.map((row, rowIdx) => (
                 <div key={rowIdx} className="grid grid-cols-7 divide-x divide-border border-b border-border last:border-b-0">
                   {row.map((day, colIdx) => {
+                    const isHolidayCol = HOLIDAY_COLS.has(colIdx);
                     if (day === null) {
                       return (
                         <div
                           key={colIdx}
-                          className="bg-muted/30"
+                          className={isHolidayCol ? 'bg-red-500/8' : 'bg-muted/30'}
                         />
                       );
                     }
@@ -488,10 +512,16 @@ export default function StudyPlannerPage() {
                         key={colIdx}
                         onClick={() => openDaySheet(dateStr)}
                         className={`
-                          flex flex-col items-center justify-start pt-2 gap-1
+                          flex flex-col items-center justify-start pt-1.5 sm:pt-2 gap-0.5 sm:gap-1 min-h-11 sm:min-h-0
                           hover:bg-accent/60 focus:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-primary/40
                           transition-colors relative group w-full h-full
-                          ${isSelected ? 'bg-primary/8' : isToday ? 'bg-primary/5' : isPast ? 'bg-muted/10' : 'bg-card'}
+                          ${
+                            isSelected ? 'bg-primary/8'
+                            : isToday ? 'bg-primary/5'
+                            : isHolidayCol ? 'bg-red-500/8'
+                            : isPast ? 'bg-muted/10'
+                            : 'bg-card'
+                          }
                         `}
                       >
                         {/* Day number */}
@@ -529,7 +559,7 @@ export default function StudyPlannerPage() {
           </div>
 
           {/* ── Legend ── */}
-          <div className="flex items-center gap-4 shrink-0 pb-1">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 shrink-0 pb-1">
             {EVENT_TYPES.map((t) => (
               <div key={t.value} className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${TYPE_DOT[t.value]}`} />
@@ -542,7 +572,7 @@ export default function StudyPlannerPage() {
 
       {/* ── Day events Sheet ─────────────────────────────────────────────────── */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-full sm:w-[420px] flex flex-col p-0">
+        <SheetContent side="right" className="w-[92vw] sm:w-[420px] flex flex-col p-0 max-h-full overflow-hidden">
           <SheetHeader className="px-5 pt-5 pb-3 border-b border-border shrink-0">
             <SheetTitle className="text-sm font-semibold">
               {selectedDate
@@ -553,16 +583,18 @@ export default function StudyPlannerPage() {
             </SheetTitle>
           </SheetHeader>
 
-          <div className="px-5 py-3 border-b border-border shrink-0">
-            <Button
-              size="sm"
-              className="w-full gap-2 bg-primary hover:bg-primary/90"
-              onClick={() => openAdd(selectedDate ?? undefined)}
-            >
-              <PlusIcon className="h-4 w-4" />
-              Add Event on this day
-            </Button>
-          </div>
+          {selectedDate && selectedDate >= today && (
+            <div className="px-5 py-3 border-b border-border shrink-0">
+              <Button
+                size="sm"
+                className="w-full gap-2 bg-primary hover:bg-primary/90"
+                onClick={() => openAdd(selectedDate)}
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add Event on this day
+              </Button>
+            </div>
+          )}
 
           <ScrollArea className="flex-1 min-h-0">
             <div className="px-5 py-4">
@@ -676,7 +708,7 @@ export default function StudyPlannerPage() {
 
       {/* ── Add / Edit Dialog ─────────────────────────────────────────────── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-sm">
           <DialogHeader>
             <DialogTitle>{editItem ? 'Edit Event' : 'Add Event'}</DialogTitle>
           </DialogHeader>
@@ -724,6 +756,7 @@ export default function StudyPlannerPage() {
                 </Label>
                 <Input
                   type="date"
+                  min={editItem ? undefined : todayIso()}
                   value={form.event_date}
                   onChange={(e) => setForm((f) => ({ ...f, event_date: e.target.value }))}
                 />
