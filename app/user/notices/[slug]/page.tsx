@@ -235,9 +235,9 @@ export default function NoticeDetailPage() {
             {/* ── Body card ── */}
             <Card className="border">
               <CardContent className="p-5 sm:p-7">
-                  <div className="overflow-x-auto">
-                    <div
-                      className="prose prose-sm dark:prose-invert max-w-none
+                <div className="overflow-x-auto">
+                  <div
+                    className="prose prose-sm dark:prose-invert max-w-none
                         prose-p:text-foreground prose-headings:text-foreground
                         prose-strong:text-foreground
                         prose-blockquote:border-l-orange-500 prose-blockquote:text-muted-foreground
@@ -251,25 +251,32 @@ export default function NoticeDetailPage() {
                         [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:bg-muted/50
                         [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2
                         [&_tr:nth-child(even)_td]:bg-muted/20"
-                      dangerouslySetInnerHTML={{ __html: data.content_html }}
-                    />
-                  </div>
-                </CardContent>
+                    dangerouslySetInnerHTML={{ __html: data.content_html }}
+                  />
+                </div>
+              </CardContent>
             </Card>
 
             {/* ── Sidebar: Related Notices ── */}
             {relatedNotices.length > 0 && (
-              <div className="space-y-4">
-                <Card className="border sticky top-20">
-                  <div className="px-4 pt-4 pb-3 border-b border-border">
+              <div className="sticky top-20">
+                <Card className="border overflow-hidden">
+                  {/* Header */}
+                  <div className="relative px-4 py-3.5 bg-linear-to-r from-orange-500/10 to-transparent border-b border-border">
+                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-orange-500 rounded-r-full" />
                     <div className="flex items-center gap-2">
                       <div className="h-6 w-6 rounded-md bg-orange-500/15 flex items-center justify-center shrink-0">
                         <FileTextIcon className="h-3.5 w-3.5 text-orange-500" />
                       </div>
                       <p className="text-sm font-semibold text-foreground">Related Notices</p>
+                      <span className="ml-auto text-[11px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                        {relatedNotices.length}
+                      </span>
                     </div>
                   </div>
-                  <div className="divide-y divide-border">
+
+                  {/* Items */}
+                  <div>
                     {relatedNotices.map((item, idx) => {
                       const itemSlug = slugFromUrl(item.url);
                       const href = itemSlug ? `/user/notices/${itemSlug}` : item.url;
@@ -280,9 +287,18 @@ export default function NoticeDetailPage() {
                           href={href}
                           target={isExternal ? '_blank' : undefined}
                           rel={isExternal ? 'noopener noreferrer' : undefined}
-                          className="flex items-start gap-3 px-4 py-3 hover:bg-muted/40 transition-colors group"
+                          className="relative flex items-start gap-3 px-4 py-3.5 border-b border-border last:border-b-0 hover:bg-orange-500/5 transition-colors group"
                         >
-                          <div className="flex-1 min-w-0 space-y-0.5">
+                          {/* Hover accent bar */}
+                          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-orange-500 rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                          {/* Index bubble */}
+                          <span className="shrink-0 mt-0.5 h-5 w-5 rounded-full bg-muted text-[10px] font-semibold text-muted-foreground flex items-center justify-center group-hover:bg-orange-500/15 group-hover:text-orange-600 transition-colors">
+                            {idx + 1}
+                          </span>
+
+                          {/* Text */}
+                          <div className="flex-1 min-w-0 space-y-1">
                             <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                               <CalendarIcon className="h-3 w-3 shrink-0" />
                               <span>{item.date}</span>
@@ -291,7 +307,8 @@ export default function NoticeDetailPage() {
                               {item.title}
                             </p>
                           </div>
-                          <ChevronRightIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-1.5 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all" />
+
+                          <ChevronRightIcon className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0 mt-1 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all" />
                         </Link>
                       );
                     })}
