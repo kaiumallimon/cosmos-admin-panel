@@ -142,7 +142,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           <Link
             href="/user/roadmap"
             onClick={onLinkClick}
-            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 mt-1 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/roadmap') ? 'bg-primary text-primary-foreground font-semibold' : ''
+            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/roadmap') ? 'bg-primary text-primary-foreground font-semibold' : ''
               }`}
           >
             <MapIcon className="h-4 w-4 shrink-0" />
@@ -171,7 +171,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 key={href}
                 href={href}
                 onClick={onLinkClick}
-                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md px-2 py-1.5 mt-0.5 text-sm transition-all duration-200 hover:bg-primary/30 ${isActive ? 'bg-primary text-primary-foreground font-semibold' : ''
+                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${isActive ? 'bg-primary text-primary-foreground font-semibold' : ''
                   }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -190,7 +190,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           <Link
             href="/user/cgpa"
             onClick={onLinkClick}
-            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md px-2 py-1.5 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/cgpa') ? 'bg-primary text-primary-foreground font-semibold' : ''
+            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/cgpa') ? 'bg-primary text-primary-foreground font-semibold' : ''
               }`}
           >
             <CalculatorIcon className="h-4 w-4 shrink-0" />
@@ -199,7 +199,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           <Link
             href="/user/routines"
             onClick={onLinkClick}
-            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md px-2 py-1.5 mt-0.5 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/routines') ? 'bg-primary text-primary-foreground font-semibold' : ''
+            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/routines') ? 'bg-primary text-primary-foreground font-semibold' : ''
               }`}
           >
             <CalendarDaysIcon className="h-4 w-4 shrink-0" />
