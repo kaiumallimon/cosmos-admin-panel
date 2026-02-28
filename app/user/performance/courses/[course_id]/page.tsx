@@ -154,6 +154,12 @@ export default function CourseAssessmentsPage() {
   const [addingWeakness, setAddingWeakness] = useState(false);
   const [deletingWeaknessId, setDeletingWeaknessId] = useState<string | null>(null);
 
+  // ─── Count dialog state ─────────────────────────────────────────────────
+  const [countDialogOpen, setCountDialogOpen] = useState(false);
+  const [countDialogType, setCountDialogType] = useState<'ct' | 'assignment'>('ct');
+  const [countValue, setCountValue] = useState('1');
+  const [countSaving, setCountSaving] = useState(false);
+
   // ─── Quiz state ────────────────────────────────────────────────────────
   const [quizDialogOpen, setQuizDialogOpen] = useState(false);
   const [quizTopics, setQuizTopics] = useState<Topic[]>([]);
@@ -337,6 +343,35 @@ export default function CourseAssessmentsPage() {
   }, [studentId, courseId]);
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
+
+  const openCountDialog = (type: 'ct' | 'assignment') => {
+    setCountDialogType(type);
+    setCountValue(
+      String(type === 'ct' ? (stats?.ct_count ?? 1) : (stats?.assignment_count ?? 1)),
+    );
+    setCountDialogOpen(true);
+  };
+
+  const handleSaveCount = async () => {
+    const best_count = Number(countValue);
+    if (!studentId || !courseId || isNaN(best_count) || best_count < 1 || best_count > 3) return;
+    setCountSaving(true);
+    try {
+      const endpoint =
+        countDialogType === 'ct'
+          ? '/api/performance/ct-count'
+          : '/api/performance/assignment-count';
+      await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, course_id: courseId, best_count }),
+      });
+      setCountDialogOpen(false);
+      fetchStats();
+    } finally {
+      setCountSaving(false);
+    }
+  };
 
   const openAdd = () => {
     setEditItem(null);
@@ -532,18 +567,47 @@ export default function CourseAssessmentsPage() {
 
         {/* Stats cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatsCard
-            icon={ClipboardListIcon}
-            title="CT Count"
-            value={stats?.ct_count ?? '—'}
-            description="Scheduled CTs for this course"
-          />
-          <StatsCard
-            icon={CheckSquareIcon}
-            title="Assignment Count"
-            value={stats?.assignment_count ?? '—'}
-            description="Scheduled assignments"
-          />
+          {/* CT Count — editable */}
+          <Card className="relative group">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">CT Count</CardTitle>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => openCountDialog('ct')}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                  title="Edit CT count"
+                >
+                  <PencilIcon className="h-3.5 w-3.5" />
+                </button>
+                <ClipboardListIcon className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.ct_count ?? '—'}</div>
+              <p className="text-xs text-muted-foreground mt-1">Scheduled CTs for this course</p>
+            </CardContent>
+          </Card>
+
+          {/* Assignment Count — editable */}
+          <Card className="relative group">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Assignment Count</CardTitle>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => openCountDialog('assignment')}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                  title="Edit assignment count"
+                >
+                  <PencilIcon className="h-3.5 w-3.5" />
+                </button>
+                <CheckSquareIcon className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.assignment_count ?? '—'}</div>
+              <p className="text-xs text-muted-foreground mt-1">Scheduled assignments</p>
+            </CardContent>
+          </Card>
           <StatsCard
             icon={TrendingUpIcon}
             title="Avg CT Mark"
@@ -812,6 +876,54 @@ export default function CourseAssessmentsPage() {
             </Card>
           </TabsContent>
         </Tabs>      </div>
+
+      {/* ── CT / Assignment Count Dialog ──────────────────────────────────────── */}
+      <Dialog open={countDialogOpen} onOpenChange={setCountDialogOpen}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>
+              Edit {countDialogType === 'ct' ? 'CT' : 'Assignment'} Count
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg border p-3 bg-muted/40">
+              <p className="text-xs font-medium text-muted-foreground">Course</p>
+              <p className="text-sm font-semibold mt-0.5">
+                {courseCode}{courseName ? ` — ${courseName}` : ''}
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Best count <span className="text-muted-foreground font-normal">(1 – 3)</span>
+              </label>
+              <Select
+                value={countValue}
+                onValueChange={setCountValue}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select count" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                The best {countValue} {countDialogType === 'ct' ? 'CT' : 'assignment'}{Number(countValue) > 1 ? 's' : ''} will be used in grade calculation.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCountDialogOpen(false)} disabled={countSaving}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveCount} disabled={countSaving}>
+              {countSaving ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Add / Edit Dialog ──────────────────────────────────────────────────── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
