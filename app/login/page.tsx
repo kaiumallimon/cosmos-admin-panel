@@ -3,9 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { DottedGlowBackground } from "@/components/ui/dotted-glow-background";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/store/auth";
-import { Label } from "@radix-ui/react-label";
-import { EyeIcon, EyeOffIcon, Loader2, MailIcon, LockIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, Loader2, MailIcon, LockIcon, ShieldCheckIcon, AlertTriangleIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -16,6 +24,34 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Forgot password dialog
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail.trim()) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send reset email');
+      setForgotSent(true);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
@@ -120,12 +156,13 @@ export default function LoginPage() {
                   <Label htmlFor="password" className="text-sm font-medium">
                     Password
                   </Label>
-                  <Link
-                    href="/reset-password"
+                  <button
+                    type="button"
+                    onClick={() => { setForgotOpen(true); setForgotSent(false); setForgotEmail(''); }}
                     className="text-xs text-muted-foreground hover:text-orange-500 transition-colors"
                   >
                     Forgot password?
-                  </Link>
+                  </button>
                 </div>
                 <div className="relative">
                   <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -176,6 +213,82 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Dialog */}
+      <Dialog open={forgotOpen} onOpenChange={(open) => {
+        if (!open) { setForgotOpen(false); setForgotSent(false); setForgotEmail(''); }
+      }}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheckIcon className="h-5 w-5 text-orange-500" />
+              Reset your password
+            </DialogTitle>
+            <DialogDescription>
+              {forgotSent
+                ? 'Check your inbox for the reset link.'
+                : "Enter your account email and we'll send you a secure reset link that expires in 3 minutes."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {forgotSent ? (
+            <div className="py-4">
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-start gap-3">
+                <ShieldCheckIcon className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+                <div className="text-sm text-green-700 dark:text-green-300">
+                  <p className="font-medium mb-1">Email sent successfully!</p>
+                  <p>If <strong>{forgotEmail}</strong> is registered, you&apos;ll receive a password reset link shortly.</p>
+                </div>
+              </div>
+              <div className="mt-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                <AlertTriangleIcon className="h-4 w-4 shrink-0" />
+                <p className="text-xs">The link expires in <strong>3 minutes</strong>. Check your spam folder if you don&apos;t see it.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="py-2 space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="forgot-email" className="text-sm font-medium">Email address</Label>
+                <div className="relative">
+                  <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    className="pl-9 h-10"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleForgotPassword()}
+                    disabled={forgotLoading}
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex items-start gap-2">
+                <ShieldCheckIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-blue-700 dark:text-blue-300">A secure reset link will be emailed to you. It expires in <strong>3 minutes</strong> and can only be used once.</p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForgotOpen(false)}>
+              {forgotSent ? 'Close' : 'Cancel'}
+            </Button>
+            {!forgotSent && (
+              <Button
+                onClick={handleForgotPassword}
+                disabled={forgotLoading || !forgotEmail.trim()}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                {forgotLoading
+                  ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending…</>
+                  : <><MailIcon className="h-4 w-4 mr-2" />Send Reset Link</>}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
