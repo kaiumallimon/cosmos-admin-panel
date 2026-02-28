@@ -113,6 +113,8 @@ export default function PerformanceOverviewPage() {
   const [courses, setCourses] = useState<EnrolledCourse[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [weaknesses, setWeaknesses] = useState<Weakness[]>([]);
+  /** course_id → { title, code } from the `courses` MongoDB collection */
+  const [courseMap, setCourseMap] = useState<Record<string, { title: string; code: string }>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -149,19 +151,34 @@ export default function PerformanceOverviewPage() {
 
         // Build a quick name map from raw assessment data too (backend may include course_name)
         const aData = await aRes.json();
-        setAssessments(
-          Array.isArray(aData)
-            ? aData.map((a: Record<string, string | number>) => ({
-                id: String(a.assessment_id ?? a.id ?? ''),
-                assessment_type: (a.assessment_type ?? 'other') as AssessmentType,
-                marks: Number(a.marks ?? a.score ?? 0),
-                full_marks: Number(a.full_marks ?? a.max_score ?? 1),
-                course_id: String(a.course_id ?? ''),
-                course_name: String(a.course_name ?? a.course_title ?? ''),
-                ct_no: a.ct_no !== undefined ? Number(a.ct_no) : undefined,
-              }))
-            : []
-        );
+        const parsedAssessments: Assessment[] = Array.isArray(aData)
+          ? aData.map((a: Record<string, string | number>) => ({
+              id: String(a.assessment_id ?? a.id ?? ''),
+              assessment_type: (a.assessment_type ?? 'other') as AssessmentType,
+              marks: Number(a.marks ?? a.score ?? 0),
+              full_marks: Number(a.full_marks ?? a.max_score ?? 1),
+              course_id: String(a.course_id ?? ''),
+              course_name: String(a.course_name ?? a.course_title ?? ''),
+              ct_no: a.ct_no !== undefined ? Number(a.ct_no) : undefined,
+            }))
+          : [];
+        setAssessments(parsedAssessments);
+
+        // Fetch human-readable titles from the `courses` collection using the UUID `id` field
+        const uniqueCourseIds = [...new Set(parsedAssessments.map((a) => a.course_id).filter(Boolean))];
+        if (uniqueCourseIds.length > 0) {
+          try {
+            const crRes = await fetch(`/api/performance/courses?ids=${uniqueCourseIds.join(',')}`);
+            const crData = await crRes.json();
+            if (Array.isArray(crData)) {
+              const map: Record<string, { title: string; code: string }> = {};
+              for (const c of crData as { id: string; title: string; code: string }[]) {
+                if (c.id) map[c.id] = { title: c.title, code: c.code };
+              }
+              setCourseMap(map);
+            }
+          } catch { /* silent */ }
+        }
 
         const wData = await wRes.json();
         setWeaknesses(Array.isArray(wData) ? wData : []);
@@ -203,14 +220,21 @@ export default function PerformanceOverviewPage() {
   }, [assessments]);
 
   // Course name map — keyed by course_id, value is human-readable title
+  // Priority: courses collection (by UUID `id`) > enrollment title > fallback
   const courseNameMap = useMemo(() => {
     const map: Record<string, string> = {};
+    // Seed from enrollments first (lowest priority)
     for (const c of courses) {
       if (!c.course_id) continue;
       map[c.course_id] = c.course_title || `Course ${c.course_id.slice(0, 6)}…`;
     }
+    // Overwrite with authoritative titles from the `courses` collection (highest priority)
+    for (const [id, info] of Object.entries(courseMap)) {
+      const label = info.code ? `${info.code} – ${info.title}` : info.title;
+      map[id] = label;
+    }
     return map;
-  }, [courses]);
+  }, [courses, courseMap]);
 
   // Score per course (bar chart)
   const scoreByCourse = useMemo(() => {
