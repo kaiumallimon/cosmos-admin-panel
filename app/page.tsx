@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { DottedGlowBackground } from '@/components/ui/dotted-glow-background';
 import { Button } from '@/components/ui/button';
 import {
   motion,
@@ -424,20 +423,9 @@ export default function Home() {
       <CursorGlow />
       <FloatingParticles />
 
-      <DottedGlowBackground
-        className="pointer-events-none fixed inset-0 z-0 mask-radial-to-90% mask-radial-at-center"
-        opacity={0.4}
-        gap={16}
-        radius={1}
-        colorLightVar="--color-orange-400"
-        glowColorLightVar="--color-orange-500"
-        colorDarkVar="--color-orange-600"
-        glowColorDarkVar="--color-orange-500"
-        backgroundOpacity={0}
-        speedMin={0.15}
-        speedMax={0.8}
-        speedScale={1}
-      />
+      {/* Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none mesh-gradient" />
+      <div className="fixed top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-orange-500/20 to-transparent z-50 pointer-events-none" />
 
       {/* ── Navbar ─────────────────────────────────────────────────────────── */}
       <motion.nav
