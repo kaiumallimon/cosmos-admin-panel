@@ -61,6 +61,7 @@ import {
   AwardIcon,
   AlertTriangleIcon,
   Trophy,
+  BrainCircuitIcon,
 } from 'lucide-react';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -150,6 +151,16 @@ export default function CourseAssessmentsPage() {
   const [selectedTopic, setSelectedTopic] = useState('');
   const [addingWeakness, setAddingWeakness] = useState(false);
   const [deletingWeaknessId, setDeletingWeaknessId] = useState<string | null>(null);
+
+  // ─── Quiz state ────────────────────────────────────────────────────────
+  const [quizDialogOpen, setQuizDialogOpen] = useState(false);
+  const [quizEnrolledCourses, setQuizEnrolledCourses] = useState<{ id: string; course_name: string; course_code: string }[]>([]);
+  const [quizCoursesLoading, setQuizCoursesLoading] = useState(false);
+  const [quizSelectedCourse, setQuizSelectedCourse] = useState('');
+  const [quizTopics, setQuizTopics] = useState<Topic[]>([]);
+  const [quizTopicsLoading, setQuizTopicsLoading] = useState(false);
+  const [quizSelectedTopics, setQuizSelectedTopics] = useState<string[]>([]);
+  const [quizGenerating, setQuizGenerating] = useState(false);
 
   // ─── Fetch ──────────────────────────────────────────────────────────────────
 
@@ -263,6 +274,82 @@ export default function CourseAssessmentsPage() {
     setSelectedTopic('');
     setWeaknessDialogOpen(true);
     if (topics.length === 0) loadTopics();
+  };
+
+  const loadQuizTopics = async (cid: string) => {
+    if (!cid) return;
+    setQuizTopicsLoading(true);
+    setQuizSelectedTopics([]);
+    try {
+      const res = await fetch('/api/performance/course-topics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_id: cid }),
+      });
+      const data = await res.json();
+      const raw: any[] = Array.isArray(data) ? data : data?.topics ?? [];
+      setQuizTopics(raw.map((t: any) => ({ id: t.id, topic_name: t.topic_name ?? t.name ?? '' })));
+    } finally {
+      setQuizTopicsLoading(false);
+    }
+  };
+
+  const openQuizDialog = async () => {
+    // Reset quiz dialog state — topics only load after course is selected
+    setQuizSelectedCourse('');
+    setQuizSelectedTopics([]);
+    setQuizTopics([]);
+    setQuizDialogOpen(true);
+    if (!studentId) return;
+    // Fetch only enrolled courses for this student
+    const trimester = user.profile?.current_trimester ?? '';
+    if (!trimester) {
+      setQuizEnrolledCourses([]);
+      return;
+    }
+    setQuizCoursesLoading(true);
+    try {
+      const res = await fetch(
+        `/api/performance/students/${studentId}/courses/${encodeURIComponent(trimester)}`,
+      );
+      const data = await res.json();
+      const normalized = Array.isArray(data)
+        ? data.map((c: any) => ({
+            id: c.course_id ?? c.id ?? '',
+            course_name: c.title ?? c.course_name ?? '',
+            course_code: c.code ?? c.course_code ?? '',
+          }))
+        : [];
+      setQuizEnrolledCourses(normalized);
+    } catch {
+      setQuizEnrolledCourses([]);
+    } finally {
+      setQuizCoursesLoading(false);
+    }
+  };
+
+  const handleGenerateQuiz = async () => {
+    if (!studentId || !quizSelectedCourse || quizSelectedTopics.length === 0) return;
+    setQuizGenerating(true);
+    try {
+      const res = await fetch('/api/performance/quiz/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: studentId,
+          course_id: quizSelectedCourse,
+          topic_ids: quizSelectedTopics,
+        }),
+      });
+      const data = await res.json();
+      if (data?.quiz_id && data?.generated_quiz) {
+        sessionStorage.setItem(`quiz_${data.quiz_id}`, JSON.stringify(data));
+        setQuizDialogOpen(false);
+        router.push(`/user/performance/quiz/${data.quiz_id}`);
+      }
+    } finally {
+      setQuizGenerating(false);
+    }
   };
 
   useEffect(() => {
@@ -675,8 +762,11 @@ export default function CourseAssessmentsPage() {
                     </Button>
 
                     <Button
-                    variant={'outline'}
-                      size={"sm"}>
+                      variant="outline"
+                      size="sm"
+                      onClick={openQuizDialog}
+                      className="gap-2"
+                    >
                       <Trophy className="h-4 w-4" /> Attempt Quiz
                     </Button>
                   </div>
@@ -868,6 +958,102 @@ export default function CourseAssessmentsPage() {
               className="bg-primary hover:bg-primary/90"
             >
               {addingWeakness ? 'Adding…' : 'Add'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Attempt Quiz Dialog ─────────────────────────────────────────────── */}
+      <Dialog open={quizDialogOpen} onOpenChange={setQuizDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BrainCircuitIcon className="h-5 w-5 text-primary" />
+              Attempt Quiz
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Course selection */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Course</label>
+              <Select
+                value={quizSelectedCourse}
+                onValueChange={(v) => { setQuizSelectedCourse(v); loadQuizTopics(v); }}
+                disabled={quizCoursesLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={quizCoursesLoading ? 'Loading courses…' : 'Select course'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {quizEnrolledCourses.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.course_code} — {c.course_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Topic multi-select chips */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                Topics{quizSelectedTopics.length > 0 && ` (${quizSelectedTopics.length} selected)`}
+              </label>
+              {quizTopicsLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => <Skeleton key={i} className="h-9 w-full rounded-lg" />)}
+                </div>
+              ) : quizTopics.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">
+                  {quizSelectedCourse ? 'No topics available for this course.' : 'Select a course first.'}
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto py-1 pr-1">
+                  {quizTopics.map((t) => {
+                    const selected = quizSelectedTopics.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() =>
+                          setQuizSelectedTopics((prev) =>
+                            selected ? prev.filter((id) => id !== t.id) : [...prev, t.id],
+                          )
+                        }
+                        className={`text-sm px-3 py-1.5 rounded-full border transition-all ${
+                          selected
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted/40 text-muted-foreground border-border hover:border-primary/50 hover:text-foreground'
+                        }`}
+                      >
+                        {t.topic_name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={() => setQuizDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={quizGenerating || !quizSelectedCourse || quizSelectedTopics.length === 0}
+              onClick={handleGenerateQuiz}
+              className="bg-primary hover:bg-primary/90 gap-2"
+            >
+              {quizGenerating ? (
+                <>
+                  <div className="h-4 w-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+                  Generating…
+                </>
+              ) : (
+                <>
+                  <BrainCircuitIcon className="h-4 w-4" />
+                  Generate Quiz
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
