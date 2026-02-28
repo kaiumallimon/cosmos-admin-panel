@@ -15,6 +15,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { BookOpenIcon, PlusIcon, Trash2Icon, RefreshCwIcon } from 'lucide-react';
 
 interface AvailableCourse {
@@ -26,19 +33,35 @@ interface AvailableCourse {
 }
 
 interface EnrolledCourse {
-  id: string;
+  id: string;          // enrollment_id
   course_id: string;
-  course_name: string;
-  course_code: string;
+  course_name: string; // title
+  course_code: string; // code
   trimester: string;
   section?: string;
-  faculty?: string;
+  faculty?: string;    // faculty_name
   credits?: number;
+  ct_count?: number;
+  assignment_count?: number;
+}
+
+interface TrimesterOption {
+  code: string;
+  label: string;
 }
 
 interface EnrollForm {
   section: string;
   faculty: string;
+  trimesterCode: string;
+}
+
+function formatTrimesterLabel(code: string): string {
+  if (code.length !== 3) return code;
+  const year = code.slice(0, 2);
+  const sem = code[2];
+  const semLabel = sem === '1' ? 'Spring' : sem === '2' ? 'Summer' : 'Fall';
+  return `${semLabel} ${year}`;
 }
 
 export default function MyCoursesPage() {
@@ -52,9 +75,10 @@ export default function MyCoursesPage() {
   const [loading, setLoading] = useState(true);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<AvailableCourse | null>(null);
-  const [enrollForm, setEnrollForm] = useState<EnrollForm>({ section: '', faculty: '' });
+  const [enrollForm, setEnrollForm] = useState<EnrollForm>({ section: '', faculty: '', trimesterCode: '' });
   const [enrolling, setEnrolling] = useState(false);
   const [unenrolling, setUnenrolling] = useState<string | null>(null);
+  const [trimesters, setTrimesters] = useState<TrimesterOption[]>([]);
 
   const fetchData = async () => {
     if (!studentId) return;
@@ -70,7 +94,21 @@ export default function MyCoursesPage() {
       setAvailable(Array.isArray(avData) ? avData : []);
       if (enRes) {
         const enData = await enRes.json();
-        setEnrolled(Array.isArray(enData) ? enData : []);
+        const normalized: EnrolledCourse[] = Array.isArray(enData)
+          ? enData.map((c: any) => ({
+              id: c.enrollment_id ?? c.id ?? '',
+              course_id: c.course_id ?? '',
+              course_name: c.title ?? c.course_name ?? '',
+              course_code: c.code ?? c.course_code ?? '',
+              trimester: c.trimester ?? '',
+              section: c.section,
+              faculty: c.faculty_name ?? c.faculty,
+              credits: c.credits,
+              ct_count: c.ct_count,
+              assignment_count: c.assignment_count,
+            }))
+          : [];
+        setEnrolled(normalized);
       }
     } catch {
       // silent
@@ -81,15 +119,35 @@ export default function MyCoursesPage() {
 
   useEffect(() => { fetchData(); }, [studentId, trimester]);
 
+  // Fetch available trimesters for the enroll form
+  useEffect(() => {
+    const fetchTrimesters = async () => {
+      try {
+        const res = await fetch('/api/course-management/trimesters');
+        const data = await res.json();
+        const list: TrimesterOption[] = Array.isArray(data?.trimesters)
+          ? data.trimesters.map((t: { trimester: string }) => ({
+              code: t.trimester,
+              label: formatTrimesterLabel(t.trimester),
+            }))
+          : [];
+        setTrimesters(list);
+      } catch {
+        // silent
+      }
+    };
+    fetchTrimesters();
+  }, []);
+
   const enrolledCourseIds = new Set(enrolled.map((e) => e.course_id));
 
   const openEnrollDialog = (course: AvailableCourse) => {
     setSelectedCourse(course);
-    setEnrollForm({ section: '', faculty: '' });
+    setEnrollForm({ section: '', faculty: '', trimesterCode: '' });
   };
 
   const handleEnroll = async () => {
-    if (!selectedCourse || !enrollForm.section || !enrollForm.faculty) return;
+    if (!selectedCourse || !enrollForm.section || !enrollForm.faculty || !enrollForm.trimesterCode) return;
     setEnrolling(true);
     try {
       await fetch('/api/performance/student-courses', {
@@ -98,12 +156,13 @@ export default function MyCoursesPage() {
         body: JSON.stringify({
           student_id: studentId,
           course_id: selectedCourse.id,
-          trimester,
+          trimester: enrollForm.trimesterCode,
           section: enrollForm.section,
           faculty: enrollForm.faculty,
         }),
       });
       setSelectedCourse(null);
+      setEnrollOpen(false);
       await fetchData();
     } finally {
       setEnrolling(false);
@@ -231,6 +290,29 @@ export default function MyCoursesPage() {
                 </div>
                 <div className="space-y-3">
                   <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Trimester *</label>
+                    <Select
+                      value={enrollForm.trimesterCode}
+                      onValueChange={(v) => setEnrollForm((f) => ({ ...f, trimesterCode: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select trimester…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {trimesters.length === 0 ? (
+                          <SelectItem value="_none" disabled>No trimesters available</SelectItem>
+                        ) : (
+                          trimesters.map((t) => (
+                            <SelectItem key={t.code} value={t.code}>
+                              <span>{t.label}</span>
+                              <span className="ml-2 text-muted-foreground text-xs">{t.code}</span>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Section *</label>
                     <Input
                       placeholder="e.g. A, B, C"
@@ -251,7 +333,7 @@ export default function MyCoursesPage() {
                   <Button variant="outline" onClick={() => setSelectedCourse(null)}>Back</Button>
                   <Button
                     className="bg-primary hover:bg-primary/90"
-                    disabled={enrolling || !enrollForm.section || !enrollForm.faculty}
+                    disabled={enrolling || !enrollForm.trimesterCode || !enrollForm.section || !enrollForm.faculty}
                     onClick={handleEnroll}
                   >
                     {enrolling ? 'Enrolling…' : 'Confirm Enroll'}

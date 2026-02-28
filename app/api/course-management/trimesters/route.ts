@@ -4,8 +4,8 @@ import { Trimester, TrimesterCreateRequest, TrimesterResponse } from "@/lib/cour
 import { v4 as uuidv4 } from "uuid";
 import { withAuth, AuthenticatedRequest } from "@/lib/api-middleware-with-logging";
 
-// GET - Fetch all trimesters
-async function getTrimesters() {
+// GET - Fetch all trimesters (accessible to all users)
+export async function GET() {
     try {
         const { db } = await connectToDatabase();
         const collection = db.collection<Trimester>("trimesters");
@@ -30,8 +30,6 @@ async function getTrimesters() {
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
-
-export const GET = withAuth(getTrimesters);
 
 // POST - Create a new trimester
 async function createTrimester(request: AuthenticatedRequest) {

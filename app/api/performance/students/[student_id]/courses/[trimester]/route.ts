@@ -16,3 +16,25 @@ export async function GET(
   const data = await res.json();
   return NextResponse.json(data, { status: res.status });
 }
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ student_id: string; trimester: string }> },
+) {
+  const { student_id, trimester } = await params;
+  const accessToken = req.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+  const body = await req.json();
+  const res = await fetch(
+    `${BASE}/api/v1/performance/students/${student_id}/courses/${encodeURIComponent(trimester)}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(body),
+    },
+  );
+  const data = await res.json();
+  return NextResponse.json(data, { status: res.status });
+}
