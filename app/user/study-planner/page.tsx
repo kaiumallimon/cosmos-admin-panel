@@ -55,10 +55,7 @@ import {
   BookOpenIcon,
   FlaskConicalIcon,
   TagIcon,
-  CalendarDaysIcon,
-  FilterIcon,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -107,6 +104,13 @@ const TYPE_BORDER: Record<EventType, string> = {
   other: 'border-l-muted-foreground/40',
 };
 
+const TYPE_DOT: Record<EventType, string> = {
+  task: 'bg-blue-500',
+  assignment: 'bg-green-500',
+  ct: 'bg-purple-500',
+  other: 'bg-muted-foreground/50',
+};
+
 const TYPE_ICON: Record<EventType, React.ElementType> = {
   task: ClipboardListIcon,
   assignment: BookOpenIcon,
@@ -126,6 +130,12 @@ const STATUS_ICON: Record<EventStatus, React.ElementType> = {
   cancelled: XCircleIcon,
 };
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
 const DEFAULT_FORM = {
   title: '',
   description: '',
@@ -137,34 +147,41 @@ const DEFAULT_FORM = {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatDate(dateStr: string) {
+function todayIso() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function toIso(year: number, month: number, day: number) {
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function formatDateLong(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 function formatTime(timeStr: string) {
   const [h, m] = timeStr.split(':');
   const hour = parseInt(h);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  const h12 = hour % 12 || 12;
-  return `${h12}:${m} ${ampm}`;
-}
-
-function todayIso() {
-  return new Date().toISOString().split('T')[0];
-}
-
-function groupByDate(events: CalendarEvent[]): [string, CalendarEvent[]][] {
-  const map = new Map<string, CalendarEvent[]>();
-  for (const e of events) {
-    if (!map.has(e.event_date)) map.set(e.event_date, []);
-    map.get(e.event_date)!.push(e);
-  }
-  return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`;
 }
 
 function isOverdue(e: CalendarEvent) {
   return e.status === 'pending' && e.event_date < todayIso();
+}
+
+// Build calendar grid: N rows × 7 cols (null = outside current month)
+function buildCalendarGrid(year: number, month: number): (number | null)[][] {
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: (number | null)[] = [
+    ...Array(firstWeekday).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+  const rows: (number | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+  return rows;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -177,11 +194,16 @@ export default function StudyPlannerPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ── Filters ─────────────────────────────────────────────────────────
-  const [filterType, setFilterType] = useState<EventType | 'all'>('all');
-  const [filterStatus, setFilterStatus] = useState<EventStatus | 'all'>('all');
+  // ── Calendar navigation ──────────────────────────────────────────────
+  const now = new Date();
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
 
-  // ── Dialog ──────────────────────────────────────────────────────────
+  // ── Selected date sheet ──────────────────────────────────────────────
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // ── Add / Edit dialog ────────────────────────────────────────────────
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<CalendarEvent | null>(null);
   const [form, setForm] = useState(DEFAULT_FORM);
@@ -205,40 +227,63 @@ export default function StudyPlannerPage() {
     }
   };
 
-  useEffect(() => {
-    fetchEvents();
-  }, [studentId]);
+  useEffect(() => { fetchEvents(); }, [studentId]);
 
-  // ── Derived stats ─────────────────────────────────────────────────
+  // ── Derived ──────────────────────────────────────────────────────────
+
+  const eventsByDate = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>();
+    for (const e of events) {
+      if (!map.has(e.event_date)) map.set(e.event_date, []);
+      map.get(e.event_date)!.push(e);
+    }
+    return map;
+  }, [events]);
 
   const stats = useMemo(() => {
     const today = todayIso();
     return {
-      total: events.length,
       pending: events.filter((e) => e.status === 'pending').length,
       completed: events.filter((e) => e.status === 'completed').length,
-      today: events.filter((e) => e.event_date === today).length,
       overdue: events.filter(isOverdue).length,
+      today: events.filter((e) => e.event_date === today).length,
     };
   }, [events]);
 
-  // ── Filtered + grouped events ──────────────────────────────────────
+  const calendarGrid = useMemo(() => buildCalendarGrid(viewYear, viewMonth), [viewYear, viewMonth]);
 
-  const filtered = useMemo(() => {
-    return events.filter((e) => {
-      if (filterType !== 'all' && e.type !== filterType) return false;
-      if (filterStatus !== 'all' && e.status !== filterStatus) return false;
-      return true;
+  const selectedEvents = useMemo(() => {
+    if (!selectedDate) return [];
+    return [...(eventsByDate.get(selectedDate) ?? [])].sort((a, b) => {
+      if (!a.event_time && !b.event_time) return 0;
+      if (!a.event_time) return 1;
+      if (!b.event_time) return -1;
+      return a.event_time.localeCompare(b.event_time);
     });
-  }, [events, filterType, filterStatus]);
+  }, [selectedDate, eventsByDate]);
 
-  const grouped = useMemo(() => groupByDate(filtered), [filtered]);
+  // ── Navigation ───────────────────────────────────────────────────────
 
-  // ── Handlers ──────────────────────────────────────────────────────
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
+    else setViewMonth((m) => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
+    else setViewMonth((m) => m + 1);
+  };
+  const goToday = () => { setViewYear(now.getFullYear()); setViewMonth(now.getMonth()); };
 
-  const openAdd = () => {
+  // ── Handlers ─────────────────────────────────────────────────────────
+
+  const openDaySheet = (dateStr: string) => {
+    setSelectedDate(dateStr);
+    setSheetOpen(true);
+  };
+
+  const openAdd = (prefillDate?: string) => {
     setEditItem(null);
-    setForm({ ...DEFAULT_FORM, event_date: todayIso() });
+    setForm({ ...DEFAULT_FORM, event_date: prefillDate ?? todayIso() });
     setDialogOpen(true);
   };
 
@@ -323,28 +368,22 @@ export default function StudyPlannerPage() {
     return (
       <div className="flex flex-col h-full">
         <FrostedHeader title="Study Planner" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Card key={i} className="border shadow-sm">
-                <CardContent className="p-5">
-                  <Skeleton className="h-4 w-24 mb-3" />
-                  <Skeleton className="h-8 w-16" />
-                </CardContent>
-              </Card>
-            ))}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="max-w-3xl mx-auto space-y-4">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-7 w-44" />
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-8 rounded-lg" />
+                <Skeleton className="h-8 w-8 rounded-lg" />
+              </div>
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {Array(7).fill(0).map((_, i) => <Skeleton key={i} className="h-6 rounded-md" />)}
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {Array(42).fill(0).map((_, i) => <Skeleton key={i} className="h-14 rounded-xl" />)}
+            </div>
           </div>
-          <Card className="border shadow-sm">
-            <CardContent className="p-4"><Skeleton className="h-9 w-full" /></CardContent>
-          </Card>
-          <Card className="border shadow-sm">
-            <CardHeader><Skeleton className="h-6 w-40" /></CardHeader>
-            <CardContent className="space-y-3">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-20 w-full rounded-xl" />
-              ))}
-            </CardContent>
-          </Card>
         </div>
       </div>
     );
@@ -355,252 +394,286 @@ export default function StudyPlannerPage() {
   const today = todayIso();
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       <FrostedHeader title="Study Planner" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 space-y-4">
 
-        {/* ── Stats ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-          {([
-            { label: 'Total Events', value: stats.total, color: 'text-foreground', bg: 'bg-primary/10' },
-            { label: 'Pending', value: stats.pending, color: 'text-amber-600', bg: 'bg-amber-500/10' },
-            { label: 'Completed', value: stats.completed, color: 'text-green-600', bg: 'bg-green-500/10' },
-            { label: "Today's Events", value: stats.today, color: 'text-blue-600', bg: 'bg-blue-500/10' },
-            { label: 'Overdue', value: stats.overdue, color: 'text-red-600', bg: 'bg-red-500/10' },
-          ] as const).map((s) => (
-            <Card key={s.label} className="border shadow-sm">
-              <CardContent className="p-4 sm:p-5">
-                <p className="text-xs text-muted-foreground mb-2">{s.label}</p>
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* ── Controls ── */}
-        <Card className="border shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={filterType} onValueChange={(v) => setFilterType(v as EventType | 'all')}>
-                <SelectTrigger className="h-9 w-[140px] text-sm">
-                  <FilterIcon className="h-3.5 w-3.5 mr-1.5 text-muted-foreground shrink-0" />
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {EVENT_TYPES.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as EventStatus | 'all')}>
-                <SelectTrigger className="h-9 w-[150px] text-sm">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {EVENT_STATUSES.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {(filterType !== 'all' || filterStatus !== 'all') && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => { setFilterType('all'); setFilterStatus('all'); }}
-                >
-                  Clear filters
-                </Button>
-              )}
-
-              <div className="flex-1" />
-
-              <Button variant="outline" size="sm" onClick={fetchEvents} className="h-9" title="Refresh">
-                <RefreshCwIcon className="h-4 w-4" />
+          {/* ── Header row ── */}
+          <div className="flex items-center gap-3">
+            {/* Month nav */}
+            <div className="flex items-center gap-1.5">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" onClick={prevMonth}>
+                <ChevronLeftIcon className="h-4 w-4" />
               </Button>
-              <Button size="sm" className="h-9 gap-1.5 bg-primary hover:bg-primary/90" onClick={openAdd}>
-                <PlusIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">Add Event</span>
+              <span className="text-lg font-bold tracking-tight w-44 text-center">
+                {MONTHS[viewMonth]} {viewYear}
+              </span>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" onClick={nextMonth}>
+                <ChevronRightIcon className="h-4 w-4" />
               </Button>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* ── Events list ── */}
-        <Card className="border shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <CalendarDaysIcon className="h-5 w-5" />
-              Events
-              {filtered.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs font-normal">
-                  {filtered.length}
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {grouped.length === 0 ? (
-              <div className="py-16 flex flex-col items-center gap-3 text-center">
-                <CalendarIcon className="h-12 w-12 text-muted-foreground/30" />
-                <p className="text-sm font-medium text-muted-foreground">
-                  {filterType !== 'all' || filterStatus !== 'all'
-                    ? 'No events match the current filters.'
-                    : 'No events yet. Add your first event to get started!'}
-                </p>
-                {filterType === 'all' && filterStatus === 'all' && (
-                  <Button size="sm" className="gap-2 mt-1" onClick={openAdd}>
-                    <PlusIcon className="h-4 w-4" />
-                    Add Event
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {grouped.map(([date, dateEvents]) => {
-                  const isToday = date === today;
-                  const isPast = date < today;
-                  return (
-                    <div key={date}>
-                      {/* Date header */}
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
-                          isToday
-                            ? 'bg-primary text-primary-foreground'
-                            : isPast
-                            ? 'bg-muted text-muted-foreground'
-                            : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                        }`}>
-                          <CalendarIcon className="h-3 w-3" />
-                          {isToday ? 'Today' : formatDate(date)}
-                        </div>
-                        <div className="flex-1 h-px bg-border" />
-                      </div>
-
-                      {/* Event cards */}
-                      <div className="space-y-2 pl-1">
-                        {[...dateEvents]
-                          .sort((a, b) => {
-                            if (!a.event_time && !b.event_time) return 0;
-                            if (!a.event_time) return 1;
-                            if (!b.event_time) return -1;
-                            return a.event_time.localeCompare(b.event_time);
-                          })
-                          .map((event) => {
-                            const TypeIcon = TYPE_ICON[event.type];
-                            const StatusIcon = STATUS_ICON[event.status];
-                            const overdue = isOverdue(event);
-                            return (
-                              <div
-                                key={event.id}
-                                className={`flex items-start gap-3 p-3.5 rounded-xl border-l-4 border border-border bg-card hover:bg-accent/30 transition-colors ${TYPE_BORDER[event.type]} ${
-                                  event.status === 'cancelled' ? 'opacity-50' : ''
-                                }`}
-                              >
-                                {/* Type icon */}
-                                <div className={`shrink-0 rounded-lg p-1.5 mt-0.5 border ${TYPE_STYLES[event.type]}`}>
-                                  <TypeIcon className="h-3.5 w-3.5" />
-                                </div>
-
-                                {/* Content */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between gap-2">
-                                    <p className={`text-sm font-semibold leading-snug ${event.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
-                                      {event.title}
-                                    </p>
-                                    {/* Actions */}
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-foreground"
-                                          disabled={deletingId === event.id || updatingStatusId === event.id}
-                                        >
-                                          <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end" className="w-48">
-                                        {event.status !== 'completed' && (
-                                          <DropdownMenuItem onClick={() => handleStatusChange(event, 'completed')}>
-                                            <CheckCircle2Icon className="mr-2 h-4 w-4 text-green-500" />
-                                            Mark Complete
-                                          </DropdownMenuItem>
-                                        )}
-                                        {event.status !== 'pending' && (
-                                          <DropdownMenuItem onClick={() => handleStatusChange(event, 'pending')}>
-                                            <CircleIcon className="mr-2 h-4 w-4 text-amber-500" />
-                                            Mark Pending
-                                          </DropdownMenuItem>
-                                        )}
-                                        {event.status !== 'cancelled' && (
-                                          <DropdownMenuItem onClick={() => handleStatusChange(event, 'cancelled')}>
-                                            <XCircleIcon className="mr-2 h-4 w-4 text-red-500" />
-                                            Cancel Event
-                                          </DropdownMenuItem>
-                                        )}
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => openEdit(event)}>
-                                          <PencilIcon className="mr-2 h-4 w-4" />
-                                          Edit
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          className="text-destructive focus:text-destructive"
-                                          disabled={deletingId === event.id}
-                                          onClick={() => handleDelete(event.id)}
-                                        >
-                                          <Trash2Icon className="mr-2 h-4 w-4" />
-                                          {deletingId === event.id ? 'Deleting…' : 'Delete'}
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-
-                                  {event.description && (
-                                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                                      {event.description}
-                                    </p>
-                                  )}
-
-                                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                                    <Badge className={`text-[11px] border px-1.5 py-0 ${TYPE_STYLES[event.type]}`}>
-                                      {EVENT_TYPES.find((t) => t.value === event.type)?.label ?? event.type}
-                                    </Badge>
-                                    <Badge className={`text-[11px] border px-1.5 py-0 flex items-center gap-1 ${STATUS_STYLES[event.status]}`}>
-                                      <StatusIcon className="h-2.5 w-2.5" />
-                                      {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
-                                    </Badge>
-                                    {overdue && (
-                                      <Badge className="text-[11px] border px-1.5 py-0 bg-red-500/10 text-red-600 border-red-500/20">
-                                        Overdue
-                                      </Badge>
-                                    )}
-                                    {event.event_time && (
-                                      <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                                        <ClockIcon className="h-3 w-3" />
-                                        {formatTime(event.event_time)}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+            {(viewYear !== now.getFullYear() || viewMonth !== now.getMonth()) && (
+              <button
+                onClick={goToday}
+                className="text-[11px] font-medium text-primary hover:underline underline-offset-2"
+              >
+                Today
+              </button>
             )}
-          </CardContent>
-        </Card>
 
+            <div className="flex-1" />
+
+            {/* Stats pills */}
+            <div className="hidden sm:flex items-center gap-1.5">
+              {stats.overdue > 0 && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 font-medium tabular-nums">
+                  {stats.overdue} overdue
+                </span>
+              )}
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border font-medium tabular-nums">
+                {stats.pending} pending
+              </span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 font-medium tabular-nums">
+                {stats.completed} done
+              </span>
+            </div>
+
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg text-muted-foreground" onClick={fetchEvents} title="Refresh">
+              <RefreshCwIcon className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="sm" className="h-8 gap-1.5 rounded-lg text-xs font-semibold" onClick={() => openAdd()}>
+              <PlusIcon className="h-3.5 w-3.5" />
+              <span>Add Event</span>
+            </Button>
+          </div>
+
+          {/* ── Calendar card ── */}
+          <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+            {/* Weekday header */}
+            <div className="grid grid-cols-7 border-b border-border">
+              {WEEKDAYS.map((d) => (
+                <div key={d} className="py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {/* Day grid */}
+            <div className="divide-y divide-border">
+              {calendarGrid.map((row, rowIdx) => (
+                <div key={rowIdx} className="grid grid-cols-7 divide-x divide-border">
+                  {row.map((day, colIdx) => {
+                    if (day === null) {
+                      return (
+                        <div
+                          key={colIdx}
+                          className="h-14 sm:h-16 bg-muted/30"
+                        />
+                      );
+                    }
+                    const dateStr = toIso(viewYear, viewMonth, day);
+                    const dayEvents = eventsByDate.get(dateStr) ?? [];
+                    const isToday = dateStr === today;
+                    const isSelected = dateStr === selectedDate && sheetOpen;
+                    const isPast = dateStr < today;
+                    const hasEvents = dayEvents.length > 0;
+                    const dotTypes = [...new Set(dayEvents.map((e) => e.type))].slice(0, 3);
+                    const hasOverdue = dayEvents.some(isOverdue);
+
+                    return (
+                      <button
+                        key={colIdx}
+                        onClick={() => openDaySheet(dateStr)}
+                        className={`
+                          h-14 sm:h-16 flex flex-col items-center justify-start pt-2 gap-1
+                          hover:bg-accent/60 focus:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-primary/40
+                          transition-colors relative group
+                          ${isSelected ? 'bg-primary/8' : isToday ? 'bg-primary/5' : isPast ? 'bg-muted/10' : 'bg-card'}
+                        `}
+                      >
+                        {/* Day number */}
+                        <span className={`
+                          text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full leading-none transition-colors
+                          ${isToday
+                            ? 'bg-primary text-primary-foreground text-[11px]'
+                            : isSelected
+                            ? 'bg-primary/20 text-primary'
+                            : isPast && !hasEvents
+                            ? 'text-muted-foreground/30'
+                            : 'text-foreground group-hover:text-primary'
+                          }
+                        `}>
+                          {day}
+                        </span>
+
+                        {/* Dots row */}
+                        {hasEvents && (
+                          <div className="flex items-center gap-0.5">
+                            {dotTypes.map((type) => (
+                              <span key={type} className={`w-1 h-1 rounded-full ${TYPE_DOT[type]}`} />
+                            ))}
+                            {hasOverdue && (
+                              <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
+                            )}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Legend ── */}
+          <div className="flex items-center gap-4 px-1">
+            {EVENT_TYPES.map((t) => (
+              <div key={t.value} className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${TYPE_DOT[t.value]}`} />
+                <span className="text-[11px] text-muted-foreground">{t.label}</span>
+              </div>
+            ))}
+          </div>
+
+        </div>
       </div>
+
+      {/* ── Day events Sheet ─────────────────────────────────────────────────── */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="right" className="w-full sm:w-[420px] flex flex-col p-0">
+          <SheetHeader className="px-5 pt-5 pb-3 border-b border-border shrink-0">
+            <SheetTitle className="text-sm font-semibold">
+              {selectedDate
+                ? selectedDate === today
+                  ? `Today — ${formatDateLong(selectedDate)}`
+                  : formatDateLong(selectedDate)
+                : ''}
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="px-5 py-3 border-b border-border shrink-0">
+            <Button
+              size="sm"
+              className="w-full gap-2 bg-primary hover:bg-primary/90"
+              onClick={() => openAdd(selectedDate ?? undefined)}
+            >
+              <PlusIcon className="h-4 w-4" />
+              Add Event on this day
+            </Button>
+          </div>
+
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="px-5 py-4">
+              {selectedEvents.length === 0 ? (
+                <div className="py-16 flex flex-col items-center gap-2 text-center">
+                  <CalendarIcon className="h-10 w-10 text-muted-foreground/25" />
+                  <p className="text-sm text-muted-foreground">No events on this day.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {selectedEvents.map((event) => {
+                    const TypeIcon = TYPE_ICON[event.type];
+                    const StatusIcon = STATUS_ICON[event.status];
+                    const overdue = isOverdue(event);
+                    return (
+                      <div
+                        key={event.id}
+                        className={`flex items-start gap-3 p-3.5 rounded-xl border-l-4 border border-border bg-card transition-colors ${TYPE_BORDER[event.type]} ${
+                          event.status === 'cancelled' ? 'opacity-50' : ''
+                        }`}
+                      >
+                        <div className={`shrink-0 rounded-lg p-1.5 mt-0.5 border ${TYPE_STYLES[event.type]}`}>
+                          <TypeIcon className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className={`text-sm font-semibold leading-snug ${event.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
+                              {event.title}
+                            </p>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-foreground"
+                                  disabled={deletingId === event.id || updatingStatusId === event.id}
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                {event.status !== 'completed' && (
+                                  <DropdownMenuItem onClick={() => handleStatusChange(event, 'completed')}>
+                                    <CheckCircle2Icon className="mr-2 h-4 w-4 text-green-500" />
+                                    Mark Complete
+                                  </DropdownMenuItem>
+                                )}
+                                {event.status !== 'pending' && (
+                                  <DropdownMenuItem onClick={() => handleStatusChange(event, 'pending')}>
+                                    <CircleIcon className="mr-2 h-4 w-4 text-amber-500" />
+                                    Mark Pending
+                                  </DropdownMenuItem>
+                                )}
+                                {event.status !== 'cancelled' && (
+                                  <DropdownMenuItem onClick={() => handleStatusChange(event, 'cancelled')}>
+                                    <XCircleIcon className="mr-2 h-4 w-4 text-red-500" />
+                                    Cancel Event
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => openEdit(event)}>
+                                  <PencilIcon className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  disabled={deletingId === event.id}
+                                  onClick={() => handleDelete(event.id)}
+                                >
+                                  <Trash2Icon className="mr-2 h-4 w-4" />
+                                  {deletingId === event.id ? 'Deleting…' : 'Delete'}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                          {event.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-3">
+                              {event.description}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                            <Badge className={`text-[11px] border px-1.5 py-0 ${TYPE_STYLES[event.type]}`}>
+                              {EVENT_TYPES.find((t) => t.value === event.type)?.label ?? event.type}
+                            </Badge>
+                            <Badge className={`text-[11px] border px-1.5 py-0 flex items-center gap-1 ${STATUS_STYLES[event.status]}`}>
+                              <StatusIcon className="h-2.5 w-2.5" />
+                              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                            </Badge>
+                            {overdue && (
+                              <Badge className="text-[11px] border px-1.5 py-0 bg-red-500/10 text-red-600 border-red-500/20">
+                                Overdue
+                              </Badge>
+                            )}
+                            {event.event_time && (
+                              <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                <ClockIcon className="h-3 w-3" />
+                                {formatTime(event.event_time)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
 
       {/* ── Add / Edit Dialog ─────────────────────────────────────────────── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -610,7 +683,6 @@ export default function StudyPlannerPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Title */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">
                 Title <span className="text-destructive">*</span>
@@ -622,7 +694,6 @@ export default function StudyPlannerPage() {
               />
             </div>
 
-            {/* Description */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">
                 Description <span className="text-muted-foreground/60">(optional)</span>
@@ -635,13 +706,10 @@ export default function StudyPlannerPage() {
               />
             </div>
 
-            {/* Type */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Type</Label>
               <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v as EventType }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {EVENT_TYPES.map((t) => (
                     <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
@@ -650,7 +718,6 @@ export default function StudyPlannerPage() {
               </Select>
             </div>
 
-            {/* Date & Time */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">
@@ -674,16 +741,11 @@ export default function StudyPlannerPage() {
               </div>
             </div>
 
-            {/* Status — edit only */}
             {editItem && (
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Status</Label>
-                <Select
-                  value={form.status}
-                  onValueChange={(v) => setForm((f) => ({ ...f, status: v as EventStatus }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as EventStatus }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {EVENT_STATUSES.map((s) => (
                       <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
