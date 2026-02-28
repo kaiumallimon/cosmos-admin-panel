@@ -56,29 +56,31 @@ interface QuestionMetadata {
 }
 
 // Markdown components for code rendering
-const CodeBlock = ({ content }: { content: string }) => {
+const CodeBlock = ({ content, language }: { content: string; language?: string }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(content);
+    await navigator.clipboard.writeText(content.trimEnd());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="relative group mt-3 mb-3">
-      <Button
-        size="sm"
-        variant="ghost"
-        className="absolute right-2 top-2 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={handleCopy}
-      >
-        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-      </Button>
-      <pre
-        className={`bg-gray-100 dark:bg-[#1e1e1e] px-5 py-4 rounded-md overflow-x-auto ${jetbrainsMono.className}`}
-      >
-        <code className="text-sm dark:text-gray-100">{content}</code>
+    <div className="my-3 rounded-lg border border-border overflow-hidden">
+      <div className="flex items-center justify-between px-3 h-8 bg-muted/60 border-b border-border">
+        <span className={`text-[11px] text-muted-foreground/70 ${jetbrainsMono.className}`}>
+          {language ?? 'plaintext'}
+        </span>
+        <button
+          onClick={handleCopy}
+          className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded transition-colors ${copied ? 'text-green-500' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      <pre className={`bg-muted/30 dark:bg-muted/60 !px-4 !py-3.5 overflow-x-auto text-[13px] leading-relaxed text-foreground m-0 ${jetbrainsMono.className}`}>
+        <code>{content.trimEnd()}</code>
       </pre>
     </div>
   );
@@ -86,18 +88,18 @@ const CodeBlock = ({ content }: { content: string }) => {
 
 const markdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
-    const content = Array.isArray(children) ? children.join("") : children;
-    const isMultiLine = content && typeof content === 'string' && content.includes('\n');
-
-    if (inline || !isMultiLine) {
+    const content = String(Array.isArray(children) ? children.join('') : children ?? '');
+    const match = /language-(\w+)/.exec(className || '');
+    const language = match ? match[1] : undefined;
+    const isBlock = !inline && (content.includes('\n') || !!className);
+    if (!isBlock) {
       return (
-        <strong className="font-semibold">
+        <code className={`${jetbrainsMono.className} text-[0.875em] bg-muted/70 px-1.5 py-0.5 rounded text-orange-500 dark:text-orange-400 font-medium`}>
           {content}
-        </strong>
+        </code>
       );
     }
-
-    return <CodeBlock content={content} />;
+    return <CodeBlock content={content} language={language} />;
   },
   p({ children, ...props }: any) {
     return <p className="my-2" {...props}>{children}</p>;
@@ -414,7 +416,7 @@ export default function ChatPage() {
                     )}
 
                     <div className={cn(
-                      "prose dark:prose-invert max-w-none",
+                      "prose dark:prose-invert max-w-none prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 prose-pre:rounded-none prose-pre:border-0 prose-code:before:content-none prose-code:after:content-none prose-code:bg-transparent",
                       message.role === "human" && "prose-invert bg-accent rounded-2xl py-1 px-4 text-foreground"
                     )}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
