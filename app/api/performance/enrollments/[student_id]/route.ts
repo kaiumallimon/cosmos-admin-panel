@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
+import { withAnyAuth, AuthenticatedRequest } from '@/lib/api-middleware';
 import { getCollection } from '@/lib/mongodb';
 import { Document } from 'mongodb';
 
@@ -18,7 +18,7 @@ interface StudentCourse extends Document {
   updated_at?: Date;
 }
 
-export const GET = withAuth(
+export const GET = withAnyAuth(
   async (_req: AuthenticatedRequest, context: { params: Promise<{ student_id: string }> }) => {
     try {
       const { student_id } = await context.params;

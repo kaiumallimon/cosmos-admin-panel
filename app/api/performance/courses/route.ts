@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/api-middleware';
+import { withAnyAuth, AuthenticatedRequest } from '@/lib/api-middleware';
 import { getCollection } from '@/lib/mongodb';
 import { Document } from 'mongodb';
 
@@ -24,7 +24,7 @@ interface Course extends Document {
  *   ids  — comma-separated list of course UUIDs to filter by.
  *          If omitted, returns ALL courses.
  */
-export const GET = withAuth(async (_req: AuthenticatedRequest) => {
+export const GET = withAnyAuth(async (_req: AuthenticatedRequest) => {
   try {
     const url = new URL(_req.url);
     const idsParam = url.searchParams.get('ids');
