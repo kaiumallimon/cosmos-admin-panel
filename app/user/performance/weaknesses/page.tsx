@@ -179,7 +179,7 @@ export default function WeaknessesPage() {
           <Button variant="outline" size="sm" onClick={fetchData}>
             <RefreshCwIcon className="h-4 w-4" />
           </Button>
-          <Button size="sm" onClick={openDialog} className="gap-2 bg-[#007AFF] hover:bg-[#007AFF]/90">
+          <Button size="sm" onClick={openDialog} className="gap-2 bg-primary hover:bg-primary/90">
             <PlusIcon /> Add Weakness
           </Button>
         </div>
@@ -201,7 +201,7 @@ export default function WeaknessesPage() {
             <p className="text-sm text-muted-foreground">
               No weaknesses recorded. Mark topics you find difficult to track them.
             </p>
-            <Button size="sm" onClick={openDialog} className="gap-2 bg-[#007AFF] hover:bg-[#007AFF]/90">
+            <Button size="sm" onClick={openDialog} className="gap-2 bg-primary hover:bg-primary/90">
               <PlusIcon /> Add Weakness
             </Button>
           </CardContent>
@@ -296,7 +296,7 @@ export default function WeaknessesPage() {
             <Button
               disabled={adding || !selectedCourse || !selectedTopic}
               onClick={handleAdd}
-              className="bg-[#007AFF] hover:bg-[#007AFF]/90"
+              className="bg-primary hover:bg-primary/90"
             >
               {adding ? 'Adding…' : 'Add'}
             </Button>

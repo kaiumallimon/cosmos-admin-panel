@@ -142,8 +142,8 @@ export default function CGPACalculatorPage() {
 
           <Card className="border shadow-sm">
             <CardContent className="p-5 flex items-center gap-4">
-              <div className="rounded-xl p-3 bg-[#007AFF]/10 shrink-0">
-                <TrendingUpIcon className="h-5 w-5 text-[#007AFF]" />
+              <div className="rounded-xl p-3 bg-primary/10 shrink-0">
+                <TrendingUpIcon className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Cumulative CGPA</p>
@@ -279,7 +279,7 @@ export default function CGPACalculatorPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="gap-1.5 text-xs text-[#007AFF] hover:text-[#007AFF] hover:bg-[#007AFF]/10"
+              className="gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
               onClick={addCourse}
             >
               <PlusIcon className="h-3.5 w-3.5" />
@@ -317,7 +317,7 @@ export default function CGPACalculatorPage() {
                             </TableCell>
                             <TableCell className="text-center text-sm px-5 py-4">{course.creditHours}</TableCell>
                             <TableCell className="text-center px-5 py-4">
-                              <Badge className="text-xs border bg-[#007AFF]/10 text-[#007AFF] border-[#007AFF]/20 hover:bg-[#007AFF]/10">
+                              <Badge className="text-xs border bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
                                 {gradeLabel} ({course.gradePoint.toFixed(2)})
                               </Badge>
                             </TableCell>

@@ -155,7 +155,7 @@ export default function UserChatLayout({ children }: { children: React.ReactNode
       {/* Sidebar Header */}
       <div className="border-b border-border/40 p-4 shrink-0">
         <div className="flex items-center gap-2 min-w-0 mb-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#007AFF] text-sm font-bold text-white shadow-md shrink-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white shadow-md shrink-0">
             C
           </div>
           <div className="flex flex-col min-w-0">
@@ -305,7 +305,7 @@ export default function UserChatLayout({ children }: { children: React.ReactNode
 
         {/* Back to Dashboard */}
         <Button
-          className="w-full justify-start gap-2 bg-[#007AFF] hover:bg-[#0066CC] text-white"
+          className="w-full justify-start gap-2 bg-primary hover:bg-primary/90 text-white"
           onClick={() => router.push('/user')}
         >
           <ArrowLeftIcon className="h-4 w-4" />

@@ -136,7 +136,7 @@ export default function PerformanceOverviewPage() {
       <FrostedHeader title="Performance Overview" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
       <div className="flex-1 overflow-y-auto p-6 space-y-8">
       {/* Welcome Banner */}
-      <div className="rounded-2xl bg-[#007AFF] text-white p-6 shadow-md">
+      <div className="rounded-2xl bg-primary text-white p-6 shadow-md">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h2 className="text-2xl font-bold mb-1 flex items-center gap-2">
@@ -154,7 +154,7 @@ export default function PerformanceOverviewPage() {
           )}
         </div>
         <div className="mt-5">
-          <Button asChild className="bg-white text-[#007AFF] hover:bg-white/90 font-semibold gap-2">
+          <Button asChild className="bg-white text-primary hover:bg-white/90 font-semibold gap-2">
             <Link href="/user/performance/predict">
               <SparklesIcon className="h-4 w-4" />
               Predict My Grade
@@ -238,7 +238,7 @@ export default function PerformanceOverviewPage() {
             </div>
             <Link
               href="/user/performance/weaknesses"
-              className="mt-3 text-xs text-[#007AFF] inline-flex items-center gap-1 hover:underline"
+              className="mt-3 text-xs text-primary inline-flex items-center gap-1 hover:underline"
             >
               Manage weaknesses <ArrowRightIcon className="h-3 w-3" />
             </Link>

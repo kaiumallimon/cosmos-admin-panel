@@ -52,7 +52,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   --primary: #f97316; /* orange-500 */
-  --primary-foreground: #ffffff; /* text on orange-500 */
+  --primary-foreground: #ffffff; /* white text on orange in light mode */
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -86,7 +86,7 @@
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: #f97316; /* orange-500 stays same in dark mode */
-  --primary-foreground: #ffffff;
+  --primary-foreground: #000000; /* black text on orange in dark mode */
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -141,10 +141,4 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;  /* Safari and Chrome */
   }
-}
-
-/* ── User panel: iOS blue primary ── */
-[data-user-panel] {
-  --primary: #007AFF;
-  --primary-foreground: #ffffff;
 }

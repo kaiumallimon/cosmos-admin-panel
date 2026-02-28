@@ -178,7 +178,7 @@ export default function AssessmentsPage() {
           <Button variant="outline" size="sm" onClick={fetchData}>
             <RefreshCwIcon className="h-4 w-4" />
           </Button>
-          <Button size="sm" onClick={openAdd} className="gap-2 bg-[#007AFF] hover:bg-[#007AFF]/90">
+          <Button size="sm" onClick={openAdd} className="gap-2 bg-primary hover:bg-primary/90">
             <PlusIcon />
             Add Assessment
           </Button>
@@ -199,7 +199,7 @@ export default function AssessmentsPage() {
           <CardContent className="p-10 flex flex-col items-center gap-3 text-center">
             <ClipboardListIcon className="h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">No assessments recorded yet.</p>
-            <Button size="sm" onClick={openAdd} className="gap-2 bg-[#007AFF] hover:bg-[#007AFF]/90">
+            <Button size="sm" onClick={openAdd} className="gap-2 bg-primary hover:bg-primary/90">
               <PlusIcon /> Add First Assessment
             </Button>
           </CardContent>
@@ -227,7 +227,7 @@ export default function AssessmentsPage() {
                     <div className="mt-2 flex items-center gap-3">
                       <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                         <div
-                          className="h-2 rounded-full bg-[#007AFF] transition-all"
+                          className="h-2 rounded-full bg-primary transition-all"
                           style={{ width: `${Math.min(pct, 100)}%` }}
                         />
                       </div>
@@ -336,7 +336,7 @@ export default function AssessmentsPage() {
             <Button
               disabled={saving || !form.course_id || !form.score || !form.max_score}
               onClick={handleSave}
-              className="bg-[#007AFF] hover:bg-[#007AFF]/90"
+              className="bg-primary hover:bg-primary/90"
             >
               {saving ? 'Saving…' : 'Save'}
             </Button>

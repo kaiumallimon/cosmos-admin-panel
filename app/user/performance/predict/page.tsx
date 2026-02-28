@@ -332,7 +332,7 @@ export default function PredictPage() {
               <button
                 onClick={() => setUseMeta((v) => !v)}
                 className={`h-5 w-9 rounded-full transition-colors relative shrink-0 ${
-                  useMeta ? 'bg-[#007AFF]' : 'bg-muted'
+                  useMeta ? 'bg-primary' : 'bg-muted'
                 }`}
               >
                 <span
@@ -351,7 +351,7 @@ export default function PredictPage() {
             <Button
               disabled={!currentCourse.course || loading}
               onClick={handlePredict}
-              className="w-full bg-[#007AFF] hover:bg-[#007AFF]/90 gap-2"
+              className="w-full bg-primary hover:bg-primary/90 gap-2"
             >
               {loading ? (
                 <>
@@ -377,7 +377,7 @@ export default function PredictPage() {
             <Card className="border shadow-sm">
               <CardContent className="p-8 text-center space-y-4">
                 <div className="flex items-center justify-center gap-2">
-                  <TrendingUpIcon className="h-5 w-5 text-[#007AFF]" />
+                  <TrendingUpIcon className="h-5 w-5 text-primary" />
                   <span className="text-sm font-semibold text-muted-foreground">Predicted Grade</span>
                 </div>
                 <p className={`text-6xl font-bold ${GradeColor(result.predicted_grade)}`}>
@@ -413,7 +413,7 @@ export default function PredictPage() {
                           </span>
                           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                             <div
-                              className="h-2 rounded-full bg-[#007AFF] transition-all"
+                              className="h-2 rounded-full bg-primary transition-all"
                               style={{ width: `${Math.round(prob * 100)}%` }}
                             />
                           </div>
@@ -431,7 +431,7 @@ export default function PredictPage() {
               <Card className="border shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <SparklesIcon className="h-4 w-4 text-[#007AFF]" />
+                    <SparklesIcon className="h-4 w-4 text-primary" />
                     AI Insights
                   </CardTitle>
                 </CardHeader>
@@ -439,7 +439,7 @@ export default function PredictPage() {
                   <ul className="space-y-2">
                     {result.insights.map((insight, i) => (
                       <li key={i} className="text-sm text-muted-foreground flex gap-2">
-                        <span className="text-[#007AFF] shrink-0">•</span>
+                        <span className="text-primary shrink-0">•</span>
                         {insight}
                       </li>
                     ))}

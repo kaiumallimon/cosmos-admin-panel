@@ -131,8 +131,8 @@ export default function RoutinesPage() {
 
           {/* Hero section */}
           <div className="w-full border-b bg-muted/20 px-6 py-12 flex flex-col items-center text-center gap-4">
-            <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-[#007AFF]/10 border border-[#007AFF]/20 mb-1">
-              <CalendarDaysIcon className="h-7 w-7 text-[#007AFF]" />
+            <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 mb-1">
+              <CalendarDaysIcon className="h-7 w-7 text-primary" />
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">UIU Exam &amp; Class Routine Finder</h1>
@@ -166,7 +166,7 @@ export default function RoutinesPage() {
                   className="flex-1"
                 />
                 <Button
-                  className="gap-2 bg-[#007AFF] hover:bg-[#007AFF]/90 shrink-0"
+                  className="gap-2 bg-primary hover:bg-primary/90 shrink-0"
                   disabled={loading}
                   onClick={handleFetch}
                 >
@@ -224,7 +224,7 @@ export default function RoutinesPage() {
                 {profile.image_url ? (
                   <img src={profile.image_url} alt={profile.name} className="h-14 w-14 rounded-full ring-2 ring-border object-cover shrink-0" />
                 ) : (
-                  <div className="h-14 w-14 rounded-full bg-[#007AFF] flex items-center justify-center text-white font-bold text-xl ring-2 ring-border shrink-0">
+                  <div className="h-14 w-14 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xl ring-2 ring-border shrink-0">
                     {profile.name.charAt(0)}
                   </div>
                 )}
@@ -257,20 +257,20 @@ export default function RoutinesPage() {
 
         {/* Today's classes */}
         {todayClasses.length > 0 && (
-          <Card className="border border-[#007AFF]/25 bg-[#007AFF]/5 shadow-sm">
+          <Card className="border border-primary/25 bg-primary/5 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2 text-[#007AFF]">
+              <CardTitle className="text-sm flex items-center gap-2 text-primary">
                 <ClockIcon className="h-4 w-4" />
                 Today&apos;s Classes
-                <span className="ml-auto text-xs font-normal text-[#007AFF]/70">{TODAY_NAME}</span>
+                <span className="ml-auto text-xs font-normal text-primary/70">{TODAY_NAME}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {todayClasses.map((cls, i) => (
                   <div key={i} className="flex items-center gap-3 rounded-xl border bg-background/80 px-4 py-3">
-                    <div className="flex flex-col items-center justify-center rounded-lg bg-[#007AFF]/10 px-2.5 py-1.5 shrink-0 min-w-[60px]">
-                      <span className="text-[10px] font-bold text-[#007AFF] whitespace-nowrap leading-tight">
+                    <div className="flex flex-col items-center justify-center rounded-lg bg-primary/10 px-2.5 py-1.5 shrink-0 min-w-[60px]">
+                      <span className="text-[10px] font-bold text-primary whitespace-nowrap leading-tight">
                         {cls.time.split('-')[0].trim()}
                       </span>
                     </div>
@@ -288,7 +288,7 @@ export default function RoutinesPage() {
         {/* ── Class Routine ── */}
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-5 rounded-full bg-[#007AFF] shrink-0" />
+            <div className="w-1 h-5 rounded-full bg-primary shrink-0" />
             <h2 className="font-semibold">Current Trimester Class Routine</h2>
             <Badge variant="outline" className="text-xs ml-auto">UCAM</Badge>
           </div>
@@ -301,7 +301,7 @@ export default function RoutinesPage() {
                 onClick={() => setActiveDay(day)}
                 className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all border ${
                   activeDay === day
-                    ? 'bg-[#007AFF] text-white border-transparent shadow-sm'
+                    ? 'bg-primary text-white border-transparent shadow-sm'
                     : 'text-muted-foreground border-border hover:bg-accent hover:text-foreground'
                 }`}
               >
@@ -332,7 +332,7 @@ export default function RoutinesPage() {
                       currentDayClasses.map((cls, i) => (
                         <tr key={i} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="inline-flex items-center rounded-full bg-[#007AFF]/10 px-2.5 py-1 text-[11px] font-semibold text-[#007AFF] font-mono whitespace-nowrap">
+                            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary font-mono whitespace-nowrap">
                               {cls.time}
                             </span>
                           </td>
@@ -408,7 +408,7 @@ export default function RoutinesPage() {
                             })()}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="inline-flex items-center rounded-full bg-[#007AFF]/10 px-2.5 py-1 text-[11px] font-semibold text-[#007AFF] font-mono">{exam.exam_time}</span>
+                            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary font-mono">{exam.exam_time}</span>
                           </td>
                           <td className="px-4 py-3">
                             <p className="text-xs font-medium">{exam.room ?? '—'}</p>

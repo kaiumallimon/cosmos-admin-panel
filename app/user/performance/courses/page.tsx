@@ -143,7 +143,7 @@ export default function MyCoursesPage() {
             <Button variant="outline" size="sm" onClick={fetchData}>
               <RefreshCwIcon className="h-4 w-4" />
             </Button>
-            <Button size="sm" onClick={() => setEnrollOpen(true)} className="gap-2 bg-[#007AFF] hover:bg-[#007AFF]/90">
+            <Button size="sm" onClick={() => setEnrollOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
               <PlusIcon className="h-4 w-4" />
               Enroll in Course
             </Button>
@@ -169,7 +169,7 @@ export default function MyCoursesPage() {
               <Button
                 size="sm"
                 onClick={() => setEnrollOpen(true)}
-                className="gap-2 bg-[#007AFF] hover:bg-[#007AFF]/90 mt-1"
+                className="gap-2 bg-primary hover:bg-primary/90 mt-1"
               >
                 <PlusIcon className="h-4 w-4" />
                 Enroll Now
@@ -250,7 +250,7 @@ export default function MyCoursesPage() {
                 <DialogFooter className="gap-2">
                   <Button variant="outline" onClick={() => setSelectedCourse(null)}>Back</Button>
                   <Button
-                    className="bg-[#007AFF] hover:bg-[#007AFF]/90"
+                    className="bg-primary hover:bg-primary/90"
                     disabled={enrolling || !enrollForm.section || !enrollForm.faculty}
                     onClick={handleEnroll}
                   >
@@ -279,7 +279,7 @@ export default function MyCoursesPage() {
                         </div>
                         <Button
                           size="sm"
-                          className="shrink-0 bg-[#007AFF] hover:bg-[#007AFF]/90"
+                          className="shrink-0 bg-primary hover:bg-primary/90"
                           onClick={(e) => { e.stopPropagation(); openEnrollDialog(course); }}
                         >
                           Enroll

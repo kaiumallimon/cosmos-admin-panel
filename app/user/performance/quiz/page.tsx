@@ -217,7 +217,7 @@ export default function QuizPage() {
                 <Button
                   disabled={!selectedCourse}
                   onClick={handleGenerate}
-                  className="w-full bg-[#007AFF] hover:bg-[#007AFF]/90 gap-2"
+                  className="w-full bg-primary hover:bg-primary/90 gap-2"
                 >
                   <BrainCircuitIcon className="h-4 w-4" />
                   Generate Quiz
@@ -236,7 +236,7 @@ export default function QuizPage() {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center py-20 gap-4"
           >
-            <div className="h-12 w-12 rounded-full border-4 border-[#007AFF] border-t-transparent animate-spin" />
+            <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
             <p className="text-sm text-muted-foreground">Generating your quiz…</p>
           </motion.div>
         )}
@@ -254,7 +254,7 @@ export default function QuizPage() {
             <div className="flex items-center gap-3">
               <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-2 rounded-full bg-[#007AFF] transition-all duration-300"
+                  className="h-2 rounded-full bg-primary transition-all duration-300"
                   style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }}
                 />
               </div>
@@ -288,8 +288,8 @@ export default function QuizPage() {
                           onClick={() => setAnswers((a) => ({ ...a, [currentQ]: opt }))}
                           className={`w-full text-left px-4 py-3 rounded-xl text-sm border transition-all ${
                             answers[currentQ] === opt
-                              ? 'border-[#007AFF] bg-[#007AFF]/10 text-[#007AFF] font-medium'
-                              : 'border-border hover:border-[#007AFF]/50 hover:bg-accent/50'
+                              ? 'border-primary bg-primary/10 text-primary font-medium'
+                              : 'border-border hover:border-primary/50 hover:bg-accent/50'
                           }`}
                         >
                           {opt}
@@ -314,7 +314,7 @@ export default function QuizPage() {
                 <Button
                   disabled={!answers[currentQ]}
                   onClick={() => setCurrentQ((q) => q + 1)}
-                  className="bg-[#007AFF] hover:bg-[#007AFF]/90"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   Next
                 </Button>
@@ -322,7 +322,7 @@ export default function QuizPage() {
                 <Button
                   disabled={!allAnswered || submitting}
                   onClick={handleSubmit}
-                  className="bg-[#007AFF] hover:bg-[#007AFF]/90"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   {submitting ? 'Submitting…' : 'Submit Quiz'}
                 </Button>
@@ -337,7 +337,7 @@ export default function QuizPage() {
                   onClick={() => setCurrentQ(i)}
                   className={`h-6 w-6 rounded-full text-xs font-semibold transition-colors ${
                     i === currentQ
-                      ? 'bg-[#007AFF] text-white'
+                      ? 'bg-primary text-white'
                       : answers[i]
                       ? 'bg-green-500/20 text-green-600 dark:text-green-400'
                       : 'bg-muted text-muted-foreground'

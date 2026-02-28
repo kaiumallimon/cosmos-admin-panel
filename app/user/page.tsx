@@ -15,17 +15,17 @@ export default function UserOverviewPage() {
 
   const features = [
     {
-      icon: <Brain className="h-6 w-6 text-[#007AFF]" />,
+      icon: <Brain className="h-6 w-6 text-primary" />,
       title: "AI-Powered Answers",
       description: "Get instant answers to your course questions using our intelligent AI assistant.",
     },
     {
-      icon: <BookOpenIcon className="h-6 w-6 text-[#007AFF]" />,
+      icon: <BookOpenIcon className="h-6 w-6 text-primary" />,
       title: "Past Exam Questions",
       description: "Access a comprehensive database of past exam questions across all courses.",
     },
     {
-      icon: <Zap className="h-6 w-6 text-[#007AFF]" />,
+      icon: <Zap className="h-6 w-6 text-primary" />,
       title: "Fast & Accurate",
       description: "Retrieval-augmented generation ensures answers are grounded in real course content.",
     },
@@ -43,7 +43,7 @@ export default function UserOverviewPage() {
         <div className="max-w-4xl mx-auto space-y-8">
 
           {/* Welcome Banner */}
-          <div className="rounded-2xl bg-[#007AFF] text-white p-6 shadow-md">
+          <div className="rounded-2xl bg-primary text-white p-6 shadow-md">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold mb-1">
@@ -59,7 +59,7 @@ export default function UserOverviewPage() {
             <div className="mt-5">
               <Button
                 asChild
-                className="bg-white text-[#007AFF] hover:bg-white/90 font-semibold gap-2"
+                className="bg-white text-primary hover:bg-white/90 font-semibold gap-2"
               >
                 <Link href="/user/chat">
                   <MessageCircleIcon className="h-4 w-4" />
@@ -106,13 +106,13 @@ export default function UserOverviewPage() {
           </div>
 
           {/* CTA */}
-          <Card className="border-2 border-dashed border-[#007AFF]/30 bg-[#007AFF]/5">
+          <Card className="border-2 border-dashed border-primary/30 bg-primary/5">
             <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <p className="font-semibold text-foreground">Ready to study smarter?</p>
                 <p className="text-sm text-muted-foreground mt-0.5">Open the chat and ask your first question.</p>
               </div>
-              <Button asChild className="bg-[#007AFF] hover:bg-[#0066CC] text-white shrink-0 gap-2">
+              <Button asChild className="bg-primary hover:bg-primary/90 text-white shrink-0 gap-2">
                 <Link href="/user/chat">
                   <MessageCircleIcon className="h-4 w-4" />
                   Open Chat

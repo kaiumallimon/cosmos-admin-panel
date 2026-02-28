@@ -68,7 +68,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   if (checking) {
     return (
       <div data-user-panel className="fixed inset-0 flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#007AFF]" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-primary" />
       </div>
     );
   }
@@ -96,7 +96,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
       {/* Header */}
       <div className="border-b border-border/40 p-4 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#007AFF] text-sm font-bold text-white shadow-md shrink-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white shadow-md shrink-0">
             C
           </div>
           <div className="flex flex-col min-w-0">
@@ -142,7 +142,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           <Link
             href="/user/roadmap"
             onClick={onLinkClick}
-            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/roadmap') ? 'bg-primary text-primary-foreground font-semibold' : ''
+            className={` mt-1 flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/roadmap') ? 'bg-primary text-primary-foreground font-semibold' : ''
               }`}
           >
             <MapIcon className="h-4 w-4 shrink-0" />
@@ -171,7 +171,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 key={href}
                 href={href}
                 onClick={onLinkClick}
-                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${isActive ? 'bg-primary text-primary-foreground font-semibold' : ''
+                className={`mt-1 flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${isActive ? 'bg-primary text-primary-foreground font-semibold' : ''
                   }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -199,7 +199,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           <Link
             href="/user/routines"
             onClick={onLinkClick}
-            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/routines') ? 'bg-primary text-primary-foreground font-semibold' : ''
+            className={`mt-1 flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/routines') ? 'bg-primary text-primary-foreground font-semibold' : ''
               }`}
           >
             <CalendarDaysIcon className="h-4 w-4 shrink-0" />
@@ -256,7 +256,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                     className="h-8 w-8 rounded-full ring-2 ring-border shrink-0"
                   />
                 ) : (
-                  <div className="h-8 w-8 rounded-full bg-[#007AFF] flex items-center justify-center text-white text-sm font-medium shrink-0 ring-2 ring-border">
+                  <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-medium shrink-0 ring-2 ring-border">
                     {(user.profile?.full_name?.charAt(0) || user.email.charAt(0)).toUpperCase()}
                   </div>
                 )}
