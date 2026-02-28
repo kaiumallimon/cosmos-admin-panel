@@ -10,8 +10,6 @@ import { Input } from '@/components/ui/input';
 import {
   CalendarDaysIcon,
   ClockIcon,
-  BookOpenIcon,
-  GraduationCapIcon,
   ShieldCheckIcon,
   LockIcon,
   LogInIcon,
@@ -218,58 +216,67 @@ export default function RoutinesPage() {
       <FrostedHeader title="Exam & Class Routines" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-        {/* Profile row */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            {profile.image_url ? (
-              <img src={profile.image_url} alt={profile.name} className="h-12 w-12 rounded-full ring-2 ring-border object-cover shrink-0" />
-            ) : (
-              <div className="h-12 w-12 rounded-full bg-[#007AFF] flex items-center justify-center text-white font-bold text-lg ring-2 ring-border shrink-0">
-                {profile.name.charAt(0)}
-              </div>
-            )}
-            <div>
-              <p className="font-semibold text-sm">{profile.name}</p>
-              <p className="text-xs text-muted-foreground">{profile.student_id}</p>
-              <div className="flex gap-1.5 mt-1 flex-wrap">
-                {profile.dob && <Badge variant="outline" className="text-xs">{profile.dob}</Badge>}
-                {profile.blood_group && profile.blood_group !== 'Unknown' && (
-                  <Badge variant="secondary" className="text-xs">{profile.blood_group}</Badge>
+        {/* Profile card */}
+        <Card className="border shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-4">
+                {profile.image_url ? (
+                  <img src={profile.image_url} alt={profile.name} className="h-14 w-14 rounded-full ring-2 ring-border object-cover shrink-0" />
+                ) : (
+                  <div className="h-14 w-14 rounded-full bg-[#007AFF] flex items-center justify-center text-white font-bold text-xl ring-2 ring-border shrink-0">
+                    {profile.name.charAt(0)}
+                  </div>
                 )}
+                <div className="space-y-1">
+                  <p className="font-semibold">{profile.name}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{profile.student_id}</p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {profile.dob && (
+                      <Badge variant="outline" className="text-xs gap-1">
+                        {profile.dob}
+                      </Badge>
+                    )}
+                    {profile.blood_group && profile.blood_group !== 'Unknown' && (
+                      <Badge variant="secondary" className="text-xs">{profile.blood_group}</Badge>
+                    )}
+                  </div>
+                </div>
               </div>
+              <Button variant="outline" size="sm" className="gap-2 text-muted-foreground shrink-0" onClick={handleReset}>
+                <LogOutIcon className="h-4 w-4" />
+                Sign out
+              </Button>
             </div>
-          </div>
-          <Button variant="outline" size="sm" className="gap-2 text-muted-foreground" onClick={handleReset}>
-            <LogOutIcon className="h-4 w-4" />
-            Sign out
-          </Button>
-        </div>
-
-        {/* Privacy reminder strip */}
-        <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/5 px-3 py-2 text-xs text-green-700 dark:text-green-400">
-          <ShieldCheckIcon className="h-3.5 w-3.5 shrink-0" />
-          Your password was never saved — session is local only.
-        </div>
+            <div className="mt-3 pt-3 border-t flex items-center gap-2 text-xs text-green-700 dark:text-green-500">
+              <ShieldCheckIcon className="h-3.5 w-3.5 shrink-0" />
+              Your password was never saved — this session is local only.
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Today's classes */}
         {todayClasses.length > 0 && (
-          <Card className="border border-[#007AFF]/30 bg-[#007AFF]/5 shadow-sm">
-            <CardHeader className="pb-2">
+          <Card className="border border-[#007AFF]/25 bg-[#007AFF]/5 shadow-sm">
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2 text-[#007AFF]">
                 <ClockIcon className="h-4 w-4" />
-                Today&apos;s Classes — {TODAY_NAME}
+                Today&apos;s Classes
+                <span className="ml-auto text-xs font-normal text-[#007AFF]/70">{TODAY_NAME}</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-3">
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {todayClasses.map((cls, i) => (
-                  <div key={i} className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2">
-                    <span className="text-xs font-bold text-[#007AFF] shrink-0 whitespace-nowrap">
-                      {cls.time.split('-')[0].trim()}
-                    </span>
-                    <div>
-                      <p className="font-medium text-xs">{cls.course_code}</p>
-                      <p className="text-xs text-muted-foreground max-w-40 truncate">{cls.course_title}</p>
+                  <div key={i} className="flex items-center gap-3 rounded-xl border bg-background/80 px-4 py-3">
+                    <div className="flex flex-col items-center justify-center rounded-lg bg-[#007AFF]/10 px-2.5 py-1.5 shrink-0 min-w-[60px]">
+                      <span className="text-[10px] font-bold text-[#007AFF] whitespace-nowrap leading-tight">
+                        {cls.time.split('-')[0].trim()}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-xs truncate">{cls.course_code}</p>
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">{cls.course_title}</p>
                     </div>
                   </div>
                 ))}
@@ -280,26 +287,26 @@ export default function RoutinesPage() {
 
         {/* ── Class Routine ── */}
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <BookOpenIcon className="h-4 w-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Current Trimester Class Routine</h2>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-1 h-5 rounded-full bg-[#007AFF] shrink-0" />
+            <h2 className="font-semibold">Current Trimester Class Routine</h2>
             <Badge variant="outline" className="text-xs ml-auto">UCAM</Badge>
           </div>
 
           {/* Day tabs */}
-          <div className="flex gap-1 flex-wrap mb-4">
+          <div className="flex gap-1.5 flex-wrap mb-4">
             {routineDays.map((day) => (
               <button
                 key={day}
                 onClick={() => setActiveDay(day)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors border ${
+                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all border ${
                   activeDay === day
-                    ? 'bg-primary text-primary-foreground border-transparent'
-                    : 'text-muted-foreground border-border hover:bg-accent'
+                    ? 'bg-[#007AFF] text-white border-transparent shadow-sm'
+                    : 'text-muted-foreground border-border hover:bg-accent hover:text-foreground'
                 }`}
               >
                 {day}
-                {day === TODAY_NAME && <span className="ml-1 opacity-60">(today)</span>}
+                {day === TODAY_NAME && <span className="ml-1 opacity-70">· today</span>}
               </button>
             ))}
           </div>
@@ -310,28 +317,29 @@ export default function RoutinesPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/40">
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Time</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Course Code</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Course Title</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-[180px]">Time</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Course</th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentDayClasses.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="text-center text-xs text-muted-foreground py-8">
+                        <td colSpan={2} className="text-center text-xs text-muted-foreground py-8">
                           No classes on {activeDay}
                         </td>
                       </tr>
                     ) : (
                       currentDayClasses.map((cls, i) => (
                         <tr key={i} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-2.5 whitespace-nowrap">
-                            <span className="text-xs font-mono font-semibold text-[#007AFF]">{cls.time}</span>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className="inline-flex items-center rounded-full bg-[#007AFF]/10 px-2.5 py-1 text-[11px] font-semibold text-[#007AFF] font-mono whitespace-nowrap">
+                              {cls.time}
+                            </span>
                           </td>
-                          <td className="px-4 py-2.5">
-                            <Badge variant="outline" className="text-xs font-mono">{cls.course_code}</Badge>
+                          <td className="px-4 py-3">
+                            <p className="text-xs font-semibold">{cls.course_code}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{cls.course_title}</p>
                           </td>
-                          <td className="px-4 py-2.5 text-xs">{cls.course_title}</td>
                         </tr>
                       ))
                     )}
@@ -344,11 +352,13 @@ export default function RoutinesPage() {
 
         {/* ── Exam Schedule ── */}
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <GraduationCapIcon className="h-4 w-4 text-muted-foreground" />
-            <h2 className="font-semibold text-sm">Upcoming Exam Schedule</h2>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-1 h-5 rounded-full bg-purple-500 shrink-0" />
+            <h2 className="font-semibold">Upcoming Exam Schedule</h2>
             {upcomingExams.length > 0 && (
-              <Badge variant="outline" className="text-xs ml-auto">{upcomingExams.length} exam{upcomingExams.length !== 1 ? 's' : ''}</Badge>
+              <Badge className="text-xs ml-auto bg-purple-500/10 text-purple-600 border border-purple-500/20 hover:bg-purple-500/10">
+                {upcomingExams.length} exam{upcomingExams.length !== 1 ? 's' : ''}
+              </Badge>
             )}
           </div>
 
@@ -379,25 +389,35 @@ export default function RoutinesPage() {
                           className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                         >
                           <td className="px-4 py-3">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Badge variant="outline" className="text-xs font-mono">{exam.course_code}</Badge>
-                              <span className="text-xs text-muted-foreground">§{exam.section}</span>
-                            </div>
+                            <p className="text-xs font-semibold">{exam.course_code}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">Section {exam.section}</p>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="text-xs font-medium">{exam.exam_date}</span>
+                            <p className="text-xs font-medium">{exam.exam_date}</p>
+                            {(() => {
+                              const diff = Math.ceil((new Date(exam.exam_date).getTime() - Date.now()) / 86400000);
+                              return diff >= 0 && diff <= 14 ? (
+                                <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                  diff === 0 ? 'bg-red-500/15 text-red-600' :
+                                  diff <= 3  ? 'bg-orange-500/15 text-orange-600' :
+                                               'bg-blue-500/15 text-blue-600'
+                                }`}>
+                                  {diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : `${diff}d away`}
+                                </span>
+                              ) : null;
+                            })()}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="text-xs font-mono text-[#007AFF]">{exam.exam_time}</span>
+                            <span className="inline-flex items-center rounded-full bg-[#007AFF]/10 px-2.5 py-1 text-[11px] font-semibold text-[#007AFF] font-mono">{exam.exam_time}</span>
                           </td>
                           <td className="px-4 py-3">
                             <p className="text-xs font-medium">{exam.room ?? '—'}</p>
                             {exam.room_detail && (
                               <p
-                                className="text-[10px] text-muted-foreground mt-0.5 max-w-[180px] truncate"
+                                className="text-[10px] text-muted-foreground mt-0.5 max-w-40 truncate"
                                 title={exam.room_detail.trim()}
                               >
-                                {exam.room_detail.trim().replace(/\s{2,}/g, ' · ').split(' · ')[0]}
+                                {exam.room_detail.trim().split(/\s{2,}/)[0]}
                               </p>
                             )}
                           </td>
