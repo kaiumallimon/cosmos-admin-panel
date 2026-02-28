@@ -171,6 +171,8 @@ interface BarChartProps {
     title: string;
     description?: string;
     color?: string;
+    /** When true, each bar gets a distinct color from PIE_COLORS and a legend is shown */
+    multiColor?: boolean;
 }
 
 export const DashboardBarChart: React.FC<BarChartProps> = ({
@@ -179,29 +181,64 @@ export const DashboardBarChart: React.FC<BarChartProps> = ({
     xAxisKey,
     title,
     description,
-    color = COLORS[0]
+    color = PIE_COLORS[0],
+    multiColor = false,
 }) => {
+    const tooltipStyle = {
+        backgroundColor: 'hsl(var(--background))',
+        border: '1px solid hsl(var(--border))',
+        borderRadius: '6px',
+        color: 'hsl(var(--foreground))',
+        fontSize: '12px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+    };
+
+    // Build legend payload from data when multiColor
+    const legendPayload = multiColor
+        ? data.map((entry, i) => ({
+            value: entry[xAxisKey],
+            type: 'square' as const,
+            color: PIE_COLORS[i % PIE_COLORS.length],
+          }))
+        : undefined;
+
     return (
         <ChartCard title={title} description={description}>
-            <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <BarChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" />
                 <XAxis
                     dataKey={xAxisKey}
-                    className="text-xs"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 11, fill: '#888' }}
+                    axisLine={false}
+                    tickLine={false}
                 />
                 <YAxis
-                    className="text-xs"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 11, fill: '#888' }}
+                    axisLine={false}
+                    tickLine={false}
+                    domain={[0, 100]}
                 />
                 <Tooltip
-                    contentStyle={{
-                        backgroundColor: 'hsl(var(--background))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px'
-                    }}
+                    contentStyle={tooltipStyle}
+                    cursor={{ fill: 'rgba(128,128,128,0.08)' }}
+                    formatter={(val: number) => [`${val}%`, dataKey === 'avg' ? 'Avg Score' : dataKey]}
                 />
-                <Bar dataKey={dataKey} fill={color} />
+                {multiColor && legendPayload && (
+                    <Legend
+                        payload={legendPayload}
+                        wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
+                    />
+                )}
+                <Bar dataKey={dataKey} radius={[4, 4, 0, 0]}>
+                    {multiColor
+                        ? data.map((_, i) => (
+                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                          ))
+                        : data.map((_, i) => (
+                            <Cell key={i} fill={color} />
+                          ))
+                    }
+                </Bar>
             </BarChart>
         </ChartCard>
     );

@@ -359,7 +359,7 @@ export default function PerformanceOverviewPage() {
               xAxisKey="type"
               title="Avg Score by Assessment Type"
               description="Your average percentage score grouped by type"
-              color="hsl(var(--primary))"
+              multiColor
             />
           ) : (
             <EmptyChartCard title="Avg Score by Assessment Type" message="No assessments recorded yet." />
@@ -372,7 +372,7 @@ export default function PerformanceOverviewPage() {
               xAxisKey="course"
               title="Avg Score by Course"
               description="Mean performance across your enrolled courses"
-              color="hsl(142, 60%, 40%)"
+              multiColor
             />
           ) : (
             <EmptyChartCard title="Avg Score by Course" message="No course assessment data yet." />
