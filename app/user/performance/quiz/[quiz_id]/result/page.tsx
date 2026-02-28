@@ -6,7 +6,7 @@ import { FrostedHeader } from '@/components/custom/frosted-header';
 import { useMobileMenu } from '@/components/mobile-menu-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Breadcrumb,
@@ -23,57 +23,35 @@ import {
   TrophyIcon,
   RefreshCwIcon,
   AlertTriangleIcon,
-  MinusCircleIcon,
+  HistoryIcon,
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-interface QuizQuestion {
+interface AnswerEntry {
   question_id: string;
   question: string;
   options: string[];
-}
-
-interface QuizData {
-  student_id: string;
-  course_id: string;
-  quiz_id: string;
-  topics: string[];
-  generated_quiz: QuizQuestion[];
-  created_at: string;
-}
-
-interface AnswerBreakdown {
-  question_id: string;
-  question: string;
-  selected_option: string;
-  correct_option?: string;
-  is_correct?: boolean;
+  chosen_index: number;
+  chosen_answer: string;
+  correct_index?: number;
+  correct_answer?: string;
 }
 
 interface QuizResultData {
-  // server-provided fields (may vary by backend)
-  score?: number;
-  total?: number;
-  correct?: number;
-  incorrect?: number;
-  score_percent?: number;
-  percentage?: number;
-  breakdown?: AnswerBreakdown[];
-  // locally computed
-  quiz: QuizData;
-  answers: Record<string, string>;
+  marks: number;
+  full_marks: number;
+  percentage: number;
+  attempt_no: number;
+  right_answers: AnswerEntry[];
+  wrong_answers: AnswerEntry[];
+  quiz: {
+    topics: string[];
+    quiz_id: string;
+  };
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function getScorePercent(result: QuizResultData): number {
-  if (result.score_percent != null) return Math.round(result.score_percent);
-  if (result.percentage != null) return Math.round(result.percentage);
-  const total = result.quiz.generated_quiz.length;
-  const correct = result.correct ?? 0;
-  return total > 0 ? Math.round((correct / total) * 100) : 0;
-}
 
 function getScoreLabel(pct: number): { label: string; color: string } {
   if (pct >= 80) return { label: 'Excellent!', color: 'text-green-600 dark:text-green-400' };
@@ -113,7 +91,6 @@ export default function QuizResultPage() {
     }
   }, [quizId]);
 
-  // ─── Not found ──────────────────────────────────────────────────────────────
   if (notFound) {
     return (
       <div className="min-h-screen bg-background">
@@ -130,7 +107,6 @@ export default function QuizResultPage() {
     );
   }
 
-  // ─── Loading ─────────────────────────────────────────────────────────────────
   if (!result) {
     return (
       <div className="min-h-screen bg-background">
@@ -144,33 +120,17 @@ export default function QuizResultPage() {
     );
   }
 
-  const pct = getScorePercent(result);
+  const pct = Math.round(result.percentage ?? 0);
   const { label, color } = getScoreLabel(pct);
   const scoreBg = getScoreBg(pct);
-  const total = result.quiz.generated_quiz.length;
-  const correct = result.correct ?? result.breakdown?.filter((b) => b.is_correct).length ?? 0;
-  const incorrect = result.incorrect ?? (total - correct);
-
-  // Build per-question review from server breakdown or local answers
-  const questionReview = result.quiz.generated_quiz.map((q) => {
-    const serverItem = result.breakdown?.find((b) => b.question_id === q.question_id);
-    const selected = result.answers[q.question_id] ?? '';
-    return {
-      question_id: q.question_id,
-      question: q.question,
-      selected_option: serverItem?.selected_option ?? selected,
-      correct_option: serverItem?.correct_option,
-      is_correct: serverItem?.is_correct,
-    };
-  });
-
-  const hasCorrectInfo = questionReview.some((r) => r.correct_option != null || r.is_correct != null);
+  const rightAnswers = result.right_answers ?? [];
+  const wrongAnswers = result.wrong_answers ?? [];
 
   return (
     <div className="min-h-screen bg-background">
       <FrostedHeader title="Quiz Result" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
 
-      <div className="p-6 space-y-6 max-w-3xl mx-auto">
+      <div className="p-6 space-y-6 max-w-4xl mx-auto">
         {/* Breadcrumb */}
         <Breadcrumb>
           <BreadcrumbList>
@@ -179,7 +139,7 @@ export default function QuizResultPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/user/performance/quiz/${quizId}`}>Quiz</BreadcrumbLink>
+              <BreadcrumbLink href="/user/performance/quiz">Quiz</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -192,7 +152,6 @@ export default function QuizResultPage() {
         <Card className={`border-2 ${scoreBg}`}>
           <CardContent className="p-8">
             <div className="flex flex-col sm:flex-row items-center gap-6">
-              {/* Big score circle */}
               <div
                 className={`shrink-0 flex items-center justify-center h-28 w-28 rounded-full border-4 ${scoreBg}`}
               >
@@ -209,7 +168,7 @@ export default function QuizResultPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                  {result.quiz.topics.map((t) => (
+                  {(result.quiz?.topics ?? []).map((t) => (
                     <Badge key={t} variant="secondary" className="text-xs">
                       {t}
                     </Badge>
@@ -220,19 +179,30 @@ export default function QuizResultPage() {
                 <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-start">
                   <div className="flex items-center gap-1.5 text-sm">
                     <CheckCircle2Icon className="h-4 w-4 text-green-500" />
-                    <span className="font-semibold text-green-600 dark:text-green-400">{correct}</span>
+                    <span className="font-semibold text-green-600 dark:text-green-400">
+                      {result.marks}
+                    </span>
+                    <span className="text-muted-foreground">/ {result.full_marks}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm">
+                    <CheckCircle2Icon className="h-4 w-4 text-green-500" />
+                    <span className="font-semibold text-green-600 dark:text-green-400">
+                      {rightAnswers.length}
+                    </span>
                     <span className="text-muted-foreground">correct</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-sm">
                     <XCircleIcon className="h-4 w-4 text-red-500" />
-                    <span className="font-semibold text-red-600 dark:text-red-400">{incorrect}</span>
+                    <span className="font-semibold text-red-600 dark:text-red-400">
+                      {wrongAnswers.length}
+                    </span>
                     <span className="text-muted-foreground">incorrect</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <MinusCircleIcon className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold">{total}</span>
-                    <span className="text-muted-foreground">total</span>
-                  </div>
+                  {result.attempt_no != null && (
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <span className="text-muted-foreground">Attempt #{result.attempt_no}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -249,80 +219,112 @@ export default function QuizResultPage() {
             Back to Performance
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => router.push('/user/performance/quiz/history')}
+          >
+            <HistoryIcon className="h-4 w-4" />
+            Quiz History
+          </Button>
+          <Button
             size="sm"
             className="gap-2 bg-primary hover:bg-primary/90"
-            onClick={() => router.push('/user/performance/courses')}
+            onClick={() => router.push('/user/performance/quiz')}
           >
             <RefreshCwIcon className="h-4 w-4" />
             Try Another Quiz
           </Button>
         </div>
 
-        {/* Question Review */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <BrainCircuitIcon className="h-4 w-4" />
-            Question Review
-          </h3>
-
-          {questionReview.map((item, idx) => {
-            const answered = !!item.selected_option;
-            const isCorrect = item.is_correct;
-
-            return (
-              <Card
-                key={item.question_id}
-                className={`border transition-all ${
-                  isCorrect === true
-                    ? 'border-green-500/30'
-                    : isCorrect === false
-                    ? 'border-red-500/30'
-                    : 'border-border'
-                }`}
-              >
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start gap-2">
-                    {isCorrect === true ? (
+        {/* Correct answers */}
+        {rightAnswers.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider flex items-center gap-2">
+              <CheckCircle2Icon className="h-4 w-4" />
+              Correct Answers ({rightAnswers.length})
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {rightAnswers.map((item) => (
+                <Card key={item.question_id} className="border border-green-500/30">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-start gap-2">
                       <CheckCircle2Icon className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                    ) : isCorrect === false ? (
-                      <XCircleIcon className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                    ) : (
-                      <span className="shrink-0 inline-flex items-center justify-center h-5 w-5 rounded-full bg-muted text-xs font-bold text-muted-foreground mt-0.5">
-                        {idx + 1}
-                      </span>
-                    )}
-                    <p className="text-sm font-medium leading-relaxed">{item.question}</p>
-                  </div>
-
-                  <div className="ml-6 space-y-1 text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground">Your answer:</span>
-                      <span
-                        className={
-                          isCorrect === true
-                            ? 'text-green-600 dark:text-green-400 font-medium'
-                            : isCorrect === false
-                            ? 'text-red-500 font-medium'
-                            : 'font-medium'
-                        }
-                      >
-                        {answered ? item.selected_option : 'Not answered'}
+                      <p className="text-sm font-medium leading-relaxed">{item.question}</p>
+                    </div>
+                    <div className="ml-6 text-xs">
+                      <span className="text-muted-foreground">Your answer: </span>
+                      <span className="font-medium text-green-600 dark:text-green-400">
+                        {item.chosen_answer}
                       </span>
                     </div>
-                    {hasCorrectInfo && item.correct_option && isCorrect === false && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground">Correct answer:</span>
-                        <span className="text-green-600 dark:text-green-400 font-medium">
-                          {item.correct_option}
-                        </span>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Wrong answers */}
+        {wrongAnswers.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider flex items-center gap-2">
+              <XCircleIcon className="h-4 w-4" />
+              Incorrect Answers ({wrongAnswers.length})
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {wrongAnswers.map((item) => (
+                <Card key={item.question_id} className="border border-red-500/30">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <XCircleIcon className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-sm font-medium leading-relaxed">{item.question}</p>
+                    </div>
+                    <div className="ml-6 space-y-1 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Your answer: </span>
+                        <span className="font-medium text-red-500">{item.chosen_answer}</span>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                      {item.correct_answer && (
+                        <div>
+                          <span className="text-muted-foreground">Correct answer: </span>
+                          <span className="font-medium text-green-600 dark:text-green-400">
+                            {item.correct_answer}
+                          </span>
+                        </div>
+                      )}
+                      {item.options && (
+                        <div className="mt-2 space-y-1">
+                          {item.options.map((opt, i) => (
+                            <div
+                              key={i}
+                              className={`px-3 py-1.5 rounded-lg text-xs ${
+                                i === item.correct_index
+                                  ? 'bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-300 font-medium'
+                                  : i === item.chosen_index
+                                  ? 'bg-red-500/10 border border-red-500/30 text-red-600 line-through'
+                                  : 'bg-muted/40 text-muted-foreground'
+                              }`}
+                            >
+                              {opt}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {rightAnswers.length === 0 && wrongAnswers.length === 0 && (
+          <div className="flex items-center justify-center py-10 text-sm text-muted-foreground gap-2">
+            <BrainCircuitIcon className="h-5 w-5" />
+            No answer breakdown available.
+          </div>
+        )}
       </div>
     </div>
   );

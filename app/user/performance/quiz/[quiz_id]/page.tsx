@@ -55,7 +55,7 @@ export default function QuizTakingPage() {
 
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -85,7 +85,7 @@ export default function QuizTakingPage() {
         quiz_id: quiz.quiz_id,
         answers: quiz.generated_quiz.map((q) => ({
           question_id: q.question_id,
-          selected_option: answers[q.question_id] ?? '',
+          selected_index: answers[q.question_id] ?? 0,
         })),
       };
       const res = await fetch('/api/performance/quiz/submit', {
@@ -99,6 +99,7 @@ export default function QuizTakingPage() {
         `quiz_result_${quiz.quiz_id}`,
         JSON.stringify({ ...data, quiz, answers }),
       );
+      sessionStorage.removeItem(`quiz_${quiz.quiz_id}`);
       router.push(`/user/performance/quiz/${quiz.quiz_id}/result`);
     } catch {
       setSubmitError('Failed to submit quiz. Please try again.');
@@ -158,7 +159,7 @@ export default function QuizTakingPage() {
     <div className="min-h-screen bg-background">
       <FrostedHeader title="Quiz" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
 
-      <div className="p-6 space-y-6 max-w-3xl mx-auto">
+        <div className="p-6 space-y-6">
         {/* Breadcrumb */}
         <Breadcrumb>
           <BreadcrumbList>
@@ -211,7 +212,7 @@ export default function QuizTakingPage() {
         </div>
 
         {/* Questions */}
-        <div className="space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {quiz.generated_quiz.map((q, idx) => {
             const selected = answers[q.question_id];
             return (
@@ -236,14 +237,14 @@ export default function QuizTakingPage() {
 
                   {/* Options */}
                   <div className="space-y-2 ml-10">
-                    {q.options.map((opt) => {
-                      const isSelected = selected === opt;
+                    {q.options.map((opt, optIdx) => {
+                      const isSelected = selected === optIdx;
                       return (
                         <button
                           key={opt}
                           type="button"
                           onClick={() =>
-                            setAnswers((prev) => ({ ...prev, [q.question_id]: opt }))
+                            setAnswers((prev) => ({ ...prev, [q.question_id]: optIdx }))
                           }
                           className={`w-full flex items-center gap-3 text-left px-4 py-3 rounded-xl text-sm border transition-all ${
                             isSelected

@@ -30,6 +30,7 @@ import {
   TrendingUpIcon,
   CalculatorIcon,
   CalendarDaysIcon,
+  HistoryIcon,
 } from "lucide-react";
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
@@ -160,9 +161,13 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             { href: '/user/performance', label: 'Overview', icon: TrendingUpIcon, exact: true },
             { href: '/user/performance/courses', label: 'My Courses', icon: BookOpenIcon, exact: false },
             { href: '/user/performance/quiz', label: 'Quiz', icon: Trophy, exact: false },
+            { href: '/user/performance/quiz/history', label: 'Quiz History', icon: HistoryIcon, exact: false },
             { href: '/user/performance/predict', label: 'Grade Prediction', icon: SparklesIcon, exact: false },
           ] as const).map(({ href, label, icon: Icon, exact }) => {
-            const isActive = exact ? pathname === href : pathname.startsWith(href);
+            const isActive = exact
+              ? pathname === href
+              : pathname.startsWith(href) &&
+                !(href === '/user/performance/quiz' && pathname.startsWith('/user/performance/quiz/history'));
             return (
               <Link
                 key={href}
