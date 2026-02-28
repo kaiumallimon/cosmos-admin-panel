@@ -29,6 +29,7 @@ type AssessmentType = (typeof ASSESSMENT_TYPES)[number];
 
 interface Course {
   id: string;
+  enrollment_id: string;
   course_name: string;
   course_code: string;
 }
@@ -36,8 +37,9 @@ interface Course {
 interface Assessment {
   id: string;
   assessment_type: AssessmentType;
-  score: number;
-  max_score: number;
+  ct_no?: number;
+  marks: number;
+  full_marks: number;
   course_id: string;
   course_name?: string;
 }
@@ -50,17 +52,17 @@ const TYPE_COLORS: Record<AssessmentType | string, string> = {
   project: 'bg-amber-500/10 text-amber-600',
 };
 
-const DEFAULT_FORM = { course_id: '', assessment_type: 'ct' as AssessmentType, score: '', max_score: '' };
+const DEFAULT_FORM = { course_id: '', assessment_type: 'ct' as AssessmentType, ct_no: '1', marks: '', full_marks: '' };
 
 export default function AssessmentsPage() {
   const { user } = useAuthStore();
   const { toggleMobileMenu } = useMobileMenu();
   const studentId = user.profile?.id;
-  const trimester = user.profile?.current_trimester ?? '';
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [latestTrimester, setLatestTrimester] = useState<string>('');
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Assessment | null>(null);
@@ -68,26 +70,62 @@ export default function AssessmentsPage() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const fetchData = async () => {
-    if (!studentId) return;
+  // Fetch the latest trimester (sorted by created_at desc) once on mount
+  useEffect(() => {
+    const fetchLatestTrimester = async () => {
+      try {
+        const res = await fetch('/api/course-management/trimesters');
+        const data = await res.json();
+        const raw: { trimester: string; created_at?: string }[] = Array.isArray(data?.trimesters)
+          ? data.trimesters
+          : [];
+        const sorted = [...raw].sort(
+          (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+        );
+        if (sorted.length > 0) setLatestTrimester(sorted[0].trimester);
+      } catch { /* silent */ }
+    };
+    fetchLatestTrimester();
+  }, []);
+
+  const fetchData = async (sem = latestTrimester) => {
+    if (!studentId || !sem) return;
     setLoading(true);
     try {
       const [cRes, aRes] = await Promise.all([
-        trimester
-          ? fetch(`/api/performance/students/${studentId}/courses/${encodeURIComponent(trimester)}`)
-          : fetch('/api/performance/courses'),
+        fetch(`/api/performance/students/${studentId}/courses/${encodeURIComponent(sem)}`),
         fetch(`/api/performance/assessments/student/${studentId}`),
       ]);
       const cData = await cRes.json();
-      setCourses(Array.isArray(cData) ? cData : []);
+      setCourses(
+        Array.isArray(cData)
+          ? cData.map((c: any) => ({
+              id: c.course_id ?? c.id ?? '',
+              enrollment_id: c.enrollment_id ?? '',
+              course_name: c.title ?? c.course_name ?? '',
+              course_code: c.code ?? c.course_code ?? '',
+            }))
+          : []
+      );
       const aData = await aRes.json();
-      setAssessments(Array.isArray(aData) ? aData : []);
+      setAssessments(
+        Array.isArray(aData)
+          ? aData.map((a: any) => ({
+              id: a.assessment_id ?? a.id ?? '',
+              assessment_type: a.assessment_type ?? '',
+              ct_no: a.ct_no,
+              marks: a.marks ?? a.score ?? 0,
+              full_marks: a.full_marks ?? a.max_score ?? 0,
+              course_id: a.course_id ?? '',
+            }))
+          : []
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, [studentId, trimester]);
+  useEffect(() => { if (latestTrimester) fetchData(latestTrimester); }, [studentId, latestTrimester]);
 
   const openAdd = () => {
     setEditItem(null);
@@ -100,23 +138,28 @@ export default function AssessmentsPage() {
     setForm({
       course_id: a.course_id,
       assessment_type: a.assessment_type,
-      score: String(a.score),
-      max_score: String(a.max_score),
+      ct_no: String(a.ct_no ?? 1),
+      marks: String(a.marks),
+      full_marks: String(a.full_marks),
     });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
-    if (!form.course_id || !form.score || !form.max_score) return;
+    if (!form.course_id || !form.marks || !form.full_marks) return;
+    if (form.assessment_type === 'ct' && !form.ct_no) return;
     setSaving(true);
     try {
-      const payload = {
+      const selectedCourseObj = courses.find((c) => c.id === form.course_id);
+      const payload: Record<string, unknown> = {
+        enrollment_id: selectedCourseObj?.enrollment_id ?? '',
         student_id: studentId,
         course_id: form.course_id,
         assessment_type: form.assessment_type,
-        score: Number(form.score),
-        max_score: Number(form.max_score),
+        marks: Number(form.marks),
+        full_marks: Number(form.full_marks),
       };
+      if (form.assessment_type === 'ct') payload.ct_no = Number(form.ct_no);
       if (editItem) {
         await fetch(`/api/performance/assessments/${editItem.id}`, {
           method: 'PUT',
@@ -207,7 +250,7 @@ export default function AssessmentsPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map((a) => {
-            const pct = Math.round((a.score / (a.max_score || 1)) * 100);
+            const pct = Math.round((a.marks / (a.full_marks || 1)) * 100);
             const course = courseMap[a.course_id];
             return (
               <Card key={a.id} className="border shadow-sm">
@@ -232,7 +275,7 @@ export default function AssessmentsPage() {
                         />
                       </div>
                       <span className="text-sm font-semibold whitespace-nowrap">
-                        {a.score} / {a.max_score} ({pct}%)
+                        {a.marks} / {a.full_marks} ({pct}%)
                       </span>
                     </div>
                   </div>
@@ -302,29 +345,41 @@ export default function AssessmentsPage() {
                 </SelectContent>
               </Select>
             </div>
+            {form.assessment_type === 'ct' && (
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">CT No.</label>
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="e.g. 1"
+                  value={form.ct_no}
+                  onChange={(e) => setForm((f) => ({ ...f, ct_no: e.target.value }))}
+                />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                  Score
+                  Marks
                 </label>
                 <Input
                   type="number"
                   min={0}
                   placeholder="e.g. 18"
-                  value={form.score}
-                  onChange={(e) => setForm((f) => ({ ...f, score: e.target.value }))}
+                  value={form.marks}
+                  onChange={(e) => setForm((f) => ({ ...f, marks: e.target.value }))}
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                  Max Score
+                  Full Marks
                 </label>
                 <Input
                   type="number"
                   min={1}
                   placeholder="e.g. 20"
-                  value={form.max_score}
-                  onChange={(e) => setForm((f) => ({ ...f, max_score: e.target.value }))}
+                  value={form.full_marks}
+                  onChange={(e) => setForm((f) => ({ ...f, full_marks: e.target.value }))}
                 />
               </div>
             </div>
@@ -334,7 +389,7 @@ export default function AssessmentsPage() {
               Cancel
             </Button>
             <Button
-              disabled={saving || !form.course_id || !form.score || !form.max_score}
+              disabled={saving || !form.course_id || !form.marks || !form.full_marks || (form.assessment_type === 'ct' && !form.ct_no)}
               onClick={handleSave}
               className="bg-primary hover:bg-primary/90"
             >
