@@ -274,16 +274,10 @@ export default function QuizHistoryPage() {
                         </div>
                       </div>
                     </div>
-                            <ChevronDownIcon className="h-3.5 w-3.5" />
-                            Show review
-                          </>
-                        )}
-                      </button>
-                    )}
 
                     {/* Expanded review */}
                     {isExpanded && (
-                      <div className="pt-2 space-y-3 border-t">
+                      <div className="px-5 pb-5 pt-2 space-y-3 border-t">
                         {/* Correct */}
                         {(entry.right_answers?.length ?? 0) > 0 && (
                           <div className="space-y-2">
