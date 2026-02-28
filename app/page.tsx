@@ -649,20 +649,17 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {/*  CTA BANNER                                                        */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-20 sm:py-28 px-4 sm:px-6">
+      <section className="relative z-10 py-14 sm:py-20 px-4 sm:px-6">
         <FadeIn>
-          <div className="mx-auto max-w-4xl">
-            <motion.div
-              className="relative overflow-hidden rounded-3xl bg-linear-to-br from-orange-500 via-amber-500 to-orange-600 p-8 sm:p-14 text-center text-white shadow-2xl shadow-orange-500/20"
-              whileHover={{ scale: 1.01 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-16 -left-16 h-52 w-52 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-              <div className="absolute inset-0 opacity-10 pointer-events-none"
+          <div className="mx-auto max-w-5xl">
+            <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-orange-500 via-orange-500 to-amber-400 p-8 sm:p-14 text-center text-white shadow-2xl shadow-orange-500/30 ring-1 ring-white/10">
+              <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-white/20 blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-amber-300/20 blur-2xl pointer-events-none" />
+              <div
+                className="absolute inset-0 opacity-[0.06] pointer-events-none"
                 style={{
                   backgroundImage: 'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)',
-                  backgroundSize: '40px 40px',
+                  backgroundSize: '32px 32px',
                 }}
               />
               <div className="relative z-10">
@@ -674,26 +671,28 @@ export default function Home() {
                 >
                   <GraduationCapIcon className="mx-auto h-10 w-10 mb-5 opacity-90" />
                 </motion.div>
-                <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ready to transform your UIU journey?</h2>
-                <p className="mx-auto max-w-md text-sm sm:text-base text-white/80 mb-8 leading-relaxed">
+                <h2 className="text-2xl sm:text-4xl font-extrabold mb-3 drop-shadow-sm">Ready to transform your UIU journey?</h2>
+                <p className="mx-auto max-w-md text-sm sm:text-base text-white/90 mb-8 leading-relaxed">
                   Join COSMOS-ITS today and experience the future of university learning — completely free for all UIU students.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <Link href="/register">
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.96 }}>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                       <Button size="lg" className="h-12 px-8 text-sm font-semibold bg-white text-orange-600 hover:bg-white/90 rounded-full shadow-lg">
                         Create Free Account <ArrowRightIcon className="ml-2 h-4 w-4" />
                       </Button>
                     </motion.div>
                   </Link>
                   <Link href="/login">
-                    <Button variant="outline" size="lg" className="h-12 px-8 text-sm font-medium rounded-full border-white/30 text-white hover:bg-white/10 hover:text-white hover:border-white/30">
-                      Sign In
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button size="lg" className="h-12 px-8 text-sm font-semibold rounded-full bg-white/15 border border-white/50 text-white hover:bg-white/25 hover:border-white/80 shadow-md backdrop-blur-sm transition-all duration-200">
+                        Sign In
+                      </Button>
+                    </motion.div>
                   </Link>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </FadeIn>
       </section>

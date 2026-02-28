@@ -9,10 +9,6 @@ export default function LandingFooter() {
   const currentYear = new Date().getFullYear();
 
   const quickLinks = [
-    { name: 'Features', href: '#features' },
-    { name: 'How It Works', href: '#how-it-works' },
-    { name: 'Tech Stack', href: '#tech-stack' },
-    { name: 'Why UIU', href: '#why-uiu' },
     { name: 'Meet the Team', href: '/meet-the-team' },
     { name: 'Sign In', href: '/login' },
     { name: 'Register', href: '/register' },
