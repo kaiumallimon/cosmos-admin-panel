@@ -31,6 +31,7 @@ import {
   CalculatorIcon,
   CalendarDaysIcon,
   HistoryIcon,
+  CalendarRangeIcon,
 } from "lucide-react";
 import { IconNotification } from "@tabler/icons-react";
 
@@ -228,6 +229,16 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           >
             <IconNotification className="h-4 w-4 shrink-0" />
             <span className="font-medium truncate">Notices</span>
+          </Link>
+
+          <Link
+            href="/user/academic-calender"
+            onClick={onLinkClick}
+            className={`mt-1 flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/academic-calender') ? 'bg-primary text-primary-foreground font-semibold' : ''
+              }`}
+          >
+            <CalendarRangeIcon className="h-4 w-4 shrink-0" />
+            <span className="font-medium truncate">Academic Calender</span>
           </Link>
         </div>
       </div>
