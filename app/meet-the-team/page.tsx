@@ -155,15 +155,16 @@ function MemberCard({ member, index }: { member: TeamMember; index: number }) {
         >
           {/* Image side */}
           <div className="relative w-full md:w-[45%] shrink-0">
-            <div className={cn('relative aspect-[4/3] md:aspect-auto md:h-full overflow-hidden bg-linear-to-br', member.gradient)}>
+            <div className={cn('relative aspect-4/3 md:aspect-auto md:h-full overflow-hidden bg-linear-to-br', member.gradient)}>
               {/* Gradient overlay */}
               <div className="absolute inset-0 bg-black/10 z-10" />
               <Image
                 src={member.image}
                 alt={member.name}
-                fill
-                className="object-cover object-center"
-                sizes="(max-width: 768px) 100vw, 45vw"
+                unoptimized
+                className="object-cover "
+                width={400}
+                height={400}
               />
               {/* Role icon badge */}
               <motion.div
@@ -211,20 +212,9 @@ export default function MeetTheTeamPage() {
   return (
     <div className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-background text-foreground">
       {/* Background */}
-      <DottedGlowBackground
-        className="pointer-events-none fixed inset-0 z-0 mask-radial-to-90% mask-radial-at-center"
-        opacity={0.35}
-        gap={16}
-        radius={1}
-        colorLightVar="--color-orange-400"
-        glowColorLightVar="--color-orange-500"
-        colorDarkVar="--color-orange-600"
-        glowColorDarkVar="--color-orange-500"
-        backgroundOpacity={0}
-        speedMin={0.15}
-        speedMax={0.8}
-        speedScale={1}
-      />
+
+      <div className="fixed inset-0 z-0 pointer-events-none mesh-gradient"></div>
+      <div className="fixed top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-indigo-500/20 to-transparent z-50"></div>
 
       {/* ── Navbar ─────────────────────────────────────────────────────────── */}
       <motion.nav
