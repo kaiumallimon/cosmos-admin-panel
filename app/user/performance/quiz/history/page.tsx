@@ -235,7 +235,7 @@ export default function QuizHistoryPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
             {history.map((entry, idx) => {
               const cardId = entry.id ?? `card-${idx}`;
               const pct = entry.percentage != null ? Math.round(entry.percentage) : null;
