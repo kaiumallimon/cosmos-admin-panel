@@ -45,13 +45,16 @@ import {
 type AssessmentType = 'ct' | 'mid' | 'final' | 'assignment' | 'project';
 
 interface EnrolledCourse {
+  enrollment_id: string;
+  student_id: string;
   course_id: string;
-  id?: string;
-  title?: string;
-  course_name?: string;
-  code?: string;
-  course_code?: string;
+  course_title: string;
+  credit: number;
   trimester: string;
+  section?: string | null;
+  faculty?: string | null;
+  ct_count?: number;
+  assignment_count?: number;
 }
 
 interface Assessment {
@@ -131,30 +134,18 @@ export default function PerformanceOverviewPage() {
           } catch { /* silent */ }
         }
 
+        const enrollUrl = sem
+          ? `/api/performance/enrollments/${studentId}?trimester=${encodeURIComponent(sem)}`
+          : `/api/performance/enrollments/${studentId}`;
+
         const [cRes, aRes, wRes] = await Promise.all([
-          sem
-            ? fetch(`/api/performance/students/${studentId}/courses/${encodeURIComponent(sem)}`)
-            : Promise.resolve(null),
+          fetch(enrollUrl),
           fetch(`/api/performance/assessments/student/${studentId}`),
           fetch(`/api/performance/weaknesses/${studentId}`),
         ]);
 
-        // Normalize courses so code/name is always at a predictable key
-        if (cRes) {
-          const cData = await cRes.json();
-          const normalized: EnrolledCourse[] = Array.isArray(cData)
-            ? cData.map((c: Record<string, string>) => ({
-                course_id: c.course_id ?? c.id ?? '',
-                id: c.id,
-                title: c.title ?? c.course_name ?? '',
-                course_name: c.title ?? c.course_name ?? '',
-                code: c.code ?? c.course_code ?? '',
-                course_code: c.code ?? c.course_code ?? '',
-                trimester: c.trimester ?? sem ?? '',
-              }))
-            : [];
-          setCourses(normalized);
-        }
+        const cData = await cRes.json();
+        setCourses(Array.isArray(cData) ? cData : []);
 
         // Build a quick name map from raw assessment data too (backend may include course_name)
         const aData = await aRes.json();
@@ -211,15 +202,12 @@ export default function PerformanceOverviewPage() {
     }));
   }, [assessments]);
 
-  // Course name map — keyed by course_id, value is short human-readable label
+  // Course name map — keyed by course_id, value is human-readable title
   const courseNameMap = useMemo(() => {
     const map: Record<string, string> = {};
     for (const c of courses) {
-      const cid = c.course_id ?? c.id ?? '';
-      if (!cid) continue;
-      // Prefer short code, then title, never fall through to raw UUID
-      const label = (c.code || c.course_code || c.title || c.course_name || '').trim();
-      if (label) map[cid] = label;
+      if (!c.course_id) continue;
+      map[c.course_id] = c.course_title || `Course ${c.course_id.slice(0, 6)}…`;
     }
     return map;
   }, [courses]);
@@ -272,16 +260,18 @@ export default function PerformanceOverviewPage() {
   // Course performance rows
   const coursePerformance = useMemo(() => {
     return courses.map((c) => {
-      const cid = c.course_id ?? c.id ?? '';
-      const name = c.title ?? c.course_name ?? cid;
-      const code = c.code ?? c.course_code ?? '';
+      const cid = c.course_id;
+      const name = c.course_title;
+      const credit = c.credit;
+      const faculty = c.faculty ?? '';
+      const sem = c.trimester ?? '';
       const courseAssessments = assessments.filter((a) => a.course_id === cid);
       const avg =
         courseAssessments.length > 0
           ? Math.round((courseAssessments.reduce((s, a) => s + pct(a), 0) / courseAssessments.length) * 10) / 10
           : null;
       const wcCount = weaknesses.filter((w) => w.course_id === cid).length;
-      return { cid, name, code, avg, count: courseAssessments.length, wcCount };
+      return { cid, name, credit, faculty, sem, avg, count: courseAssessments.length, wcCount };
     });
   }, [courses, assessments, weaknesses]);
 
@@ -491,15 +481,15 @@ export default function PerformanceOverviewPage() {
               <div className="divide-y divide-border">
                 {coursePerformance.map((c) => (
                   <div key={c.cid} className="flex items-center gap-3 px-4 sm:px-6 py-3">
-                    <div className="shrink-0 w-14 sm:w-16">
-                      <Badge variant="outline" className="text-[10px] font-mono truncate max-w-full">
-                        {c.code || c.cid.slice(0, 6)}
+                    <div className="shrink-0">
+                      <Badge variant="secondary" className="text-[10px] font-semibold whitespace-nowrap">
+                        {c.credit} cr
                       </Badge>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{c.name}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {c.count} assessment{c.count !== 1 ? 's' : ''} · {c.wcCount} weakness{c.wcCount !== 1 ? 'es' : ''}
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {[c.faculty, c.sem].filter(Boolean).join(' · ')} · {c.count} assessment{c.count !== 1 ? 's' : ''} · {c.wcCount} weakness{c.wcCount !== 1 ? 'es' : ''}
                       </p>
                     </div>
                     <div className="hidden sm:flex flex-col gap-1 w-32">
