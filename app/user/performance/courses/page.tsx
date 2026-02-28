@@ -68,7 +68,7 @@ export default function MyCoursesPage() {
   const { user } = useAuthStore();
   const { toggleMobileMenu } = useMobileMenu();
   const studentId = user.profile?.id;
-  const trimester = user.profile?.current_trimester ?? '';
+  const profileTrimester = user.profile?.current_trimester ?? '';
 
   const [available, setAvailable] = useState<AvailableCourse[]>([]);
   const [enrolled, setEnrolled] = useState<EnrolledCourse[]>([]);
@@ -79,45 +79,48 @@ export default function MyCoursesPage() {
   const [enrolling, setEnrolling] = useState(false);
   const [unenrolling, setUnenrolling] = useState<string | null>(null);
   const [trimesters, setTrimesters] = useState<TrimesterOption[]>([]);
+  const [viewTrimester, setViewTrimester] = useState<string>(profileTrimester);
 
-  const fetchData = async () => {
-    if (!studentId) return;
+  const fetchEnrolled = async (sem: string) => {
+    if (!studentId || !sem) { setEnrolled([]); return; }
     setLoading(true);
     try {
-      const [avRes, enRes] = await Promise.all([
-        fetch('/api/performance/courses'),
-        trimester
-          ? fetch(`/api/performance/students/${studentId}/courses/${encodeURIComponent(trimester)}`)
-          : Promise.resolve(null),
-      ]);
-      const avData = await avRes.json();
-      setAvailable(Array.isArray(avData) ? avData : []);
-      if (enRes) {
-        const enData = await enRes.json();
-        const normalized: EnrolledCourse[] = Array.isArray(enData)
-          ? enData.map((c: any) => ({
-              id: c.enrollment_id ?? c.id ?? '',
-              course_id: c.course_id ?? '',
-              course_name: c.title ?? c.course_name ?? '',
-              course_code: c.code ?? c.course_code ?? '',
-              trimester: c.trimester ?? '',
-              section: c.section,
-              faculty: c.faculty_name ?? c.faculty,
-              credits: c.credits,
-              ct_count: c.ct_count,
-              assignment_count: c.assignment_count,
-            }))
-          : [];
-        setEnrolled(normalized);
-      }
+      const res = await fetch(`/api/performance/students/${studentId}/courses/${encodeURIComponent(sem)}`);
+      const data = await res.json();
+      const normalized: EnrolledCourse[] = Array.isArray(data)
+        ? data.map((c: any) => ({
+            id: c.enrollment_id ?? c.id ?? '',
+            course_id: c.course_id ?? '',
+            course_name: c.title ?? c.course_name ?? '',
+            course_code: c.code ?? c.course_code ?? '',
+            trimester: c.trimester ?? '',
+            section: c.section,
+            faculty: c.faculty_name ?? c.faculty,
+            credits: c.credits,
+            ct_count: c.ct_count,
+            assignment_count: c.assignment_count,
+          }))
+        : [];
+      setEnrolled(normalized);
     } catch {
-      // silent
+      setEnrolled([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, [studentId, trimester]);
+  const fetchData = async () => {
+    if (!studentId) return;
+    try {
+      const res = await fetch('/api/performance/courses');
+      const data = await res.json();
+      setAvailable(Array.isArray(data) ? data : []);
+    } catch { /* silent */ }
+    await fetchEnrolled(viewTrimester);
+  };
+
+  useEffect(() => { fetchData(); }, [studentId]);
+  useEffect(() => { fetchEnrolled(viewTrimester); }, [viewTrimester, studentId]);
 
   // Fetch available trimesters for the enroll form
   useEffect(() => {
@@ -132,6 +135,12 @@ export default function MyCoursesPage() {
             }))
           : [];
         setTrimesters(list);
+        // Auto-select: prefer profile's current_trimester, else first in list
+        if (!viewTrimester && list.length > 0) {
+          setViewTrimester(list[0].code);
+        } else if (viewTrimester && list.length > 0 && !list.find(t => t.code === viewTrimester)) {
+          setViewTrimester(list[0].code);
+        }
       } catch {
         // silent
       }
@@ -163,7 +172,8 @@ export default function MyCoursesPage() {
       });
       setSelectedCourse(null);
       setEnrollOpen(false);
-      await fetchData();
+      setViewTrimester(enrollForm.trimesterCode);
+      await fetchEnrolled(enrollForm.trimesterCode);
     } finally {
       setEnrolling(false);
     }
@@ -175,9 +185,9 @@ export default function MyCoursesPage() {
       await fetch('/api/performance/student-courses', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: studentId, course_id: courseId, trimester }),
+        body: JSON.stringify({ student_id: studentId, course_id: courseId, trimester: viewTrimester }),
       });
-      await fetchData();
+      await fetchEnrolled(viewTrimester);
     } finally {
       setUnenrolling(null);
     }
@@ -194,12 +204,29 @@ export default function MyCoursesPage() {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h2 className="text-xl font-bold">My Courses</h2>
-            {trimester && (
-              <p className="text-sm text-muted-foreground mt-0.5">Trimester {trimester}</p>
-            )}
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {viewTrimester
+                ? `${formatTrimesterLabel(viewTrimester)} (${viewTrimester})`
+                : 'Select a trimester to view courses'}
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={fetchData}>
+          <div className="flex items-center gap-2 flex-wrap">
+            {trimesters.length > 0 && (
+              <Select value={viewTrimester} onValueChange={setViewTrimester}>
+                <SelectTrigger className="w-[180px] h-9 text-sm">
+                  <SelectValue placeholder="Select trimester" />
+                </SelectTrigger>
+                <SelectContent>
+                  {trimesters.map((t) => (
+                    <SelectItem key={t.code} value={t.code}>
+                      <span>{t.label}</span>
+                      <span className="ml-2 text-muted-foreground text-xs">{t.code}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button variant="outline" size="sm" onClick={() => fetchEnrolled(viewTrimester)}>
               <RefreshCwIcon className="h-4 w-4" />
             </Button>
             <Button size="sm" onClick={() => setEnrollOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
