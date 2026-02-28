@@ -16,8 +16,8 @@ export async function GET(req: NextRequest) {
       .toArray();
 
     // Normalise _id to string so JSON serialises cleanly
-    const data = records.map((r) => ({
-      id: r._id?.toString(),
+    const data = records.map((r, idx) => ({
+      id: r._id?.toString() ?? `record-${idx}`,
       student_id: r.student_id,
       course_id: r.course_id,
       topic_names: r.topic_names ?? [],

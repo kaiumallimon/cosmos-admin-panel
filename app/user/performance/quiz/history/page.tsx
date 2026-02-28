@@ -236,7 +236,8 @@ export default function QuizHistoryPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {history.map((entry) => {
+            {history.map((entry, idx) => {
+              const cardId = entry.id ?? `card-${idx}`;
               const pct = entry.percentage != null ? Math.round(entry.percentage) : null;
               const scoreColor = getScoreColor(pct);
               const scoreBg =
@@ -250,12 +251,12 @@ export default function QuizHistoryPage() {
                 pct >= 60 ? 'bg-blue-500' :
                 pct >= 40 ? 'bg-amber-500' : 'bg-red-500';
               const total = (entry.right_answers?.length ?? 0) + (entry.wrong_answers?.length ?? 0);
-              const isExpanded = expandedId === entry.id;
+              const isExpanded = expandedId === cardId;
               const hasAnswers = total > 0;
 
               return (
                 <Card
-                  key={entry.id}
+                  key={cardId}
                   className="border hover:border-primary/30 hover:shadow-md transition-all overflow-hidden"
                 >
                   <CardContent className="p-0">
@@ -310,7 +311,7 @@ export default function QuizHistoryPage() {
                           {hasAnswers && (
                             <button
                               type="button"
-                              onClick={() => setExpandedId(isExpanded ? null : entry.id)}
+                              onClick={() => setExpandedId(isExpanded ? null : cardId)}
                               className={`flex items-center gap-1.5 text-xs rounded-lg border px-3 py-2 transition-all font-medium ${
                                 isExpanded
                                   ? 'bg-primary text-primary-foreground border-primary'
