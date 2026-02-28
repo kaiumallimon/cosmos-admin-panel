@@ -163,7 +163,6 @@ export default function MyCoursesPage() {
       const data = await res.json();
       setAvailable(Array.isArray(data) ? data : []);
     } catch { /* silent */ }
-    await fetchEnrolled(viewTrimester);
   };
 
   useEffect(() => { fetchData(); }, [studentId]);
@@ -187,10 +186,12 @@ export default function MyCoursesPage() {
         }));
         setTrimesters(list);
         if (list.length > 0) setLatestTrimester(list[0]);
-        if (!viewTrimester && list.length > 0) {
-          setViewTrimester(list[0].code);
-        } else if (viewTrimester && list.length > 0 && !list.find(t => t.code === viewTrimester)) {
-          setViewTrimester(list[0].code);
+        if (list.length > 0) {
+          setViewTrimester((current) => {
+            if (!current) return list[0].code;
+            if (!list.find((t) => t.code === current)) return list[0].code;
+            return current; // already valid — no change, no re-fetch
+          });
         }
       } catch { /* silent */ }
     };
