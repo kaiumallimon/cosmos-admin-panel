@@ -311,7 +311,7 @@ export default function StudyPlannerPage() {
     setSaving(true);
     try {
       if (editItem) {
-        await fetch(`/api/events/${editItem.id}`, {
+        const res = await fetch(`/api/events/${editItem.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -323,8 +323,10 @@ export default function StudyPlannerPage() {
             status: form.status,
           }),
         });
+        if (!res.ok) throw new Error('update');
+        toast.success('Event updated successfully');
       } else {
-        await fetch('/api/events', {
+        const res = await fetch('/api/events', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -336,11 +338,14 @@ export default function StudyPlannerPage() {
             event_time: form.event_time || null,
           }),
         });
-
+        if (!res.ok) throw new Error('create');
         toast.success('Event created successfully');
       }
       setDialogOpen(false);
       await fetchEvents();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      toast.error(msg === 'update' ? 'Failed to update event' : 'Failed to create event');
     } finally {
       setSaving(false);
     }
@@ -349,8 +354,12 @@ export default function StudyPlannerPage() {
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
-      await fetch(`/api/events/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/events/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      toast.success('Event deleted');
       await fetchEvents();
+    } catch {
+      toast.error('Failed to delete event');
     } finally {
       setDeletingId(null);
     }
@@ -359,12 +368,17 @@ export default function StudyPlannerPage() {
   const handleStatusChange = async (event: CalendarEvent, status: EventStatus) => {
     setUpdatingStatusId(event.id);
     try {
-      await fetch(`/api/events/${event.id}`, {
+      const res = await fetch(`/api/events/${event.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
+      if (!res.ok) throw new Error();
+      const labels: Record<EventStatus, string> = { pending: 'Pending', completed: 'Completed', cancelled: 'Cancelled' };
+      toast.success(`Marked as ${labels[status]}`);
       await fetchEvents();
+    } catch {
+      toast.error('Failed to update status');
     } finally {
       setUpdatingStatusId(null);
     }
@@ -516,9 +530,11 @@ export default function StudyPlannerPage() {
                           hover:bg-accent/60 focus:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-primary/40
                           transition-colors relative group w-full h-full
                           ${
-                            isSelected ? 'bg-primary/8'
-                            : isToday ? 'bg-primary/5'
+                            isSelected ? 'bg-primary/15'
+                            : isToday ? 'bg-primary/10'
+                            : isHolidayCol && hasEvents ? 'bg-red-500/20'
                             : isHolidayCol ? 'bg-red-500/8'
+                            : hasEvents && !isPast ? 'bg-primary/8'
                             : isPast ? 'bg-muted/10'
                             : 'bg-card'
                           }
@@ -531,6 +547,8 @@ export default function StudyPlannerPage() {
                             ? 'bg-primary text-primary-foreground text-[11px]'
                             : isSelected
                             ? 'bg-primary/20 text-primary'
+                            : hasEvents && !isPast
+                            ? 'text-primary font-bold'
                             : isPast && !hasEvents
                             ? 'text-muted-foreground/30'
                             : 'text-foreground group-hover:text-primary'
@@ -543,10 +561,10 @@ export default function StudyPlannerPage() {
                         {hasEvents && (
                           <div className="flex items-center gap-0.5">
                             {dotTypes.map((type) => (
-                              <span key={type} className={`w-1 h-1 rounded-full ${TYPE_DOT[type]}`} />
+                              <span key={type} className={`w-1.5 h-1.5 rounded-full ${TYPE_DOT[type]}`} />
                             ))}
                             {hasOverdue && (
-                              <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                             )}
                           </div>
                         )}
