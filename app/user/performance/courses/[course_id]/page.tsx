@@ -60,6 +60,7 @@ import {
   CheckSquareIcon,
   AwardIcon,
   AlertTriangleIcon,
+  Trophy,
 } from 'lucide-react';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -163,13 +164,13 @@ export default function CourseAssessmentsPage() {
       setAssessments(
         Array.isArray(data)
           ? data.map((a: any) => ({
-              id: a.assessment_id ?? a.id ?? '',
-              assessment_type: a.assessment_type ?? 'ct',
-              ct_no: a.ct_no,
-              marks: a.marks ?? a.score ?? 0,
-              full_marks: a.full_marks ?? a.max_score ?? 0,
-              course_id: a.course_id ?? courseId,
-            }))
+            id: a.assessment_id ?? a.id ?? '',
+            assessment_type: a.assessment_type ?? 'ct',
+            ct_no: a.ct_no,
+            marks: a.marks ?? a.score ?? 0,
+            full_marks: a.full_marks ?? a.max_score ?? 0,
+            course_id: a.course_id ?? courseId,
+          }))
           : [],
       );
     } catch {
@@ -477,9 +478,8 @@ export default function CourseAssessmentsPage() {
             title="Avg CT Mark"
             value={
               stats?.avg_ct_mark != null
-                ? `${stats.avg_ct_mark}${
-                    stats.avg_ct_percentage != null ? ` (${stats.avg_ct_percentage}%)` : ''
-                  }`
+                ? `${stats.avg_ct_mark}${stats.avg_ct_percentage != null ? ` (${stats.avg_ct_percentage}%)` : ''
+                }`
                 : stats?.avg_ct_percentage != null
                   ? `${stats.avg_ct_percentage}%`
                   : '—'
@@ -519,139 +519,139 @@ export default function CourseAssessmentsPage() {
           </TabsList>
 
           <TabsContent value="assessments" className="mt-4">
-        {/* Assessments table card */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <CardTitle className="flex items-center gap-2">
-                <ClipboardListIcon className="h-5 w-5" />
-                Assessment Records
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => { fetchAssessments(); fetchStats(); }}
-                >
-                  <RefreshCwIcon className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  className="gap-2 bg-primary hover:bg-primary/90"
-                  onClick={openAdd}
-                >
-                  <PlusIcon className="h-4 w-4" />
-                  Add Assessment
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent>
-            <div className="bg-white dark:bg-card rounded-lg border shadow-sm overflow-hidden">
-              {assessments.length === 0 ? (
-                <div className="p-12 text-center">
-                  <ClipboardListIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No assessments yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Start adding assessment records for this course.
-                  </p>
-                  <Button onClick={openAdd} className="gap-2">
-                    <PlusIcon className="h-4 w-4" />
-                    Add First Assessment
-                  </Button>
+            {/* Assessments table card */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <ClipboardListIcon className="h-5 w-5" />
+                    Assessment Records
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { fetchAssessments(); fetchStats(); }}
+                    >
+                      <RefreshCwIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="gap-2 bg-primary hover:bg-primary/90"
+                      onClick={openAdd}
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                      Add Assessment
+                    </Button>
+                  </div>
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-900/50">
-                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">
-                        Type
-                      </TableHead>
-                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">
-                        CT #
-                      </TableHead>
-                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">
-                        Marks
-                      </TableHead>
-                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">
-                        Full Marks
-                      </TableHead>
-                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">
-                        Score
-                      </TableHead>
-                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4 text-right">
-                        Actions
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {assessments.map((a) => {
-                      const pct = Math.round((a.marks / (a.full_marks || 1)) * 100);
-                      return (
-                        <TableRow
-                          key={a.id}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors"
-                        >
-                          <TableCell className="py-4">
-                            <Badge
-                              className={`text-xs uppercase font-semibold ${TYPE_COLORS[a.assessment_type] ?? ''}`}
-                              variant="secondary"
-                            >
-                              {a.assessment_type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="py-4 text-sm text-muted-foreground">
-                            {a.assessment_type === 'ct' && a.ct_no != null ? `#${a.ct_no}` : '—'}
-                          </TableCell>
-                          <TableCell className="py-4 font-semibold">{a.marks}</TableCell>
-                          <TableCell className="py-4 text-muted-foreground">{a.full_marks}</TableCell>
-                          <TableCell className="py-4">
-                            <div className="flex items-center gap-2">
-                              <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
-                                <div
-                                  className="h-2 rounded-full bg-primary transition-all"
-                                  style={{ width: `${Math.min(pct, 100)}%` }}
-                                />
-                              </div>
-                              <span className="text-sm font-medium">{pct}%</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-4 text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                >
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-40">
-                                <DropdownMenuItem onClick={() => openEdit(a)}>
-                                  <PencilIcon className="mr-2 h-4 w-4" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  disabled={deletingId === a.id}
-                                  onClick={() => handleDelete(a.id)}
-                                  className="text-destructive focus:text-destructive"
-                                >
-                                  <Trash2Icon className="mr-2 h-4 w-4" />
-                                  {deletingId === a.id ? 'Deleting…' : 'Delete'}
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
+              </CardHeader>
+
+              <CardContent>
+                <div className="bg-white dark:bg-card rounded-lg border shadow-sm overflow-hidden">
+                  {assessments.length === 0 ? (
+                    <div className="p-12 text-center">
+                      <ClipboardListIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No assessments yet</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Start adding assessment records for this course.
+                      </p>
+                      <Button onClick={openAdd} className="gap-2">
+                        <PlusIcon className="h-4 w-4" />
+                        Add First Assessment
+                      </Button>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-900/50">
+                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">
+                            Type
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">
+                            CT #
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">
+                            Marks
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">
+                            Full Marks
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">
+                            Score
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4 text-right">
+                            Actions
+                          </TableHead>
                         </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
-          </CardContent>
-        </Card>          </TabsContent>
+                      </TableHeader>
+                      <TableBody>
+                        {assessments.map((a) => {
+                          const pct = Math.round((a.marks / (a.full_marks || 1)) * 100);
+                          return (
+                            <TableRow
+                              key={a.id}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors"
+                            >
+                              <TableCell className="py-4">
+                                <Badge
+                                  className={`text-xs uppercase font-semibold ${TYPE_COLORS[a.assessment_type] ?? ''}`}
+                                  variant="secondary"
+                                >
+                                  {a.assessment_type}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-4 text-sm text-muted-foreground">
+                                {a.assessment_type === 'ct' && a.ct_no != null ? `#${a.ct_no}` : '—'}
+                              </TableCell>
+                              <TableCell className="py-4 font-semibold">{a.marks}</TableCell>
+                              <TableCell className="py-4 text-muted-foreground">{a.full_marks}</TableCell>
+                              <TableCell className="py-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
+                                    <div
+                                      className="h-2 rounded-full bg-primary transition-all"
+                                      style={{ width: `${Math.min(pct, 100)}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-sm font-medium">{pct}%</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-4 text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-40">
+                                    <DropdownMenuItem onClick={() => openEdit(a)}>
+                                      <PencilIcon className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      disabled={deletingId === a.id}
+                                      onClick={() => handleDelete(a.id)}
+                                      className="text-destructive focus:text-destructive"
+                                    >
+                                      <Trash2Icon className="mr-2 h-4 w-4" />
+                                      {deletingId === a.id ? 'Deleting…' : 'Delete'}
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </CardContent>
+            </Card>          </TabsContent>
 
           <TabsContent value="weaknesses" className="mt-4">
             <Card>
@@ -672,6 +672,12 @@ export default function CourseAssessmentsPage() {
                     >
                       <PlusIcon className="h-4 w-4" />
                       Add Weakness
+                    </Button>
+
+                    <Button
+                    variant={'outline'}
+                      size={"sm"}>
+                      <Trophy className="h-4 w-4" /> Attempt Quiz
                     </Button>
                   </div>
                 </div>
