@@ -39,17 +39,34 @@ export async function GET(
       // external server unavailable — continue with empty
     }
 
-    // ── 3. Calculate average CT mark percentage ────────────────────────────────
+    // ── 3. Calculate average CT mark (best N, where N = ct_count) ──────────────
     const ctAssessments = assessments.filter((a) => a.assessment_type === 'ct');
-    const avg_ct_percentage: number | null =
-      ctAssessments.length > 0
+
+    // Sort by marks descending and take top ct_count results
+    const sortedCTs = [...ctAssessments].sort(
+      (a, b) => (b.marks ?? b.score ?? 0) - (a.marks ?? a.score ?? 0),
+    );
+    const n = ct_count > 0 ? Math.min(ct_count, sortedCTs.length) : sortedCTs.length;
+    const bestCTs = sortedCTs.slice(0, n);
+
+    // avg_ct_mark: sum of top-N raw marks / ct_count
+    const avg_ct_mark: number | null =
+      bestCTs.length > 0 && ct_count > 0
         ? Math.round(
-            (ctAssessments.reduce((sum, a) => {
+            (bestCTs.reduce((sum, a) => sum + (a.marks ?? a.score ?? 0), 0) / ct_count) * 100,
+          ) / 100
+        : null;
+
+    // avg_ct_percentage: average percentage across the same best-N CTs
+    const avg_ct_percentage: number | null =
+      bestCTs.length > 0
+        ? Math.round(
+            (bestCTs.reduce((sum, a) => {
               const marks = a.marks ?? a.score ?? 0;
               const full = a.full_marks ?? a.max_score ?? 1;
               return sum + (marks / full) * 100;
             }, 0) /
-              ctAssessments.length) *
+              bestCTs.length) *
               10,
           ) / 10
         : null;
@@ -57,6 +74,7 @@ export async function GET(
     return NextResponse.json({
       ct_count,
       assignment_count,
+      avg_ct_mark,
       avg_ct_percentage,
       ct_assessments_taken: ctAssessments.length,
       total_assessments: assessments.length,

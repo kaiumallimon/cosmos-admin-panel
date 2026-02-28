@@ -57,11 +57,12 @@ import {
   TrendingUpIcon,
   BookOpenIcon,
   CheckSquareIcon,
+  AwardIcon,
 } from 'lucide-react';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const ASSESSMENT_TYPES = ['ct', 'mid', 'final', 'assignment', 'project'] as const;
+const ASSESSMENT_TYPES = ['ct', 'mid', 'final', 'assignment', 'project', 'attendance'] as const;
 type AssessmentType = (typeof ASSESSMENT_TYPES)[number];
 
 interface Assessment {
@@ -76,6 +77,7 @@ interface Assessment {
 interface CourseStats {
   ct_count: number;
   assignment_count: number;
+  avg_ct_mark: number | null;
   avg_ct_percentage: number | null;
   ct_assessments_taken: number;
   total_assessments: number;
@@ -87,6 +89,7 @@ const TYPE_COLORS: Record<string, string> = {
   final: 'bg-red-500/10 text-red-600 dark:text-red-400',
   assignment: 'bg-green-500/10 text-green-600 dark:text-green-400',
   project: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  attendance: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
 };
 
 const DEFAULT_FORM = {
@@ -235,6 +238,35 @@ export default function CourseAssessmentsPage() {
     }
   };
 
+  // ─── Derived: total score across all components ────────────────────────────
+
+  const totalMarks = (() => {
+    if (!assessments.length) return null;
+    let obtained = 0;
+    let full = 0;
+
+    // CT: use avg_ct_mark as the CT component score
+    if (stats?.avg_ct_mark != null) {
+      const ctSample = assessments.find((a) => a.assessment_type === 'ct');
+      const ctFull = ctSample?.full_marks ?? 0;
+      obtained += stats.avg_ct_mark;
+      full += ctFull;
+    }
+
+    // All other types: sum their marks
+    const otherTypes = ['mid', 'final', 'assignment', 'project', 'attendance'] as const;
+    otherTypes.forEach((type) => {
+      assessments
+        .filter((a) => a.assessment_type === type)
+        .forEach((a) => {
+          obtained += a.marks;
+          full += a.full_marks;
+        });
+    });
+
+    return { obtained: Math.round(obtained * 100) / 100, full };
+  })();
+
   // ─── Loading skeleton ────────────────────────────────────────────────────────
 
   if (loading && statsLoading) {
@@ -254,8 +286,8 @@ export default function CourseAssessmentsPage() {
             <Skeleton className="h-4 w-4" />
             <Skeleton className="h-4 w-32" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
               <Card key={i} className="p-6">
                 <div className="flex items-center gap-4">
                   <Skeleton className="h-12 w-12 rounded-lg" />
@@ -330,7 +362,7 @@ export default function CourseAssessmentsPage() {
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatsCard
             icon={ClipboardListIcon}
             title="CT Count"
@@ -347,14 +379,32 @@ export default function CourseAssessmentsPage() {
             icon={TrendingUpIcon}
             title="Avg CT Mark"
             value={
-              stats?.avg_ct_percentage != null
-                ? `${stats.avg_ct_percentage}%`
-                : '—'
+              stats?.avg_ct_mark != null
+                ? `${stats.avg_ct_mark}${
+                    stats.avg_ct_percentage != null ? ` (${stats.avg_ct_percentage}%)` : ''
+                  }`
+                : stats?.avg_ct_percentage != null
+                  ? `${stats.avg_ct_percentage}%`
+                  : '—'
             }
             description={
               stats?.ct_assessments_taken
-                ? `Based on ${stats.ct_assessments_taken} CT(s) taken`
+                ? `Best ${Math.min(stats.ct_count, stats.ct_assessments_taken)} of ${stats.ct_assessments_taken} CT(s) taken`
                 : 'No CTs recorded yet'
+            }
+          />
+          <StatsCard
+            icon={AwardIcon}
+            title="Total Score"
+            value={
+              totalMarks
+                ? `${totalMarks.obtained} / ${totalMarks.full}`
+                : '—'
+            }
+            description={
+              totalMarks
+                ? `${Math.round((totalMarks.obtained / (totalMarks.full || 1)) * 1000) / 10}% overall`
+                : 'No assessments recorded'
             }
           />
         </div>
