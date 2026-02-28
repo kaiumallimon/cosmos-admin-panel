@@ -75,7 +75,7 @@ const team: TeamMember[] = [
     role: 'Software Engineer (Full-Stack, Cross Platform)',
     image: '/bordered.png',
     description:
-      'Architected and built the entire COSMOS-ITS platform end-to-end — from the multi-agent AI backend (LangChain, LangGraph, FastAPI) and RAG pipeline to the responsive Next.js frontend. Specializes in full-stack TypeScript, Python, cross-platform development, and AI-integrated systems.',
+      'Contributed to the COSMOS-ITS platform across the full stack — working on the multi-agent AI backend (LangChain, LangGraph, FastAPI), RAG pipeline, and the responsive Next.js frontend. Focuses on full-stack TypeScript, Python, cross-platform development, and AI-integrated systems.',
     icon: CodeIcon,
     gradient: 'from-orange-500 to-amber-500',
     gradientFrom: 'rgb(249 115 22)',
@@ -86,7 +86,7 @@ const team: TeamMember[] = [
     role: 'Backend Developer & Project Team Lead',
     image: '/arnob.jpg',
     description:
-      'Led the backend development effort and coordinated the engineering team. Designed the FastAPI service architecture, implemented authentication flows with JWT + bcrypt, and built the question indexing pipeline that powers semantic search across thousands of UIU exam questions.',
+      'Played a key role in backend development and team coordination. Contributed to the FastAPI service architecture, authentication flows with JWT + bcrypt, and the question indexing pipeline that powers semantic search across thousands of UIU exam questions.',
     icon: ServerIcon,
     gradient: 'from-violet-500 to-purple-600',
     gradientFrom: 'rgb(139 92 246)',
@@ -97,7 +97,7 @@ const team: TeamMember[] = [
     role: 'Team Lead & Project Manager',
     image: '/masud.jpg',
     description:
-      'Provided strategic leadership and managed the project lifecycle from ideation to deployment. Coordinated cross-functional collaboration, defined milestones, and ensured the team delivered a production-ready system aligned with UIU students\' real academic needs.',
+      'Provided strategic direction and helped manage the project lifecycle from ideation to deployment. Facilitated cross-functional collaboration, helped define milestones, and kept the team aligned with UIU students\' real academic needs.',
     icon: CrownIcon,
     gradient: 'from-blue-500 to-cyan-600',
     gradientFrom: 'rgb(59 130 246)',
@@ -108,7 +108,7 @@ const team: TeamMember[] = [
     role: 'Backend Developer',
     image: '/sadik.jpg',
     description:
-      'Contributed to the backend infrastructure including database schema design, MongoDB aggregation pipelines, and API endpoint development. Worked on the system logging service and helped optimize query performance for the question bank retrieval system.',
+      'Worked on the backend infrastructure including database schema design, MongoDB aggregation pipelines, and API endpoint development. Contributed to the system logging service and query performance optimization for the question bank retrieval system.',
     icon: ShieldCheckIcon,
     gradient: 'from-emerald-500 to-green-600',
     gradientFrom: 'rgb(16 185 129)',
@@ -119,7 +119,7 @@ const team: TeamMember[] = [
     role: 'Researcher',
     image: '/musfiq.jpg',
     description:
-      'Conducted extensive research on multi-agent AI orchestration, retrieval-augmented generation techniques, and educational technology best practices. His findings on prompt engineering and few-shot learning directly shaped the AI agent configuration system.',
+      'Conducted research on multi-agent AI orchestration, retrieval-augmented generation techniques, and educational technology best practices. Findings on prompt engineering and few-shot learning informed key decisions in the AI agent configuration system.',
     icon: BrainCircuitIcon,
     gradient: 'from-pink-500 to-rose-600',
     gradientFrom: 'rgb(236 72 153)',
@@ -130,7 +130,7 @@ const team: TeamMember[] = [
     role: 'Frontend Developer',
     image: '/mahfuz.jpg',
     description:
-      'Contributed to the frontend UI development, working on responsive components and user-facing interfaces. Helped implement the dashboard visualizations and ensured a smooth, accessible experience across different devices and screen sizes.',
+      'Worked on frontend UI development, building responsive components and user-facing interfaces. Contributed to dashboard visualizations and helped ensure a smooth, accessible experience across different devices and screen sizes.',
     icon: LayoutDashboardIcon,
     gradient: 'from-indigo-500 to-blue-600',
     gradientFrom: 'rgb(99 102 241)',
