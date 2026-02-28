@@ -168,7 +168,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   const SidebarContentComponent = ({ onLinkClick }: { onLinkClick?: () => void }) => (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Sidebar Header */}
-      <div className="border-b border-border/40 p-4 shrink-0">
+      <div className="sticky top-0 z-10 backdrop-blur-sm bg-background/60 border-b border-border/50 p-4 shrink-0">
         <div className="flex items-center gap-2 min-w-0 mb-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-orange-500 to-red-500 text-sm font-bold text-white shadow-md shrink-0">
             C

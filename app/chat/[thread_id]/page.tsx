@@ -89,7 +89,7 @@ const CodeBlock = ({ content, language }: { content: string; language?: string }
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-      <pre className={`bg-muted/30 dark:bg-muted/60 !px-4 !py-3.5 overflow-x-auto text-[13px] leading-relaxed text-foreground m-0 ${jetbrainsMono.className}`}>
+      <pre className={`bg-muted/30 dark:bg-muted/60 px-4! py-3.5! overflow-x-auto text-[13px] leading-relaxed text-foreground m-0 ${jetbrainsMono.className}`}>
         <code>{content.trimEnd()}</code>
       </pre>
     </div>
@@ -383,6 +383,7 @@ export default function ThreadChatPage() {
         title={threadTitle}
         onMobileMenuToggle={toggleMobileMenu}
         showSearch={false}
+        hasBorder={false}
       />
 
       <div className="flex-1 flex overflow-hidden">

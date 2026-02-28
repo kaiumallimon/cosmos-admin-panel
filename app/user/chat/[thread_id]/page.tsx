@@ -280,7 +280,7 @@ export default function UserChatThreadPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <FrostedHeader title={threadTitle} onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
+      <FrostedHeader title={threadTitle} onMobileMenuToggle={toggleMobileMenu} showSearch={false} hasBorder={false} />
 
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">

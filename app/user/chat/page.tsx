@@ -165,7 +165,7 @@ export default function UserNewChatPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <FrostedHeader title="New Chat" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
+      <FrostedHeader title="New Chat" onMobileMenuToggle={toggleMobileMenu} showSearch={false} hasBorder={false} />
 
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="max-w-4xl mx-auto">

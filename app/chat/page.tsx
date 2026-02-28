@@ -352,6 +352,7 @@ export default function ChatPage() {
         title={threadTitle}
         onMobileMenuToggle={toggleMobileMenu}
         showSearch={false}
+        hasBorder={false}
       />
 
       {/* Messages Area */}

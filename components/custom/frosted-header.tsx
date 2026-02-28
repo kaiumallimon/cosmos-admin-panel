@@ -12,6 +12,7 @@ interface FrostedHeaderProps {
   className?: string;
   onMobileMenuToggle?: () => void;
   showSearch?: boolean;
+  hasBorder?: boolean;
 }
 
 /**
@@ -24,18 +25,19 @@ interface FrostedHeaderProps {
  * - onMobileMenuToggle: function to toggle mobile menu (shows menu icon on mobile when provided)
  * - showSearch: whether to show the global search bar (default: true)
  */
-export const FrostedHeader: React.FC<FrostedHeaderProps> = ({ 
-  title, 
-  subtitle, 
-  children, 
-  className = "", 
+export const FrostedHeader: React.FC<FrostedHeaderProps> = ({
+  title,
+  subtitle,
+  children,
+  className = "",
   onMobileMenuToggle,
   showSearch = true,
+  hasBorder = true,
 }) => {
-  
+
   return (
     <div
-      className={`sticky top-0 z-20 bg-transparent dark:bg-transparent backdrop-blur-sm border-b border-border/50 p-4 md:p-4 transition-all duration-300 ${className}`}
+      className={`sticky top-0 z-20 bg-transparent dark:bg-transparent backdrop-blur-sm border-border/50 p-4 md:p-4 transition-all duration-300 ${className} ${hasBorder ? 'border-b' : ''}`}
     >
       <div className="flex items-center justify-between gap-4">
         {/* Left side - Mobile menu button + Title */}
@@ -52,10 +54,10 @@ export const FrostedHeader: React.FC<FrostedHeaderProps> = ({
               <Menu className="h-4 w-4" />
             </Button>
           )}
-          
+
           {/* Title section */}
           <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">
+            <h1 className={` font-bold text-foreground truncate ${hasBorder?  'text-xl md:text-2xl': 'text-lg md:text-xl'}`}>
               {title}
             </h1>
             {subtitle && (
@@ -65,7 +67,7 @@ export const FrostedHeader: React.FC<FrostedHeaderProps> = ({
             )}
           </div>
         </div>
-        
+
         {/* Right side - Search + Additional children */}
         <div className="flex items-center gap-3 shrink-0">
           {/* Search bar - visible on larger screens, mobile search button on small screens */}
@@ -75,10 +77,10 @@ export const FrostedHeader: React.FC<FrostedHeaderProps> = ({
               <div className="hidden lg:block">
                 <GlobalSearch className="w-64" />
               </div>
-              
+
               {/* Mobile search button */}
               <div className="lg:hidden">
-                <GlobalSearch 
+                <GlobalSearch
                   trigger={
                     <Button
                       variant="ghost"
@@ -94,7 +96,7 @@ export const FrostedHeader: React.FC<FrostedHeaderProps> = ({
               </div>
             </>
           )}
-          
+
           {/* Additional children */}
           {children && <>{children}</>}
         </div>
