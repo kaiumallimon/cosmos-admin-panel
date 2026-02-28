@@ -25,6 +25,7 @@ async function getCourses() {
             courses: courses.map(course => ({
                 ...course,
                 _id: course._id?.toString(),
+                id: course._id?.toString(),
             })),
             totalCourses,
             totalDepartments,
@@ -65,7 +66,7 @@ async function createCourse(request: AuthenticatedRequest) {
         const collection = db.collection<Course>('courses');
 
         const trimmedCode = code.trim().toUpperCase();
-        
+
         // Check if course code already exists
         const existingCourse = await collection.findOne({ code: trimmedCode });
         if (existingCourse) {
@@ -92,6 +93,7 @@ async function createCourse(request: AuthenticatedRequest) {
         const createdCourse = {
             ...newCourse,
             _id: result.insertedId.toString(),
+            id: result.insertedId.toString(),
         };
 
         return NextResponse.json(createdCourse, { status: 201 });

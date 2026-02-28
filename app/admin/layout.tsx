@@ -29,7 +29,8 @@ import {
     Code2Icon,
     Activity,
     MessageCircle,
-    TagIcon
+    TagIcon,
+    Timer
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -245,6 +246,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             >
                                 <TagIcon className="h-4 w-4 shrink-0" />
                                 <span className="font-medium truncate">Topics</span>
+                            </Link>
+                        </div>
+
+                        <div className="mt-1">
+                            <Link
+                                href="/admin/trimesters"
+                                onClick={onLinkClick}
+                                className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname === "/admin/trimesters" || pathname.startsWith("/admin/trimesters/") ? "bg-primary text-primary-foreground font-semibold" : ""
+                                    }`}
+                            >
+                                <Timer className="h-4 w-4 shrink-0" />
+                                <span className="font-medium truncate">Trimesters</span>
                             </Link>
                         </div>
                     </div>
