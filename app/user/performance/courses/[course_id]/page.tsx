@@ -180,6 +180,7 @@ export default function CourseAssessmentsPage() {
             marks: a.marks ?? a.score ?? 0,
             full_marks: a.full_marks ?? a.max_score ?? 0,
             course_id: a.course_id ?? courseId,
+            grade: a.grade ?? undefined,
           }))
           : [],
       );
@@ -421,8 +422,8 @@ export default function CourseAssessmentsPage() {
       full += ctFull;
     }
 
-    // All other types: sum their marks
-    const otherTypes = ['mid', 'final', 'assignment', 'project', 'attendance'] as const;
+    // All other types: sum their marks (exclude final — grade-only)
+    const otherTypes = ['mid', 'assignment', 'project', 'attendance'] as const;
     otherTypes.forEach((type) => {
       assessments
         .filter((a) => a.assessment_type === type)
@@ -657,6 +658,7 @@ export default function CourseAssessmentsPage() {
                       </TableHeader>
                       <TableBody>
                         {assessments.map((a) => {
+                          const isFinal = a.assessment_type === 'final';
                           const pct = Math.round((a.marks / (a.full_marks || 1)) * 100);
                           return (
                             <TableRow
@@ -674,18 +676,32 @@ export default function CourseAssessmentsPage() {
                               <TableCell className="py-4 text-sm text-muted-foreground">
                                 {a.assessment_type === 'ct' && a.ct_no != null ? `#${a.ct_no}` : '—'}
                               </TableCell>
-                              <TableCell className="py-4 font-semibold">{a.marks}</TableCell>
-                              <TableCell className="py-4 text-muted-foreground">{a.full_marks}</TableCell>
+                              <TableCell className="py-4 font-semibold">
+                                {isFinal ? '—' : a.marks}
+                              </TableCell>
+                              <TableCell className="py-4 text-muted-foreground">
+                                {isFinal ? '—' : a.full_marks}
+                              </TableCell>
                               <TableCell className="py-4">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
-                                    <div
-                                      className="h-2 rounded-full bg-primary transition-all"
-                                      style={{ width: `${Math.min(pct, 100)}%` }}
-                                    />
+                                {isFinal ? (
+                                  a.grade ? (
+                                    <Badge className="text-sm font-bold bg-red-500/10 text-red-600 dark:text-red-400 border-0 px-2.5 py-1">
+                                      {a.grade}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">—</span>
+                                  )
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
+                                      <div
+                                        className="h-2 rounded-full bg-primary transition-all"
+                                        style={{ width: `${Math.min(pct, 100)}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-sm font-medium">{pct}%</span>
                                   </div>
-                                  <span className="text-sm font-medium">{pct}%</span>
-                                </div>
+                                )}
                               </TableCell>
                               <TableCell className="py-4 text-right">
                                 <DropdownMenu>
