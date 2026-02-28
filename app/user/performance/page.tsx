@@ -491,7 +491,7 @@ export default function PerformanceOverviewPage() {
         {/* ── Course-wise breakdown ────────────────────────────────────────────── */}
         {coursePerformance.length > 0 && (
           <Card className="border shadow-sm">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-4">
               <CardTitle className="text-base flex items-center gap-2">
                 <TargetIcon className="h-4 w-4 text-primary" />
                 Course-wise Breakdown
@@ -499,40 +499,67 @@ export default function PerformanceOverviewPage() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
-                {coursePerformance.map((c) => (
-                  <div key={c.cid} className="flex items-center gap-3 px-4 sm:px-6 py-3">
-                    <div className="shrink-0">
-                      <Badge variant="secondary" className="text-[10px] font-semibold whitespace-nowrap">
-                        {c.credit} cr
-                      </Badge>
+                {coursePerformance.map((c, i) => {
+                  const color =
+                    c.avg === null ? '#94a3b8'
+                    : c.avg >= 80 ? '#16a34a'
+                    : c.avg >= 60 ? '#d97706'
+                    : '#dc2626';
+                  const bgTint =
+                    c.avg === null ? ''
+                    : c.avg >= 80 ? 'hover:bg-green-50/60 dark:hover:bg-green-950/20'
+                    : c.avg >= 60 ? 'hover:bg-amber-50/60 dark:hover:bg-amber-950/20'
+                    : 'hover:bg-red-50/60 dark:hover:bg-red-950/20';
+                  return (
+                    <div key={c.cid} className={`flex items-center gap-4 px-5 sm:px-6 py-5 transition-colors ${bgTint}`}>
+                      {/* Index circle */}
+                      <div
+                        className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                        style={{ backgroundColor: color }}
+                      >
+                        {i + 1}
+                      </div>
+
+                      {/* Name + meta */}
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-semibold leading-tight truncate">{c.name}</p>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-semibold shrink-0 px-1.5 py-0"
+                          >
+                            {c.credit} cr
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {[c.faculty, c.sem].filter(Boolean).join(' · ')}
+                          {' · '}{c.count} assessment{c.count !== 1 ? 's' : ''}
+                          {c.wcCount > 0 && ` · ${c.wcCount} weakness${c.wcCount !== 1 ? 'es' : ''}`}
+                        </p>
+                        {/* Progress bar */}
+                        <div className="flex items-center gap-2 pt-0.5">
+                          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{ width: `${c.avg ?? 0}%`, backgroundColor: color }}
+                            />
+                          </div>
+                          <span className="text-xs text-muted-foreground tabular-nums shrink-0 w-9 text-right">
+                            {c.avg !== null ? `${c.avg}%` : '—'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Score pill */}
+                      <div
+                        className="shrink-0 w-16 h-10 rounded-lg flex items-center justify-center text-sm font-bold text-white shadow-sm"
+                        style={{ backgroundColor: color }}
+                      >
+                        {c.avg !== null ? `${c.avg}%` : '—'}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{c.name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        {[c.faculty, c.sem].filter(Boolean).join(' · ')} · {c.count} assessment{c.count !== 1 ? 's' : ''} · {c.wcCount} weakness{c.wcCount !== 1 ? 'es' : ''}
-                      </p>
-                    </div>
-                    <div className="hidden sm:flex flex-col gap-1 w-32">
-                      <Progress value={c.avg ?? 0} className="h-1.5" />
-                      <span className="text-[10px] text-muted-foreground text-right">
-                        {c.avg !== null ? `${c.avg}%` : 'No data'}
-                      </span>
-                    </div>
-                    <div className="shrink-0 text-sm font-bold w-12 text-right">
-                      {c.avg !== null ? (
-                        <span className={
-                          c.avg >= 80 ? 'text-green-600' :
-                          c.avg >= 60 ? 'text-amber-600' :
-                          'text-red-500'
-                        }>
-                          {c.avg}%
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground/40">—</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
