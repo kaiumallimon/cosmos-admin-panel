@@ -24,6 +24,8 @@ import {
   BellIcon,
   ChevronRightIcon,
   FileTextIcon,
+  DownloadIcon,
+  Loader2Icon,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -108,6 +110,7 @@ export default function NoticeDetailPage() {
   const [data, setData] = useState<NoticeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const fetchDetail = async () => {
     setLoading(true);
@@ -132,6 +135,120 @@ export default function NoticeDetailPage() {
   const externalUrl = `https://www.uiu.ac.bd/notice/${slug}/`;
 
   const relatedNotices = data?.related_notices ?? [];
+
+  // ─── PDF Export ──────────────────────────────────────────────────────────────
+  const exportToPdf = () => {
+    if (!data) return;
+    setExporting(true);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) { setExporting(false); return; }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <title>${data.title}</title>
+          <style>
+            *, *::before, *::after { box-sizing: border-box; }
+            body {
+              font-family: Georgia, 'Times New Roman', serif;
+              margin: 0;
+              padding: 48px 56px;
+              color: #111;
+              line-height: 1.75;
+              font-size: 14px;
+            }
+            .badge {
+              display: inline-block;
+              font-size: 10px;
+              font-family: system-ui, sans-serif;
+              font-weight: 700;
+              letter-spacing: 0.1em;
+              text-transform: uppercase;
+              color: #ea580c;
+              margin-bottom: 10px;
+            }
+            .header {
+              border-bottom: 2px solid #ea580c;
+              padding-bottom: 18px;
+              margin-bottom: 28px;
+            }
+            h1 {
+              font-size: 22px;
+              font-weight: 700;
+              margin: 0 0 8px 0;
+              line-height: 1.35;
+              color: #111;
+            }
+            .meta {
+              font-family: system-ui, sans-serif;
+              font-size: 13px;
+              color: #666;
+            }
+            p { margin: 10px 0; }
+            ol, ul { margin: 10px 0; padding-left: 24px; }
+            li { margin: 4px 0; }
+            strong { font-weight: 700; }
+            sup { font-size: 0.72em; vertical-align: super; line-height: 0; }
+            table {
+              border-collapse: collapse;
+              width: 100%;
+              margin: 18px 0;
+              font-family: system-ui, sans-serif;
+              font-size: 13px;
+            }
+            th {
+              background: #f4f4f4;
+              font-weight: 600;
+              border: 1px solid #ccc;
+              padding: 9px 12px;
+              text-align: left;
+            }
+            td {
+              border: 1px solid #ccc;
+              padding: 8px 12px;
+            }
+            tr:nth-child(even) td { background: #fafafa; }
+            figure { margin: 16px 0; }
+            blockquote {
+              border-left: 3px solid #ea580c;
+              margin: 12px 0;
+              padding: 4px 16px;
+              color: #555;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 14px;
+              border-top: 1px solid #e5e5e5;
+              font-family: system-ui, sans-serif;
+              font-size: 11px;
+              color: #aaa;
+            }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="badge">&#x1F514; Official Notice &middot; United International University</div>
+            <h1>${data.title}</h1>
+            <div class="meta">Published: ${data.publish_date}</div>
+          </div>
+          ${data.content_html}
+          <div class="footer">
+            Source: ${externalUrl} &nbsp;&middot;&nbsp; Exported from COSMOS – ITS Student Portal
+          </div>
+          <script>
+            window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; };
+          <\/script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    setExporting(false);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -209,16 +326,31 @@ export default function NoticeDetailPage() {
                 <CalendarIcon className="h-4 w-4 shrink-0" />
                 {data.publish_date}
               </div>
-              <a href={externalUrl} target="_blank" rel="noopener noreferrer">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   className="gap-1.5 h-8 text-xs hover:border-orange-500/40 hover:text-orange-600"
+                  onClick={exportToPdf}
+                  disabled={exporting}
                 >
-                  <ExternalLinkIcon className="h-3.5 w-3.5" />
-                  View on UIU website
+                  {exporting
+                    ? <Loader2Icon className="h-3.5 w-3.5 animate-spin" />
+                    : <DownloadIcon className="h-3.5 w-3.5" />
+                  }
+                  Export PDF
                 </Button>
-              </a>
+                <a href={externalUrl} target="_blank" rel="noopener noreferrer">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-8 text-xs hover:border-orange-500/40 hover:text-orange-600"
+                  >
+                    <ExternalLinkIcon className="h-3.5 w-3.5" />
+                    View on UIU website
+                  </Button>
+                </a>
+              </div>
             </div>
           </div>
         ) : null}
