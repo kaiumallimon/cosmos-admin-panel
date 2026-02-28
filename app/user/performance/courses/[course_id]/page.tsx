@@ -62,6 +62,7 @@ import {
   AlertTriangleIcon,
   Trophy,
   BrainCircuitIcon,
+  Info,
 } from 'lucide-react';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -681,6 +682,11 @@ export default function CourseAssessmentsPage() {
                   </div>
                 </div>
               </CardHeader>
+
+              <div className="flex items-center gap-2 px-6 mb-4 mx-auto w-full justify-center text-muted-foreground text-sm">
+                <Info className="h-4 w-4 inline-block text-blue-500" />
+                <p>For accurate grade prediction, please complete all assessments of an enrolled course!</p>
+              </div>
 
               <CardContent>
                 <div className="bg-white dark:bg-card rounded-lg border shadow-sm overflow-hidden">
