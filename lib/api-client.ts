@@ -73,7 +73,7 @@ class ApiClient {
       if (refreshResponse.ok) {
         // Token refreshed successfully, retry original request
         this.processQueue(null);
-        
+
         const retryResponse = await fetch(originalUrl, originalOptions);
         const retryData = await retryResponse.json();
 
@@ -125,3 +125,40 @@ export const api = {
   }),
   delete: <T = any>(url: string) => apiClient.request<T>(url, { method: 'DELETE' }),
 };
+
+/**
+ * Drop-in replacement for `fetch` that automatically:
+ * 1. Includes credentials (cookies) on every request.
+ * 2. On a 401 response, attempts a silent token refresh via /api/auth/refresh
+ *    and retries the original request exactly once.
+ * 3. If the refresh itself fails (refresh token expired), calls
+ *    signOutAndRedirect() so the user is cleanly sent to the login page.
+ *
+ * Usage: replace `fetch(url, opts)` with `fetchWithAuth(url, opts)`.
+ */
+export async function fetchWithAuth(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const opts: RequestInit = { credentials: 'include', ...options };
+  let response = await fetch(url, opts);
+
+  if (response.status !== 401) return response;
+
+  // Access token expired — try one silent refresh
+  const refreshRes = await fetch('/api/auth/refresh', {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  if (!refreshRes.ok) {
+    // Refresh token is also expired — sign out
+    await signOutAndRedirect('/');
+    // Return the original 401 so any caller that catches errors sees it
+    return response;
+  }
+
+  // Retry with fresh cookies
+  response = await fetch(url, opts);
+  return response;
+}

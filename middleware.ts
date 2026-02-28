@@ -56,8 +56,32 @@ export function middleware(req: NextRequest) {
 
         // Decode payload (base64url → JSON) — no crypto needed
         const payloadJson = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
-        const payload = JSON.parse(payloadJson) as { role?: string };
+        const payload = JSON.parse(payloadJson) as { role?: string; exp?: number };
         const role = payload.role ?? 'user';
+        const nowSec = Date.now() / 1000;
+
+        // ── Token expiry handling ─────────────────────────────────────────────
+        if (payload.exp && nowSec > payload.exp) {
+            if (!isApiRoute) {
+                // For page navigation: redirect through silent refresh if refresh token is present
+                const refreshToken = req.cookies.get('refresh_token')?.value;
+                if (refreshToken) {
+                    const refreshUrl = new URL('/api/auth/refresh-and-redirect', req.url);
+                    refreshUrl.searchParams.set('to', pathname + (req.nextUrl.search || ''));
+                    return NextResponse.redirect(refreshUrl);
+                }
+            }
+            // API route or no refresh token available → 401 / send to login
+            if (isApiRoute) {
+                return NextResponse.json({ error: 'Access token expired' }, { status: 401 });
+            }
+            const loginUrl = new URL('/', req.url);
+            const res = NextResponse.redirect(loginUrl);
+            res.cookies.set('access_token', '', { maxAge: 0, path: '/' });
+            res.cookies.set('token', '', { maxAge: 0, path: '/' });
+            return res;
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         // Block non-admin users from /admin routes
         if (pathname.startsWith('/admin') && role !== 'admin') {

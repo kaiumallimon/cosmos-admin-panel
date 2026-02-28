@@ -2,6 +2,43 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, logoutUser, AUTH_STORAGE_KEY } from '@/lib/auth-client';
 
+// ── Proactive token refresh ────────────────────────────────────────────────────
+// Decode a JWT payload without verifying the signature (client-safe).
+function decodeJwtExp(token: string): number | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const json = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+    const payload = JSON.parse(json) as { exp?: number };
+    return payload.exp ?? null;
+  } catch {
+    return null;
+  }
+}
+
+let _refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Schedule a silent token refresh ~60 s before the access token expires.
+ * Clears any previously scheduled timer first.
+ */
+function scheduleProactiveRefresh(
+  accessToken: string,
+  refreshFn: () => Promise<void>
+) {
+  if (_refreshTimer) clearTimeout(_refreshTimer);
+
+  const exp = decodeJwtExp(accessToken);
+  if (!exp) return;
+
+  const msUntilExpiry = exp * 1000 - Date.now();
+  const refreshIn = Math.max(msUntilExpiry - 60_000, 0); // 60 s before expiry
+
+  _refreshTimer = setTimeout(refreshFn, refreshIn);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface AuthState {
   user: User;
   isLoading: boolean;
@@ -9,6 +46,7 @@ interface AuthState {
   logout: () => Promise<void>;
   isAuthenticated: () => boolean;
   isUserAuthenticated: () => boolean;
+  silentRefresh: () => Promise<boolean>;
   initializeAuth: () => Promise<void>;
 }
 
@@ -30,9 +68,7 @@ export const useAuthStore = create<AuthState>()(
 
           const response = await fetch('/api/auth/login', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
           });
 
@@ -40,17 +76,14 @@ export const useAuthStore = create<AuthState>()(
 
           if (response.ok && result.success && result.user) {
             console.log("Auth store: Login successful, setting user:", result.user);
-
-            // Update Zustand state
             set({ user: result.user, isLoading: false });
-
-            // Store auth data in localStorage for consistency
             localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: result.user }));
-            console.log("Auth store: Stored in localStorage");
+            document.cookie = `auth-session=${JSON.stringify({ user: result.user })}; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`;
 
-            // Set session cookie for middleware access
-            document.cookie = `auth-session=${JSON.stringify({ user: result.user })}; path=/; max-age=3600; SameSite=Lax`;
-            console.log("Auth store: Set session cookie");
+            // Schedule a proactive refresh before the access token expires
+            if (result.tokens?.accessToken) {
+              scheduleProactiveRefresh(result.tokens.accessToken, () => get().silentRefresh());
+            }
 
             return { success: true, role: result.user.role };
           } else {
@@ -67,21 +100,12 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         try {
+          if (_refreshTimer) { clearTimeout(_refreshTimer); _refreshTimer = null; }
           console.log("Auth store: Starting logout process...");
-
-          // Call logout API
-          await fetch('/api/auth/logout', {
-            method: 'POST',
-          });
-
-          // Clear local state
+          await fetch('/api/auth/logout', { method: 'POST' });
           const user = logoutUser();
           set({ user, isLoading: false });
-
-          // Clear auth data from localStorage
           localStorage.removeItem(AUTH_STORAGE_KEY);
-
-          // Clear session cookie
           document.cookie = 'auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
           console.log("Auth store: Logout completed");
         } catch (error) {
@@ -99,6 +123,53 @@ export const useAuthStore = create<AuthState>()(
         return user.isAuthenticated && user.role === 'user';
       },
 
+      /**
+       * Silently exchange the refresh-token cookie for a new access token.
+       * Returns true on success, false when the refresh token is also expired
+       * (at which point the user must log in again).
+       */
+      silentRefresh: async (): Promise<boolean> => {
+        try {
+          const refreshResponse = await fetch('/api/auth/refresh', {
+            method: 'POST',
+            credentials: 'include',
+          });
+
+          if (!refreshResponse.ok) {
+            console.log("Auth store: Refresh token expired, logging out");
+            const user = logoutUser();
+            set({ user });
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+            document.cookie = 'auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            return false;
+          }
+
+          const data = await refreshResponse.json();
+
+          // Re-fetch the current user so profile stays up-to-date
+          const meResponse = await fetch('/api/auth/me', { credentials: 'include' });
+          if (meResponse.ok) {
+            const meData = await meResponse.json();
+            if (meData.success && meData.user) {
+              set({ user: meData.user });
+              localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: meData.user }));
+              document.cookie = `auth-session=${JSON.stringify({ user: meData.user })}; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`;
+            }
+          }
+
+          // Schedule the next proactive refresh
+          if (data.accessToken) {
+            scheduleProactiveRefresh(data.accessToken, () => get().silentRefresh());
+          }
+
+          console.log("Auth store: Token refreshed silently");
+          return true;
+        } catch (error) {
+          console.error('Auth store: silentRefresh error:', error);
+          // Network error — don't log the user out; they're probably just offline
+          return false;
+        }
+      },
 
       initializeAuth: async () => {
         try {
@@ -114,54 +185,32 @@ export const useAuthStore = create<AuthState>()(
             if (result.success && result.user) {
               console.log("Auth store: Found authenticated user:", result.user.email, 'role:', result.user.role);
               set({ user: result.user });
-
-              // Update localStorage and cookie
               localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: result.user }));
-              document.cookie = `auth-session=${JSON.stringify({ user: result.user })}; path=/; max-age=3600; SameSite=Lax`;
+              document.cookie = `auth-session=${JSON.stringify({ user: result.user })}; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`;
+
+              // We don't have the raw access token here, but schedule via silentRefresh
+              // which will set a new timer internally — fire it 14 min from now as a
+              // conservative estimate (access tokens last 15 min).
+              if (_refreshTimer) clearTimeout(_refreshTimer);
+              _refreshTimer = setTimeout(() => get().silentRefresh(), 14 * 60 * 1000);
             } else {
               console.log("Auth store: No authenticated user found");
               const user = logoutUser();
               set({ user });
             }
           } else if (response.status === 401) {
-            // Token might be expired, try to refresh
-            const refreshResponse = await fetch('/api/auth/refresh', {
-              method: 'POST',
-              credentials: 'include',
-            });
-
-            if (refreshResponse.ok) {
-              // Retry getting user after refresh
-              const retryResponse = await fetch('/api/auth/me', {
-                method: 'GET',
-                credentials: 'include',
-              });
-
-              if (retryResponse.ok) {
-                const retryResult = await retryResponse.json();
-                if (retryResult.success && retryResult.user) {
-                  console.log("Auth store: Found authenticated user after refresh:", retryResult.user.email, 'role:', retryResult.user.role);
-                  set({ user: retryResult.user });
-
-                  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: retryResult.user }));
-                  document.cookie = `auth-session=${JSON.stringify({ user: retryResult.user })}; path=/; max-age=3600; SameSite=Lax`;
-                  return;
-                }
-              }
+            // Access token expired — try to refresh
+            const refreshed = await get().silentRefresh();
+            if (!refreshed) {
+              console.log("Auth store: Could not refresh — user logged out");
             }
-
-            console.log("Auth store: No authenticated admin user found");
-            const user = logoutUser();
-            set({ user });
           } else {
-            console.log("Auth store: Error checking authentication");
-            const user = logoutUser();
-            set({ user });
+            // Unexpected server error — do NOT log the user out; keep existing state
+            console.warn("Auth store: Unexpected status from /api/auth/me:", response.status);
           }
         } catch (error) {
-          console.error('Auth store: Error initializing auth:', error);
-          const user = logoutUser();
-          set({ user });
+          // Network error (offline etc.) — keep existing Zustand state, don't log out
+          console.error('Auth store: Error initializing auth (network?):', error);
         }
       },
     }),
