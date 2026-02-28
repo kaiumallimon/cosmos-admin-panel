@@ -368,20 +368,21 @@ export default function StudyPlannerPage() {
     return (
       <div className="flex flex-col h-full">
         <FrostedHeader title="Study Planner" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="max-w-3xl mx-auto space-y-4">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-7 w-44" />
-              <div className="flex gap-2">
-                <Skeleton className="h-8 w-8 rounded-lg" />
-                <Skeleton className="h-8 w-8 rounded-lg" />
-              </div>
+        <div className="flex-1 min-h-0 flex flex-col px-4 sm:px-6 py-4 gap-3">
+          <div className="flex items-center justify-between shrink-0">
+            <Skeleton className="h-7 w-44" />
+            <div className="flex gap-2">
+              <Skeleton className="h-8 w-8 rounded-lg" />
+              <Skeleton className="h-8 w-24 rounded-lg" />
+              <Skeleton className="h-8 w-8 rounded-lg" />
             </div>
-            <div className="grid grid-cols-7 gap-1.5">
-              {Array(7).fill(0).map((_, i) => <Skeleton key={i} className="h-6 rounded-md" />)}
+          </div>
+          <div className="flex-1 min-h-0 rounded-2xl border border-border overflow-hidden">
+            <div className="grid grid-cols-7 border-b border-border shrink-0">
+              {Array(7).fill(0).map((_, i) => <Skeleton key={i} className="h-9 rounded-none" />)}
             </div>
-            <div className="grid grid-cols-7 gap-1.5">
-              {Array(42).fill(0).map((_, i) => <Skeleton key={i} className="h-14 rounded-xl" />)}
+            <div className="grid grid-cols-7 h-full">
+              {Array(42).fill(0).map((_, i) => <Skeleton key={i} className="rounded-none opacity-50" />)}
             </div>
           </div>
         </div>
@@ -397,11 +398,10 @@ export default function StudyPlannerPage() {
     <div className="flex flex-col h-full overflow-hidden">
       <FrostedHeader title="Study Planner" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+      <div className="flex-1 min-h-0 flex flex-col px-4 sm:px-6 py-4 gap-3">
 
           {/* ── Header row ── */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             {/* Month nav */}
             <div className="flex items-center gap-1.5">
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg" onClick={prevMonth}>
@@ -451,9 +451,9 @@ export default function StudyPlannerPage() {
           </div>
 
           {/* ── Calendar card ── */}
-          <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
             {/* Weekday header */}
-            <div className="grid grid-cols-7 border-b border-border">
+            <div className="grid grid-cols-7 border-b border-border shrink-0">
               {WEEKDAYS.map((d) => (
                 <div key={d} className="py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
                   {d}
@@ -461,16 +461,16 @@ export default function StudyPlannerPage() {
               ))}
             </div>
 
-            {/* Day grid */}
-            <div className="divide-y divide-border">
+            {/* Day grid — fills remaining height */}
+            <div className="flex-1 min-h-0 grid" style={{ gridTemplateRows: `repeat(${calendarGrid.length}, 1fr)` }}>
               {calendarGrid.map((row, rowIdx) => (
-                <div key={rowIdx} className="grid grid-cols-7 divide-x divide-border">
+                <div key={rowIdx} className="grid grid-cols-7 divide-x divide-border border-b border-border last:border-b-0">
                   {row.map((day, colIdx) => {
                     if (day === null) {
                       return (
                         <div
                           key={colIdx}
-                          className="h-14 sm:h-16 bg-muted/30"
+                          className="bg-muted/30"
                         />
                       );
                     }
@@ -488,9 +488,9 @@ export default function StudyPlannerPage() {
                         key={colIdx}
                         onClick={() => openDaySheet(dateStr)}
                         className={`
-                          h-14 sm:h-16 flex flex-col items-center justify-start pt-2 gap-1
+                          flex flex-col items-center justify-start pt-2 gap-1
                           hover:bg-accent/60 focus:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-primary/40
-                          transition-colors relative group
+                          transition-colors relative group w-full h-full
                           ${isSelected ? 'bg-primary/8' : isToday ? 'bg-primary/5' : isPast ? 'bg-muted/10' : 'bg-card'}
                         `}
                       >
@@ -529,7 +529,7 @@ export default function StudyPlannerPage() {
           </div>
 
           {/* ── Legend ── */}
-          <div className="flex items-center gap-4 px-1">
+          <div className="flex items-center gap-4 shrink-0 pb-1">
             {EVENT_TYPES.map((t) => (
               <div key={t.value} className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${TYPE_DOT[t.value]}`} />
@@ -538,7 +538,6 @@ export default function StudyPlannerPage() {
             ))}
           </div>
 
-        </div>
       </div>
 
       {/* ── Day events Sheet ─────────────────────────────────────────────────── */}
