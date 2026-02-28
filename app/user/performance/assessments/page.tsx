@@ -218,7 +218,7 @@ export default function AssessmentsPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={fetchData}>
+          <Button variant="outline" size="sm" onClick={() => fetchData()}>
             <RefreshCwIcon className="h-4 w-4" />
           </Button>
           <Button size="sm" onClick={openAdd} className="gap-2 bg-primary hover:bg-primary/90">
