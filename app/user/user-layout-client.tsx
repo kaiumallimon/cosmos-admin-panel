@@ -32,6 +32,7 @@ import {
   CalendarDaysIcon,
   HistoryIcon,
   CalendarRangeIcon,
+  SettingsIcon,
 } from "lucide-react";
 import { IconCalendarEvent, IconNotification } from "@tabler/icons-react";
 
@@ -257,6 +258,23 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           >
             <CalendarRangeIcon className="h-4 w-4 shrink-0" />
             <span className="font-medium truncate">Academic Calender</span>
+          </Link>
+        </div>
+
+        <div className="my-4 h-px bg-border" />
+
+        <div>
+          <div className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider px-2 mb-2 truncate">
+            Settings &amp; Prefs
+          </div>
+          <Link
+            href="/user/settings/profile"
+            onClick={onLinkClick}
+            className={`flex items-center gap-3 min-w-0 overflow-hidden rounded-md p-2 text-sm transition-all duration-200 hover:bg-primary/30 ${pathname.startsWith('/user/settings/profile') ? 'bg-primary text-primary-foreground font-semibold' : ''
+              }`}
+          >
+            <SettingsIcon className="h-4 w-4 shrink-0" />
+            <span className="font-medium truncate">Profile</span>
           </Link>
         </div>
       </div>
