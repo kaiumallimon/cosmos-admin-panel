@@ -4,13 +4,19 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { FrostedHeader } from '@/components/custom/frosted-header';
 import { useMobileMenu } from '@/components/mobile-menu-context';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import {
   Dialog,
   DialogContent,
@@ -43,13 +49,16 @@ import {
   CheckCircle2Icon,
   CircleIcon,
   XCircleIcon,
-  FilterIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   ClipboardListIcon,
   BookOpenIcon,
   FlaskConicalIcon,
   TagIcon,
   CalendarDaysIcon,
+  FilterIcon,
 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
