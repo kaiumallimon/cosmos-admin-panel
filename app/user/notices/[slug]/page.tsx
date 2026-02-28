@@ -50,26 +50,32 @@ function slugFromUrl(url: string): string {
 
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 
+function HeaderSkeleton() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-7 w-7 rounded-lg" />
+        <Skeleton className="h-3.5 w-28" />
+      </div>
+      <Skeleton className="h-8 w-full" />
+      <Skeleton className="h-7 w-3/4" />
+      <div className="flex items-center justify-between pt-1">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-8 w-36" />
+      </div>
+    </div>
+  );
+}
+
 function ContentSkeleton() {
   return (
-    <div className="space-y-5">
-      <div className="space-y-3">
-        <Skeleton className="h-4 w-36" />
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-8 w-3/4" />
-        <div className="flex items-center justify-between pt-1">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-8 w-36" />
-        </div>
-      </div>
-      <Card className="border">
-        <CardContent className="p-6 space-y-3">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <Skeleton key={i} className={`h-4 ${i % 3 === 2 ? 'w-4/5' : 'w-full'}`} />
-          ))}
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="border">
+      <CardContent className="p-6 space-y-3">
+        {Array.from({ length: 9 }).map((_, i) => (
+          <Skeleton key={i} className={`h-4 ${i % 3 === 2 ? 'w-4/5' : 'w-full'}`} />
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -182,7 +188,42 @@ export default function NoticeDetailPage() {
           </Card>
         )}
 
-        {/* Two-column layout */}
+        {/* Full-width title / meta header */}
+        {loading ? (
+          <HeaderSkeleton />
+        ) : data ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-lg bg-orange-500/15 flex items-center justify-center shrink-0">
+                <BellIcon className="h-4 w-4 text-orange-500" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Official Notice
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold leading-snug text-foreground">
+              {data.title}
+            </h1>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <CalendarIcon className="h-4 w-4 shrink-0" />
+                {data.publish_date}
+              </div>
+              <a href={externalUrl} target="_blank" rel="noopener noreferrer">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 h-8 text-xs hover:border-orange-500/40 hover:text-orange-600"
+                >
+                  <ExternalLinkIcon className="h-3.5 w-3.5" />
+                  View on UIU website
+                </Button>
+              </a>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Two-column layout — cards only */}
         {loading ? (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
             <ContentSkeleton />
@@ -191,42 +232,9 @@ export default function NoticeDetailPage() {
         ) : data ? (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
 
-            {/* ── Main content ── */}
-            <div className="space-y-5">
-              {/* Title + meta */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-lg bg-orange-500/15 flex items-center justify-center shrink-0">
-                    <BellIcon className="h-4 w-4 text-orange-500" />
-                  </div>
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Official Notice
-                  </span>
-                </div>
-                <h1 className="text-xl sm:text-2xl font-bold leading-snug text-foreground">
-                  {data.title}
-                </h1>
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <CalendarIcon className="h-4 w-4 shrink-0" />
-                    {data.publish_date}
-                  </div>
-                  <a href={externalUrl} target="_blank" rel="noopener noreferrer">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 h-8 text-xs hover:border-orange-500/40 hover:text-orange-600"
-                    >
-                      <ExternalLinkIcon className="h-3.5 w-3.5" />
-                      View on UIU website
-                    </Button>
-                  </a>
-                </div>
-              </div>
-
-              {/* Notice body */}
-              <Card className="border">
-                <CardContent className="p-5 sm:p-7">
+            {/* ── Body card ── */}
+            <Card className="border">
+              <CardContent className="p-5 sm:p-7">
                   <div className="overflow-x-auto">
                     <div
                       className="prose prose-sm dark:prose-invert max-w-none
@@ -247,8 +255,7 @@ export default function NoticeDetailPage() {
                     />
                   </div>
                 </CardContent>
-              </Card>
-            </div>
+            </Card>
 
             {/* ── Sidebar: Related Notices ── */}
             {relatedNotices.length > 0 && (
