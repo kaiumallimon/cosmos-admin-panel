@@ -230,7 +230,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link href={`/dashboard/users/${resolvedParams.id}/edit`}>
+              <Link href={`/admin/users/${resolvedParams.id}/edit`}>
                 <Button variant="outline">
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
