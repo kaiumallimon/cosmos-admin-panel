@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { FrostedHeader } from '@/components/custom/frosted-header';
 import { useMobileMenu } from '@/components/mobile-menu-context';
 import { Card, CardContent } from '@/components/ui/card';
@@ -64,15 +64,17 @@ function NoticeSkeleton() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function NoticesPage() {
+function NoticesContent() {
   const { toggleMobileMenu } = useMobileMenu();
+  const searchParams = useSearchParams();
+
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);
 
   const [data, setData] = useState<NoticeListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
 
-  const fetchNotices = async (p: number) => {
+  const fetchNotices = useCallback(async (p: number) => {
     setLoading(true);
     setError(null);
     try {
@@ -85,11 +87,12 @@ export default function NoticesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchNotices(page);
-  }, [page]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [page, fetchNotices]);
 
   const totalPages = data?.pagination.total_pages ?? 1;
 
@@ -139,6 +142,7 @@ export default function NoticesPage() {
               <RefreshCwIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
+
           </div>
 
           {!loading && data && (
@@ -173,7 +177,7 @@ export default function NoticesPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => fetchNotices(page)}
-                className="border-destructive/30 text-destructive hover:bg-destructive/10 shrink-0"
+              className="border-destructive/30 text-destructive hover:bg-destructive/10 shrink-0"
               >
                 Retry
               </Button>
@@ -244,30 +248,73 @@ export default function NoticesPage() {
               <span className="font-semibold text-foreground">{totalPages}</span>
             </p>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 h-8"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                <ChevronLeftIcon className="h-4 w-4" />
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 h-8 border-orange-500/30 hover:bg-orange-500/10 hover:text-orange-600 hover:border-orange-500/50"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                Next
-                <ChevronRightIcon className="h-4 w-4" />
-              </Button>
+              {/* Previous — use Link so URL updates */}
+              {page === 1 ? (
+                <Button variant="outline" size="sm" className="gap-1.5 h-8" disabled>
+                  <ChevronLeftIcon className="h-4 w-4" />
+                  Previous
+                </Button>
+              ) : (
+                <Link href={page - 1 === 1 ? '/user/notices' : `/user/notices?page=${page - 1}`}>
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8">
+                    <ChevronLeftIcon className="h-4 w-4" />
+                    Previous
+                  </Button>
+                </Link>
+              )}
+
+              {/* Page number pills */}
+              <div className="hidden sm:flex items-center gap-1">
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  // Sliding window of 5 pages centred on current page
+                  const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+                  const p = start + i;
+                  if (p > totalPages) return null;
+                  const isCurrent = p === page;
+                  return (
+                    <Link key={p} href={p === 1 ? '/user/notices' : `/user/notices?page=${p}`}>
+                      <Button
+                        variant={isCurrent ? 'default' : 'outline'}
+                        size="sm"
+                        className={`h-8 w-8 p-0 text-xs ${
+                          isCurrent
+                            ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-500'
+                            : 'hover:border-orange-500/40 hover:text-orange-600'
+                        }`}
+                      >
+                        {p}
+                      </Button>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Next */}
+              {page === totalPages ? (
+                <Button variant="outline" size="sm" className="gap-1.5 h-8" disabled>
+                  Next
+                  <ChevronRightIcon className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Link href={`/user/notices?page=${page + 1}`}>
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8 border-orange-500/30 hover:bg-orange-500/10 hover:text-orange-600 hover:border-orange-500/50">
+                    Next
+                    <ChevronRightIcon className="h-4 w-4" />
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+export default function NoticesPage() {
+  return (
+    <Suspense>
+      <NoticesContent />
+    </Suspense>
   );
 }
