@@ -84,7 +84,7 @@ interface User {
   profile: {
     full_name: string;
     phone?: string;
-    gender?: string;     
+    gender?: string;
     student_id?: string;
     department?: string;
     batch?: string;
@@ -208,7 +208,7 @@ export default function UsersPage() {
 
     try {
       const loadingToast = toast.loading('Deleting user...');
-      
+
       const result = await retryOperation(
         () => makeAuthenticatedJsonRequest(`/api/users/${userId}`, {
           method: 'DELETE',
@@ -236,18 +236,18 @@ export default function UsersPage() {
     const length = 12;
     const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
     let password = "";
-    
+
     // Ensure at least one of each type
     password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)]; // uppercase
     password += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)]; // lowercase
     password += "0123456789"[Math.floor(Math.random() * 10)]; // number
     password += "!@#$%^&*"[Math.floor(Math.random() * 8)]; // special
-    
+
     // Fill the rest randomly
     for (let i = 4; i < length; i++) {
       password += charset[Math.floor(Math.random() * charset.length)];
     }
-    
+
     // Shuffle the password
     return password.split('').sort(() => Math.random() - 0.5).join('');
   };
@@ -469,7 +469,7 @@ export default function UsersPage() {
                   </div>
                   <h3 className="text-lg font-semibold mb-2 text-red-600 dark:text-red-400">Error Loading Users</h3>
                   <p className="text-muted-foreground mb-4">{error}</p>
-                  <Button 
+                  <Button
                     onClick={() => {
                       setError(null);
                       loadUsers();
@@ -562,7 +562,7 @@ export default function UsersPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem onClick={() => router.push(`/dashboard/users/${user.id}`)}>
+                              <DropdownMenuItem onClick={() => router.push(`/admin/users/${user.id}`)}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
                               </DropdownMenuItem>
@@ -570,7 +570,7 @@ export default function UsersPage() {
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit User
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => setResetPasswordUser({
                                   id: user.id,
                                   name: user.profile?.full_name || user.email,
@@ -581,7 +581,7 @@ export default function UsersPage() {
                                 <Key className="mr-2 h-4 w-4" />
                                 Reset Password
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => handleDeleteUser(user.id)}
                                 className="text-destructive focus:text-destructive"
                               >
@@ -611,7 +611,7 @@ export default function UsersPage() {
                     <span>No users found</span>
                   )}
                 </div>
-                
+
                 {totalPages > 1 && (
                   <div className="flex items-center space-x-2">
                     <Button
@@ -704,7 +704,7 @@ export default function UsersPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
               <div className="flex items-center gap-2 text-amber-700">
                 <AlertTriangle className="h-4 w-4" />
@@ -724,7 +724,7 @@ export default function UsersPage() {
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               type="button"
               onClick={handleResetPassword}
               disabled={resettingPassword}
