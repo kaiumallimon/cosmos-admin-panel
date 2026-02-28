@@ -1,31 +1,28 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useTheme } from 'next-themes';
-import { DottedGlowBackground } from '@/components/ui/dotted-glow-background';
 import { Button } from '@/components/ui/button';
 import {
   motion,
   useInView,
-  AnimatePresence,
 } from 'motion/react';
 import {
   SparklesIcon,
-  ArrowLeftIcon,
-  SunIcon,
-  MoonIcon,
-  GithubIcon,
+  UsersIcon,
+  ShieldCheckIcon,
   CodeIcon,
   ServerIcon,
-  UsersIcon,
   BrainCircuitIcon,
   LayoutDashboardIcon,
-  ShieldCheckIcon,
   CrownIcon,
+  ArrowRightIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import LandingHeader from '@/components/landing/landing-header';
+import LandingFooter from '@/components/landing/landing-footer';
+import SectionSeparator from '@/components/landing/section-separator';
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /*  ANIMATION HELPERS                                                        */
@@ -205,62 +202,28 @@ function MemberCard({ member, index }: { member: TeamMember; index: number }) {
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function MeetTheTeamPage() {
-  const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   return (
-    <div className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-background text-foreground">
-      {/* Background */}
+    <div className="min-h-screen w-full bg-background text-foreground antialiased">
+      {/* ── Gradient background ─────────────────────────────────────────── */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-[700px] h-[700px] rounded-full bg-orange-500/5 blur-3xl" />
+        <div className="absolute -bottom-60 -left-40 w-[600px] h-[600px] rounded-full bg-amber-500/4 blur-3xl" />
+        <div
+          className="absolute inset-0 opacity-[0.025]"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
+          }}
+        />
+      </div>
+      <div className="fixed top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-orange-500/30 to-transparent z-50 pointer-events-none" />
 
-      <div className="fixed inset-0 z-0 pointer-events-none mesh-gradient"></div>
-      <div className="fixed top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-indigo-500/20 to-transparent z-50"></div>
+      <LandingHeader />
 
-      {/* ── Navbar ─────────────────────────────────────────────────────────── */}
-      <motion.nav
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl"
-      >
-        <div className="mx-auto max-w-5xl flex items-center justify-between px-4 sm:px-6 h-16">
-          <div className="flex items-center gap-3">
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
-                <ArrowLeftIcon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline text-xs">Home</span>
-              </Button>
-            </Link>
-            <div className="h-4 w-px bg-border/60 hidden sm:block" />
-            <Link href="/" className="flex items-center gap-2 group">
-              <motion.div
-                className="h-7 w-7 rounded-lg bg-linear-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-sm"
-                whileHover={{ rotate: 180, scale: 1.1 }}
-                transition={{ duration: 0.4 }}
-              >
-                <SparklesIcon className="h-3.5 w-3.5 text-white" />
-              </motion.div>
-              <span className="text-sm font-bold tracking-tight text-foreground">
-                COSMOS<span className="text-orange-500">-ITS</span>
-              </span>
-            </Link>
-          </div>
-
-          {mounted && (
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
-              <AnimatePresence mode="wait">
-                <motion.div key={resolvedTheme} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
-                  {resolvedTheme === 'dark' ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
-                </motion.div>
-              </AnimatePresence>
-            </Button>
-          )}
-        </div>
-      </motion.nav>
-
-      {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <section className="relative z-10 pt-16 sm:pt-24 pb-12 sm:pb-16 px-4 sm:px-6">
-        <div className="mx-auto max-w-3xl text-center">
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <section className="relative z-10 pt-36 pb-16 sm:pt-44 sm:pb-20 px-4 sm:px-6">
+        <div className="mx-auto max-w-6xl text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -276,18 +239,21 @@ export default function MeetTheTeamPage() {
             transition={{ duration: 0.5, delay: 0.15 }}
             className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/5 px-4 py-1.5 text-xs font-medium text-orange-600 dark:text-orange-400"
           >
-            <ShieldCheckIcon className="h-3.5 w-3.5" />
-            Team bcrypt
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500" />
+            </span>
+            Team bcrypt — UIU CSE
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.1] mb-5"
+            transition={{ duration: 0.65, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.08] mb-5"
           >
             Meet the{' '}
-            <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 via-amber-500 to-orange-600">
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 via-amber-400 to-orange-600">
               Team
             </span>
           </motion.h1>
@@ -298,15 +264,17 @@ export default function MeetTheTeamPage() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="mx-auto max-w-lg text-base text-muted-foreground leading-relaxed"
           >
-            We are <span className="font-semibold text-foreground">Team bcrypt</span> — a group of passionate
+            We are <span className="font-semibold text-foreground">Team bcrypt</span> — passionate
             Computer Science &amp; Engineering students from United International University, Dhaka.
             Together, we built COSMOS-ITS to transform how UIU students learn and excel.
           </motion.p>
         </div>
       </section>
 
-      {/* ── Team members ───────────────────────────────────────────────────── */}
-      <section className="relative z-10 pb-20 sm:pb-28 px-4 sm:px-6">
+      <SectionSeparator />
+
+      {/* ── Team members ─────────────────────────────────────────────────── */}
+      <section className="relative z-10 py-16 sm:py-24 px-4 sm:px-6">
         <div className="mx-auto max-w-4xl space-y-8">
           {team.map((member, i) => (
             <MemberCard key={member.name} member={member} index={i} />
@@ -314,28 +282,47 @@ export default function MeetTheTeamPage() {
         </div>
       </section>
 
-      {/* ── CTA ────────────────────────────────────────────────────────────── */}
-      <section className="relative z-10 pb-20 sm:pb-28 px-4 sm:px-6">
+      <SectionSeparator />
+
+      {/* ── CTA ──────────────────────────────────────────────────────────── */}
+      <section className="relative z-10 py-16 sm:py-24 px-4 sm:px-6">
         <FadeIn>
           <div className="mx-auto max-w-3xl">
-            <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-orange-500 to-amber-500 p-8 sm:p-12 text-center text-white shadow-2xl shadow-orange-500/20">
+            <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-orange-500 to-amber-500 p-8 sm:p-14 text-center text-white shadow-2xl shadow-orange-500/20">
               <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
               <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+              {/* Subtle grid overlay */}
+              <div
+                className="absolute inset-0 opacity-[0.06]"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)',
+                  backgroundSize: '32px 32px',
+                }}
+              />
               <div className="relative z-10">
-                <h2 className="text-xl sm:text-2xl font-bold mb-3">Want to try what we built?</h2>
-                <p className="mx-auto max-w-sm text-sm text-white/80 mb-6">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  whileInView={{ scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
+                >
+                  <SparklesIcon className="mx-auto h-10 w-10 mb-5 opacity-90" />
+                </motion.div>
+                <h2 className="text-2xl sm:text-3xl font-bold mb-3">Want to try what we built?</h2>
+                <p className="mx-auto max-w-sm text-sm text-white/80 mb-8">
                   Experience COSMOS-ITS — the AI-powered tutoring system built with passion by UIU students for UIU students.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <Link href="/register">
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button size="lg" className="h-11 px-7 text-sm font-semibold bg-white text-orange-600 hover:bg-white/90 rounded-xl shadow-lg">
-                        Get Started Free
+                      <Button size="lg" className="h-12 px-8 text-sm font-semibold bg-white text-orange-600 hover:bg-white/90 rounded-full shadow-lg">
+                        Get Started Free <ArrowRightIcon className="ml-2 h-4 w-4" />
                       </Button>
                     </motion.div>
                   </Link>
                   <Link href="/">
-                    <Button variant="outline" size="lg" className="h-11 px-7 text-sm font-medium rounded-xl border-white/30 text-white hover:bg-white/10 hover:text-white">
+                    <Button variant="outline" size="lg" className="h-12 px-8 text-sm font-medium rounded-full border-white/30 text-white hover:bg-white/10 hover:text-white">
                       Back to Home
                     </Button>
                   </Link>
@@ -346,24 +333,7 @@ export default function MeetTheTeamPage() {
         </FadeIn>
       </section>
 
-      {/* ── Footer ─────────────────────────────────────────────────────────── */}
-      <footer className="relative z-10 border-t border-border/40 bg-background/70 backdrop-blur-sm">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-md bg-linear-to-br from-orange-500 to-amber-500 flex items-center justify-center">
-                <SparklesIcon className="h-3 w-3 text-white" />
-              </div>
-              <span className="text-xs font-semibold text-foreground">
-                COSMOS<span className="text-orange-500">-ITS</span>
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} Team bcrypt &middot; United International University
-            </p>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }

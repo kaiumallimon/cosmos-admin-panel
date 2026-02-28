@@ -19,8 +19,6 @@ export default function LandingFooter() {
   ];
 
   const socialLinks = [
-    { icon: Github, href: 'https://github.com/kaiumallimon', label: 'GitHub' },
-    { icon: Linkedin, href: 'https://linkedin.com/in/kaiumallimon', label: 'LinkedIn' },
     { icon: Mail, href: 'mailto:contact@cosmos-its.com', label: 'Email' },
   ];
 
@@ -52,13 +50,6 @@ export default function LandingFooter() {
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
               An AI-powered Intelligent Tutoring System built exclusively for United International University students.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Built with ❤️ by{' '}
-              <Link href="/meet-the-team" className="text-orange-500 hover:underline font-medium">
-                Team bcrypt
-              </Link>{' '}
-              — UIU CSE students
             </p>
           </motion.div>
 
