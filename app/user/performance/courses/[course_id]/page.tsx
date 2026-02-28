@@ -154,9 +154,6 @@ export default function CourseAssessmentsPage() {
 
   // ─── Quiz state ────────────────────────────────────────────────────────
   const [quizDialogOpen, setQuizDialogOpen] = useState(false);
-  const [quizEnrolledCourses, setQuizEnrolledCourses] = useState<{ id: string; course_name: string; course_code: string }[]>([]);
-  const [quizCoursesLoading, setQuizCoursesLoading] = useState(false);
-  const [quizSelectedCourse, setQuizSelectedCourse] = useState('');
   const [quizTopics, setQuizTopics] = useState<Topic[]>([]);
   const [quizTopicsLoading, setQuizTopicsLoading] = useState(false);
   const [quizSelectedTopics, setQuizSelectedTopics] = useState<string[]>([]);
@@ -294,42 +291,19 @@ export default function CourseAssessmentsPage() {
     }
   };
 
-  const openQuizDialog = async () => {
-    // Reset quiz dialog state — topics only load after course is selected
-    setQuizSelectedCourse('');
+  const openQuizDialog = () => {
     setQuizSelectedTopics([]);
-    setQuizTopics([]);
     setQuizDialogOpen(true);
-    if (!studentId) return;
-    // Fetch only enrolled courses for this student
-    const trimester = user.profile?.current_trimester ?? '';
-    if (!trimester) {
-      setQuizEnrolledCourses([]);
-      return;
-    }
-    setQuizCoursesLoading(true);
-    try {
-      const res = await fetch(
-        `/api/performance/students/${studentId}/courses/${encodeURIComponent(trimester)}`,
-      );
-      const data = await res.json();
-      const normalized = Array.isArray(data)
-        ? data.map((c: any) => ({
-            id: c.course_id ?? c.id ?? '',
-            course_name: c.title ?? c.course_name ?? '',
-            course_code: c.code ?? c.course_code ?? '',
-          }))
-        : [];
-      setQuizEnrolledCourses(normalized);
-    } catch {
-      setQuizEnrolledCourses([]);
-    } finally {
-      setQuizCoursesLoading(false);
+    // Reuse already-loaded topics if available, else fetch
+    if (topics.length > 0) {
+      setQuizTopics(topics);
+    } else {
+      loadQuizTopics(courseId);
     }
   };
 
   const handleGenerateQuiz = async () => {
-    if (!studentId || !quizSelectedCourse || quizSelectedTopics.length === 0) return;
+    if (!studentId || !courseId || quizSelectedTopics.length === 0) return;
     setQuizGenerating(true);
     try {
       const res = await fetch('/api/performance/quiz/generate', {
@@ -337,7 +311,7 @@ export default function CourseAssessmentsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           student_id: studentId,
-          course_id: quizSelectedCourse,
+          course_id: courseId,
           topic_ids: quizSelectedTopics,
         }),
       });
@@ -973,42 +947,27 @@ export default function CourseAssessmentsPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Course selection */}
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Course</label>
-              <Select
-                value={quizSelectedCourse}
-                onValueChange={(v) => { setQuizSelectedCourse(v); loadQuizTopics(v); }}
-                disabled={quizCoursesLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={quizCoursesLoading ? 'Loading courses…' : 'Select course'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {quizEnrolledCourses.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.course_code} — {c.course_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Course info (read-only) */}
+            <div className="rounded-lg border p-3 bg-muted/40">
+              <p className="text-xs font-medium text-muted-foreground">Course</p>
+              <p className="text-sm font-semibold mt-0.5">
+                {courseCode}{courseName ? ` — ${courseName}` : ''}
+              </p>
             </div>
 
             {/* Topic multi-select chips */}
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                Topics{quizSelectedTopics.length > 0 && ` (${quizSelectedTopics.length} selected)`}
+                Select Topics{quizSelectedTopics.length > 0 && ` (${quizSelectedTopics.length} selected)`}
               </label>
               {quizTopicsLoading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => <Skeleton key={i} className="h-9 w-full rounded-lg" />)}
+                <div className="flex flex-wrap gap-2">
+                  {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-8 w-24 rounded-full" />)}
                 </div>
               ) : quizTopics.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-2">
-                  {quizSelectedCourse ? 'No topics available for this course.' : 'Select a course first.'}
-                </p>
+                <p className="text-xs text-muted-foreground py-2">No topics available for this course.</p>
               ) : (
-                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto py-1 pr-1">
+                <div className="flex flex-wrap gap-2 max-h-52 overflow-y-auto py-1 pr-1">
                   {quizTopics.map((t) => {
                     const selected = quizSelectedTopics.includes(t.id);
                     return (
@@ -1039,7 +998,7 @@ export default function CourseAssessmentsPage() {
               Cancel
             </Button>
             <Button
-              disabled={quizGenerating || !quizSelectedCourse || quizSelectedTopics.length === 0}
+              disabled={quizGenerating || quizSelectedTopics.length === 0}
               onClick={handleGenerateQuiz}
               className="bg-primary hover:bg-primary/90 gap-2"
             >
