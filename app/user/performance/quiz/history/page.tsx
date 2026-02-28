@@ -234,7 +234,7 @@ export default function QuizHistoryPage() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {history.map((entry) => {
               const pct = entry.percentage != null ? Math.round(entry.percentage) : null;
               const scoreColor = getScoreColor(pct);
@@ -258,8 +258,6 @@ export default function QuizHistoryPage() {
                   className="border hover:border-primary/30 hover:shadow-md transition-all overflow-hidden"
                 >
                   <CardContent className="p-0">
-                    {/* Top accent strip */}
-                    <div className={`h-1 w-full ${accentBar}`} />
 
                     <div className="p-5 space-y-4">
                       {/* Row 1: topics + date + score */}
@@ -326,14 +324,14 @@ export default function QuizHistoryPage() {
                       </div>
 
                       {/* Progress bar */}
-                      {total > 0 && (
+                      {/* {total > 0 && (
                         <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all ${accentBar}`}
                             style={{ width: `${pct ?? 0}%` }}
                           />
                         </div>
-                      )}
+                      )} */}
                     </div>
 
                     {/* Expanded review */}
