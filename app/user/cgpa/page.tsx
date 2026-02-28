@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusIcon, Trash2Icon, CalculatorIcon, TrendingUpIcon, RefreshCwIcon } from 'lucide-react';
+import { PlusIcon, Trash2Icon, CalculatorIcon, TrendingUpIcon, RefreshCwIcon, RotateCcwIcon } from 'lucide-react';
 
 // UIU grading scale
 const GRADES = [
@@ -45,10 +45,12 @@ interface CourseRow {
   courseName: string;
   creditHours: number;
   gradePoint: number;
+  isRetake: boolean;
+  previousGradePoint: number;
 }
 
 let _id = 1;
-const newCourse = (): CourseRow => ({ id: _id++, courseName: '', creditHours: 3, gradePoint: 4.00 });
+const newCourse = (): CourseRow => ({ id: _id++, courseName: '', creditHours: 3, gradePoint: 4.00, isRetake: false, previousGradePoint: 0.00 });
 
 function gpaBadgeColor(gpa: number) {
   if (gpa >= 3.75) return 'bg-green-500/15 text-green-600 border-green-500/30';
@@ -80,6 +82,12 @@ export default function CGPACalculatorPage() {
 
   const addCourse = () => setCourses((prev) => [...prev, newCourse()]);
 
+  const toggleRetake = (id: number) => {
+    setCourses((prev) =>
+      prev.map((c) => (c.id !== id ? c : { ...c, isRetake: !c.isRetake, previousGradePoint: c.isRetake ? 0.00 : c.previousGradePoint }))
+    );
+  };
+
   const removeCourse = (id: number) => {
     if (courses.length > 1) setCourses((prev) => prev.filter((c) => c.id !== id));
   };
@@ -102,14 +110,22 @@ export default function CGPACalculatorPage() {
 
   const prevCGPANum = parseFloat(previousCGPA) || 0;
   const prevCreditsNum = parseInt(creditsCompleted) || 0;
+
+  // Retake courses reuse previously-counted credits; only new courses add credits
+  const newCourseCredits = courses.filter((c) => !c.isRetake).reduce((s, c) => s + c.creditHours, 0);
+  const retakeCourseCredits = courses.filter((c) => c.isRetake).reduce((s, c) => s + c.creditHours, 0);
   const semesterCredits = courses.reduce((s, c) => s + c.creditHours, 0);
-  const totalCredits = prevCreditsNum + semesterCredits;
+  const totalCredits = prevCreditsNum + newCourseCredits;
 
   const cumulativeCGPA = (() => {
     if (totalCredits === 0) return null;
     const prevPts = prevCGPANum * prevCreditsNum;
+    // Subtract old grade contribution for retaken courses
+    const retakeDeduction = courses
+      .filter((c) => c.isRetake)
+      .reduce((s, c) => s + c.previousGradePoint * c.creditHours, 0);
     const semPts = courses.reduce((s, c) => s + c.gradePoint * c.creditHours, 0);
-    return (prevPts + semPts) / totalCredits;
+    return (prevPts - retakeDeduction + semPts) / totalCredits;
   })();
 
   const hasPrevData = prevCGPANum > 0 || prevCreditsNum > 0;
@@ -168,7 +184,9 @@ export default function CGPACalculatorPage() {
                 <p className="text-xs text-muted-foreground">Total Credits</p>
                 <p className="text-2xl font-bold">{totalCredits}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {hasPrevData ? `${prevCreditsNum} prev + ${semesterCredits} this sem` : `${semesterCredits} this semester`}
+                  {hasPrevData
+                    ? `${prevCreditsNum} prev + ${newCourseCredits} new${retakeCourseCredits > 0 ? ` + ${retakeCourseCredits} retake` : ''}`
+                    : `${semesterCredits} this semester`}
                 </p>
               </div>
             </CardContent>
@@ -229,7 +247,8 @@ export default function CGPACalculatorPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {courses.map((course) => (
-              <div key={course.id} className="grid grid-cols-12 gap-2 items-center p-3 sm:p-0 rounded-xl border sm:border-0 sm:rounded-none bg-muted/20 sm:bg-transparent">
+              <div key={course.id} className="grid grid-cols-12 gap-2 items-start p-3 sm:p-2 rounded-xl border sm:border sm:rounded-xl bg-muted/20 sm:bg-muted/10">
+                {/* Row 1: inputs */}
                 <Input
                   className="col-span-11 sm:col-span-5 h-9 text-sm"
                   placeholder="Course name (optional)"
@@ -253,7 +272,7 @@ export default function CGPACalculatorPage() {
                   value={course.gradePoint.toFixed(2)}
                   onValueChange={(v) => handleCourseChange(course.id, 'gradePoint', parseFloat(v))}
                 >
-                  <SelectTrigger className="col-span-6 sm:col-span-4 h-9 text-sm">
+                  <SelectTrigger className="col-span-5 sm:col-span-3 h-9 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -267,12 +286,52 @@ export default function CGPACalculatorPage() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  title={course.isRetake ? 'Remove retake' : 'Mark as retake'}
+                  className={`col-span-1 h-9 w-full p-0 ${
+                    course.isRetake
+                      ? 'text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 hover:text-amber-700'
+                      : 'text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10'
+                  }`}
+                  onClick={() => toggleRetake(course.id)}
+                >
+                  <RotateCcwIcon className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="col-span-1 h-9 w-full p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   disabled={courses.length === 1}
                   onClick={() => removeCourse(course.id)}
                 >
                   <Trash2Icon className="h-4 w-4" />
                 </Button>
+                {/* Row 2: retake previous grade (conditional) */}
+                {course.isRetake && (
+                  <div className="col-span-12 flex flex-wrap items-center gap-2 pt-1 pl-1">
+                    <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                      <RotateCcwIcon className="h-3 w-3" />
+                      Retake — previous grade:
+                    </span>
+                    <Select
+                      value={course.previousGradePoint.toFixed(2)}
+                      onValueChange={(v) => handleCourseChange(course.id, 'previousGradePoint', parseFloat(v))}
+                    >
+                      <SelectTrigger className="h-8 w-[150px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GRADES.map((g) => (
+                          <SelectItem key={g.label} value={g.value.toFixed(2)}>
+                            {g.label} ({g.value.toFixed(2)})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-xs text-muted-foreground">
+                      Old quality pts: {(course.previousGradePoint * course.creditHours).toFixed(2)} → New: {(course.gradePoint * course.creditHours).toFixed(2)}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
 
@@ -310,19 +369,44 @@ export default function CGPACalculatorPage() {
                       .filter((c) => c.courseName.trim() || c.gradePoint > 0)
                       .map((course, i) => {
                         const gradeLabel = GRADES.find((g) => g.value === course.gradePoint)?.label ?? '—';
+                        const prevGradeLabel = GRADES.find((g) => g.value === course.previousGradePoint)?.label ?? '—';
                         return (
                           <TableRow key={i}>
                             <TableCell className="text-sm font-medium px-5 py-4">
-                              {course.courseName || `Course ${i + 1}`}
+                              <span>{course.courseName || `Course ${i + 1}`}</span>
+                              {course.isRetake && (
+                                <Badge className="ml-2 text-xs border bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/10">
+                                  Retake
+                                </Badge>
+                              )}
                             </TableCell>
                             <TableCell className="text-center text-sm px-5 py-4">{course.creditHours}</TableCell>
                             <TableCell className="text-center px-5 py-4">
-                              <Badge className="text-xs border bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
-                                {gradeLabel} ({course.gradePoint.toFixed(2)})
-                              </Badge>
+                              {course.isRetake && (
+                                <div className="flex flex-col items-center gap-1">
+                                  <Badge className="text-xs border bg-muted/50 text-muted-foreground border-muted-foreground/20 line-through hover:bg-muted/50">
+                                    {prevGradeLabel} ({course.previousGradePoint.toFixed(2)})
+                                  </Badge>
+                                  <Badge className="text-xs border bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
+                                    {gradeLabel} ({course.gradePoint.toFixed(2)})
+                                  </Badge>
+                                </div>
+                              )}
+                              {!course.isRetake && (
+                                <Badge className="text-xs border bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
+                                  {gradeLabel} ({course.gradePoint.toFixed(2)})
+                                </Badge>
+                              )}
                             </TableCell>
                             <TableCell className="text-center text-sm font-mono px-5 py-4">
-                              {(course.gradePoint * course.creditHours).toFixed(2)}
+                              {course.isRetake ? (
+                                <span className="flex flex-col items-center gap-0.5">
+                                  <span className="line-through text-muted-foreground text-xs">{(course.previousGradePoint * course.creditHours).toFixed(2)}</span>
+                                  <span>{(course.gradePoint * course.creditHours).toFixed(2)}</span>
+                                </span>
+                              ) : (
+                                (course.gradePoint * course.creditHours).toFixed(2)
+                              )}
                             </TableCell>
                           </TableRow>
                         );

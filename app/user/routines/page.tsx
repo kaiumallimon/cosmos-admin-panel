@@ -311,7 +311,7 @@ export default function RoutinesPage() {
             ))}
           </div>
 
-          <Card className="border shadow-sm">
+          <Card className="p-0 border shadow-sm">
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -362,7 +362,7 @@ export default function RoutinesPage() {
             )}
           </div>
 
-          <Card className="border shadow-sm">
+          <Card className="p-0 border shadow-sm">
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
