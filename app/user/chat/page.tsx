@@ -108,16 +108,25 @@ export default function UserNewChatPage() {
   }, [messages, sending]);
 
   useEffect(() => {
+    const autoPrompt = sessionStorage.getItem('chatAutoPrompt');
+    if (autoPrompt) {
+      sessionStorage.removeItem('chatAutoPrompt');
+      handleSend(autoPrompt);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
     }
   }, [inputValue]);
 
-  const handleSend = async () => {
-    if (!inputValue.trim() || sending) return;
-    const userMessage = inputValue.trim();
-    setInputValue("");
+  const handleSend = async (overrideMessage?: string) => {
+    const userMessage = (overrideMessage ?? inputValue).trim();
+    if (!userMessage || sending) return;
+    if (!overrideMessage) setInputValue("");
     setMessages(prev => [...prev, { role: "human", content: userMessage, metadata: {} }]);
     setSending(true);
     try {
@@ -257,7 +266,7 @@ export default function UserNewChatPage() {
               className="min-h-[60px] max-h-[200px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
               disabled={sending}
             />
-            <Button onClick={handleSend} disabled={!inputValue.trim() || sending} size="icon" className="shrink-0 rounded-xl">
+            <Button onClick={() => handleSend()} disabled={!inputValue.trim() || sending} size="icon" className="shrink-0 rounded-xl">
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>

@@ -313,6 +313,19 @@ export default function CourseAssessmentsPage() {
     }
   };
 
+  const handleTalkToAgent = () => {
+    const coursePart = courseName ? `${courseCode} — ${courseName}` : courseCode;
+    let prompt: string;
+    if (weaknesses.length === 0) {
+      prompt = `I am a student enrolled in **${coursePart}**. I would like you to give me an overview of the key topics in this course and help me study effectively.`;
+    } else {
+      const topicList = weaknesses.map((w, i) => `${i + 1}. ${w.topic_name}`).join('\n');
+      prompt = `I am struggling with the following topics in my course **${coursePart}**:\n\n${topicList}\n\nPlease explain each of these topics clearly and concisely to help me overcome my weaknesses. Use simple language, provide examples where helpful, and structure the explanation so I can understand and revise effectively.`;
+    }
+    sessionStorage.setItem('chatAutoPrompt', prompt);
+    router.push('/user/chat');
+  };
+
   const handleGenerateQuiz = async () => {
     if (!studentId || !courseId || quizSelectedTopics.length === 0) return;
     setQuizGenerating(true);
@@ -843,7 +856,7 @@ export default function CourseAssessmentsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={openQuizDialog}
+                      onClick={handleTalkToAgent}
                       className="gap-1.5"
                       title="Talk to Agent"
                     >
