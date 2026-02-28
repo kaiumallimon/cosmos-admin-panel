@@ -6,9 +6,17 @@ import { useAuthStore } from '@/store/auth';
 import { FrostedHeader } from '@/components/custom/frosted-header';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { useMobileMenu } from '@/components/mobile-menu-context';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +25,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -31,9 +46,10 @@ import {
   TargetIcon,
   BookOpenIcon,
   TrendingUpIcon,
-  ChevronRightIcon,
   RefreshCwIcon,
   HistoryIcon,
+  Search,
+  X,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -56,6 +72,19 @@ interface QuizStats {
   avg_precision: number | null;
 }
 
+interface TrimesterOption {
+  code: string;
+  label: string;
+}
+
+function formatTrimesterLabel(code: string): string {
+  if (code.length !== 3) return code;
+  const year = code.slice(0, 2);
+  const sem = code[2];
+  const semLabel = sem === '1' ? 'Spring' : sem === '2' ? 'Summer' : 'Fall';
+  return `${semLabel} ${year}`;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function QuizIndexPage() {
@@ -64,7 +93,11 @@ export default function QuizIndexPage() {
   const router = useRouter();
 
   const studentId = user.profile?.id;
-  const trimester = user.profile?.current_trimester ?? '';
+  const profileTrimester = user.profile?.current_trimester ?? '';
+
+  // ─── Trimester ───────────────────────────────────────────────────────────
+  const [trimesters, setTrimesters] = useState<TrimesterOption[]>([]);
+  const [viewTrimester, setViewTrimester] = useState<string>(profileTrimester);
 
   // ─── Stats ──────────────────────────────────────────────────────────────
   const [stats, setStats] = useState<QuizStats | null>(null);
@@ -81,6 +114,7 @@ export default function QuizIndexPage() {
   const [topicsLoading, setTopicsLoading] = useState(false);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
 
   // ─── Fetch stats ─────────────────────────────────────────────────────────
   const fetchStats = async () => {
@@ -99,12 +133,13 @@ export default function QuizIndexPage() {
 
   // ─── Fetch enrolled courses ───────────────────────────────────────────────
   const fetchCourses = async () => {
-    if (!studentId || !trimester) { setCoursesLoading(false); return; }
+    if (!studentId) { setCoursesLoading(false); return; }
     setCoursesLoading(true);
     try {
-      const res = await fetch(
-        `/api/performance/students/${studentId}/courses/${encodeURIComponent(trimester)}`,
-      );
+      const url = viewTrimester
+        ? `/api/performance/students/${studentId}/courses/${encodeURIComponent(viewTrimester)}`
+        : `/api/performance/students/${studentId}/courses`;
+      const res = await fetch(url);
       const data = await res.json();
       setCourses(
         Array.isArray(data)
@@ -115,7 +150,8 @@ export default function QuizIndexPage() {
             }))
           : [],
       );
-    } catch {
+    } catch (err) {
+      console.error('Fetch courses error', err);
       setCourses([]);
     } finally {
       setCoursesLoading(false);
@@ -124,8 +160,38 @@ export default function QuizIndexPage() {
 
   useEffect(() => {
     fetchStats();
+  }, [studentId]);
+
+  useEffect(() => {
+    if (!studentId || !viewTrimester) return;
     fetchCourses();
-  }, [studentId, trimester]);
+  }, [studentId, viewTrimester]);
+
+  useEffect(() => {
+    const fetchTrimesters = async () => {
+      try {
+        const res = await fetch('/api/course-management/trimesters');
+        const data = await res.json();
+        const raw: { trimester: string; created_at?: string }[] = Array.isArray(data?.trimesters)
+          ? data.trimesters
+          : [];
+        const sorted = [...raw].sort(
+          (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
+        );
+        const list: TrimesterOption[] = sorted.map((t) => ({
+          code: t.trimester,
+          label: formatTrimesterLabel(t.trimester),
+        }));
+        setTrimesters(list);
+        if (!viewTrimester && list.length > 0) {
+          setViewTrimester(list[0].code);
+        } else if (viewTrimester && list.length > 0 && !list.find((t) => t.code === viewTrimester)) {
+          setViewTrimester(list[0].code);
+        }
+      } catch { /* silent */ }
+    };
+    fetchTrimesters();
+  }, []);
 
   // ─── Open dialog ──────────────────────────────────────────────────────────
   const openDialog = async (course: EnrolledCourse) => {
@@ -252,72 +318,136 @@ export default function QuizIndexPage() {
           )}
         </div>
 
-        {/* Enrolled courses grid */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold">Choose a Course to Start</h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={fetchCourses}
-              className="gap-2 text-muted-foreground"
-            >
-              <RefreshCwIcon className="h-3.5 w-3.5" />
-              Refresh
-            </Button>
-          </div>
-
-          {coursesLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="p-5">
-                  <Skeleton className="h-5 w-16 mb-2" />
-                  <Skeleton className="h-4 w-36 mb-4" />
-                  <Skeleton className="h-9 w-full rounded-md" />
-                </Card>
-              ))}
+        {/* Enrolled courses table */}
+        <Card className="mt-2">
+          <CardHeader>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <CardTitle className="flex items-center gap-2">
+                <BookOpenIcon className="h-5 w-5" />
+                Choose a Course to Start
+              </CardTitle>
+              <div className="flex items-center gap-2 flex-wrap">
+                {trimesters.length > 0 && (
+                  <Select value={viewTrimester} onValueChange={setViewTrimester}>
+                    <SelectTrigger className="w-[180px] h-9 text-sm">
+                      <SelectValue placeholder="Select trimester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {trimesters.map((t) => (
+                        <SelectItem key={t.code} value={t.code}>
+                          <span>{t.label}</span>
+                          <span className="ml-2 text-muted-foreground text-xs">{t.code}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Button variant="outline" size="sm" onClick={fetchCourses}>
+                  <RefreshCwIcon className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          ) : courses.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center border rounded-xl bg-muted/20">
-              <BookOpenIcon className="h-10 w-10 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">
-                No enrolled courses found for the current trimester.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {courses.map((course) => (
-                <Card
-                  key={course.id}
-                  className="group border hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
-                  onClick={() => openDialog(course)}
+          </CardHeader>
+          <CardContent>
+            {/* Search */}
+            <div className="relative mb-6">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by course name or code…"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className={`pl-10 ${searchInput ? 'pr-10' : ''}`}
+              />
+              {searchInput && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSearchInput('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
                 >
-                  <CardContent className="p-5 flex flex-col gap-3 h-full">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <Badge variant="secondary" className="text-xs font-mono mb-2">
-                          {course.course_code}
-                        </Badge>
-                        <p className="text-sm font-semibold leading-snug line-clamp-2">
-                          {course.course_name}
-                        </p>
-                      </div>
-                      <div className="shrink-0 h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary transition-colors">
-                        <BrainCircuitIcon className="h-4 w-4 text-primary group-hover:text-primary-foreground transition-colors" />
-                      </div>
-                    </div>
-                    <div className="mt-auto pt-3 border-t">
-                      <div className="flex items-center gap-1 text-xs text-primary font-medium">
-                        Attempt Quiz
-                        <ChevronRightIcon className="h-3.5 w-3.5" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
             </div>
-          )}
-        </div>
+
+            <div className="bg-white dark:bg-card rounded-lg border shadow-sm overflow-hidden">
+              {coursesLoading ? (
+                <div className="p-4 space-y-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-center space-x-4 py-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="space-y-2 flex-1">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                      <Skeleton className="h-8 w-28 rounded" />
+                    </div>
+                  ))}
+                </div>
+              ) : (() => {
+                const filtered = courses.filter((c) => {
+                  const q = searchInput.toLowerCase();
+                  return (
+                    !searchInput ||
+                    c.course_name.toLowerCase().includes(q) ||
+                    c.course_code.toLowerCase().includes(q)
+                  );
+                });
+                return filtered.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <BookOpenIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No courses found</h3>
+                    <p className="text-muted-foreground">
+                      {searchInput
+                        ? `No courses match "${searchInput}"`
+                        : 'No enrolled courses found for the current trimester.'}
+                    </p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-900/50">
+                        <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Course</TableHead>
+                        <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4">Code</TableHead>
+                        <TableHead className="font-semibold text-gray-900 dark:text-gray-100 py-4 text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.map((course) => (
+                        <TableRow
+                          key={course.id}
+                          className="hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors cursor-pointer"
+                          onClick={() => openDialog(course)}
+                        >
+                          <TableCell className="py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                                <BookOpenIcon className="h-5 w-5 text-primary" />
+                              </div>
+                              <div className="font-medium">{course.course_name}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4 font-mono text-sm font-medium">{course.course_code}</TableCell>
+                          <TableCell className="py-4 text-right">
+                            <Button
+                              size="sm"
+                              className="gap-2 bg-primary hover:bg-primary/90"
+                              onClick={(e) => { e.stopPropagation(); openDialog(course); }}
+                            >
+                              <BrainCircuitIcon className="h-4 w-4" />
+                              Attempt Quiz
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                );
+              })()}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ── Attempt Quiz Dialog ────────────────────────────────────────────── */}
