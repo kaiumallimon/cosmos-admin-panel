@@ -63,6 +63,8 @@ interface Assessment {
   full_marks?: number;
   max_score?: number;
   course_id: string;
+  /** Friendly label resolved at fetch time */
+  course_name?: string;
   ct_no?: number;
 }
 
@@ -115,19 +117,61 @@ export default function PerformanceOverviewPage() {
     const fetchAll = async () => {
       setLoading(true);
       try {
+        // Resolve trimester — use profile value, or fallback to latest from trimesters API
+        let sem = trimester;
+        if (!sem) {
+          try {
+            const tRes = await fetch('/api/course-management/trimesters');
+            const tData = await tRes.json();
+            const sorted = (Array.isArray(tData?.trimesters) ? tData.trimesters : [])
+              .sort((a: { created_at?: string }, b: { created_at?: string }) =>
+                new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+              );
+            sem = sorted[0]?.trimester ?? '';
+          } catch { /* silent */ }
+        }
+
         const [cRes, aRes, wRes] = await Promise.all([
-          trimester
-            ? fetch(`/api/performance/students/${studentId}/courses/${encodeURIComponent(trimester)}`)
+          sem
+            ? fetch(`/api/performance/students/${studentId}/courses/${encodeURIComponent(sem)}`)
             : Promise.resolve(null),
           fetch(`/api/performance/assessments/student/${studentId}`),
           fetch(`/api/performance/weaknesses/${studentId}`),
         ]);
+
+        // Normalize courses so code/name is always at a predictable key
         if (cRes) {
           const cData = await cRes.json();
-          setCourses(Array.isArray(cData) ? cData : []);
+          const normalized: EnrolledCourse[] = Array.isArray(cData)
+            ? cData.map((c: Record<string, string>) => ({
+                course_id: c.course_id ?? c.id ?? '',
+                id: c.id,
+                title: c.title ?? c.course_name ?? '',
+                course_name: c.title ?? c.course_name ?? '',
+                code: c.code ?? c.course_code ?? '',
+                course_code: c.code ?? c.course_code ?? '',
+                trimester: c.trimester ?? sem ?? '',
+              }))
+            : [];
+          setCourses(normalized);
         }
+
+        // Build a quick name map from raw assessment data too (backend may include course_name)
         const aData = await aRes.json();
-        setAssessments(Array.isArray(aData) ? aData : []);
+        setAssessments(
+          Array.isArray(aData)
+            ? aData.map((a: Record<string, string | number>) => ({
+                id: String(a.assessment_id ?? a.id ?? ''),
+                assessment_type: (a.assessment_type ?? 'other') as AssessmentType,
+                marks: Number(a.marks ?? a.score ?? 0),
+                full_marks: Number(a.full_marks ?? a.max_score ?? 1),
+                course_id: String(a.course_id ?? ''),
+                course_name: String(a.course_name ?? a.course_title ?? ''),
+                ct_no: a.ct_no !== undefined ? Number(a.ct_no) : undefined,
+              }))
+            : []
+        );
+
         const wData = await wRes.json();
         setWeaknesses(Array.isArray(wData) ? wData : []);
       } catch {
@@ -167,12 +211,15 @@ export default function PerformanceOverviewPage() {
     }));
   }, [assessments]);
 
-  // Course name map
+  // Course name map — keyed by course_id, value is short human-readable label
   const courseNameMap = useMemo(() => {
     const map: Record<string, string> = {};
     for (const c of courses) {
       const cid = c.course_id ?? c.id ?? '';
-      map[cid] = c.code ?? c.course_code ?? c.title ?? c.course_name ?? cid;
+      if (!cid) continue;
+      // Prefer short code, then title, never fall through to raw UUID
+      const label = (c.code || c.course_code || c.title || c.course_name || '').trim();
+      if (label) map[cid] = label;
     }
     return map;
   }, [courses]);
@@ -180,15 +227,21 @@ export default function PerformanceOverviewPage() {
   // Score per course (bar chart)
   const scoreByCourse = useMemo(() => {
     const groups: Record<string, number[]> = {};
+    const nameHint: Record<string, string> = {};
     for (const a of assessments) {
       if (!a.course_id) continue;
       if (!groups[a.course_id]) groups[a.course_id] = [];
       groups[a.course_id].push(pct(a));
+      // Use assessment's embedded course_name as a lower-priority hint
+      if (!nameHint[a.course_id] && a.course_name) nameHint[a.course_id] = a.course_name;
     }
-    return Object.entries(groups).map(([cid, scores]) => ({
-      course: courseNameMap[cid] ?? cid,
-      avg: Math.round((scores.reduce((s, v) => s + v, 0) / scores.length) * 10) / 10,
-    }));
+    return Object.entries(groups).map(([cid, scores]) => {
+      const label = courseNameMap[cid] || nameHint[cid] || `Course ${cid.slice(0, 6)}…`;
+      return {
+        course: label,
+        avg: Math.round((scores.reduce((s, v) => s + v, 0) / scores.length) * 10) / 10,
+      };
+    });
   }, [assessments, courseNameMap]);
 
   // Assessment type distribution (pie)
