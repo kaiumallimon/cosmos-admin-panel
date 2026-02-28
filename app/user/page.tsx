@@ -37,10 +37,11 @@ import {
   ClipboardListIcon,
   TargetIcon,
   ArrowRightIcon,
+  CheckCircle2Icon,
+  HistoryIcon,
 } from 'lucide-react';
 import { IconCalendarEvent, IconNotification } from '@tabler/icons-react';
 import {
-  ResponsiveContainer,
   RadarChart,
   Radar,
   PolarGrid,
@@ -60,6 +61,8 @@ interface EnrolledCourse {
   trimester: string;
   section?: string | null;
   faculty?: string | null;
+  ct_count?: number;
+  assignment_count?: number;
 }
 
 interface Assessment {
@@ -80,6 +83,7 @@ interface Weakness {
   topic_name: string;
   course_name: string;
   course_id?: string;
+  course_code?: string;
 }
 
 interface Notice {
@@ -124,6 +128,24 @@ function formatNoticeDate(d: string) {
 
 function trimesterLabel(t: string) {
   return t ? t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '—';
+}
+
+// ─── Empty chart placeholder ──────────────────────────────────────────────────
+
+function EmptyChartCard({ title, message }: { title: string; message: string }) {
+  return (
+    <Card className="border shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[268px] flex flex-col items-center justify-center gap-2 text-muted-foreground/50">
+          <BarChart3Icon className="h-10 w-10" />
+          <p className="text-sm text-center">{message}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 // ─── Quick Action ─────────────────────────────────────────────────────────────
@@ -183,11 +205,9 @@ export default function UserDashboardPage() {
     const load = async () => {
       setLoading(true);
       try {
-        // Fetch academic data if student has an id
         if (studentId) {
-          const enrollUrl = trimester
-            ? `/api/performance/enrollments/${studentId}?trimester=${encodeURIComponent(trimester)}`
-            : `/api/performance/enrollments/${studentId}`;
+          // Fetch all enrollments (no trimester filter — same as performance page)
+          const enrollUrl = `/api/performance/enrollments/${studentId}`;
 
           const [cRes, aRes, wRes] = await Promise.all([
             fetch(enrollUrl),
@@ -237,13 +257,13 @@ export default function UserDashboardPage() {
         const nData = await nRes.json();
         setNotices(Array.isArray(nData?.notices) ? nData.notices.slice(0, 5) : []);
       } catch {
-        // silent — user dashboard should not crash
+        // silent
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [studentId, trimester]);
+  }, [studentId]);
 
   // ── Derived analytics ───────────────────────────────────────────────────────
 
@@ -275,6 +295,7 @@ export default function UserDashboardPage() {
     return Object.entries(groups).map(([type, scores]) => ({
       type: TYPE_LABELS[type] ?? type,
       avg: Math.round((scores.reduce((s, v) => s + v, 0) / scores.length) * 10) / 10,
+      count: scores.length,
     }));
   }, [assessments]);
 
@@ -316,33 +337,87 @@ export default function UserDashboardPage() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [assessments]);
 
-  // Weakness by course (pie)
+  // Weakness distribution by course (for progress bars)
   const weaknessByCourse = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const w of weaknesses) {
-      counts[w.course_name ?? 'Unknown'] = (counts[w.course_name ?? 'Unknown'] ?? 0) + 1;
+      const name = w.course_name ?? w.course_id ?? 'Unknown';
+      counts[name] = (counts[name] ?? 0) + 1;
     }
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+    return Object.entries(counts)
+      .map(([course, count]) => ({ course, count }))
+      .sort((a, b) => b.count - a.count);
   }, [weaknesses]);
+
+  // Weakness pie data
+  const weaknessPieData = useMemo(() => {
+    return weaknessByCourse.map(({ course, count }) => ({ name: course, value: count }));
+  }, [weaknessByCourse]);
 
   // Radar data
   const radarData = useMemo(() => scoreByType.map(({ type, avg }) => ({ type, score: avg })), [scoreByType]);
+
+  // Course-wise performance breakdown (from performance page)
+  const coursePerformance = useMemo(() => {
+    return courses.map((c) => {
+      const cid = c.course_id;
+      const name = c.course_title;
+      const credit = c.credit;
+      const faculty = c.faculty ?? '';
+      const sem = c.trimester ?? '';
+      const courseAssessments = assessments.filter((a) => a.course_id === cid);
+      const avg =
+        courseAssessments.length > 0
+          ? Math.round((courseAssessments.reduce((s, a) => s + pct(a), 0) / courseAssessments.length) * 10) / 10
+          : null;
+      const wcCount = weaknesses.filter((w) => w.course_id === cid).length;
+      return { cid, name, credit, faculty, sem, avg, count: courseAssessments.length, wcCount };
+    });
+  }, [courses, assessments, weaknesses]);
 
   // ── Quick actions ──────────────────────────────────────────────────────────
   const quickActions: QuickAction[] = [
     { href: '/user/chat', icon: <MessageCircleIcon className="h-4 w-4" />, label: 'AI Chat', sub: 'Ask your study assistant', color: 'bg-primary/10 text-primary' },
     { href: '/user/roadmap', icon: <MapIcon className="h-4 w-4" />, label: 'Roadmap', sub: 'Visualize learning path', color: 'bg-violet-500/10 text-violet-600' },
-    { href: '/user/performance', icon: <TrendingUpIcon className="h-4 w-4" />, label: 'Performance', sub: 'Detailed analytics', color: 'bg-blue-500/10 text-blue-600' },
     { href: '/user/performance/predict', icon: <SparklesIcon className="h-4 w-4" />, label: 'Grade Prediction', sub: 'AI-powered forecast', color: 'bg-amber-500/10 text-amber-600' },
     { href: '/user/performance/quiz', icon: <Trophy className="h-4 w-4" />, label: 'Quiz', sub: 'Practice questions', color: 'bg-orange-500/10 text-orange-600' },
+    { href: '/user/performance/quiz/history', icon: <HistoryIcon className="h-4 w-4" />, label: 'Quiz History', sub: 'Past quiz results', color: 'bg-fuchsia-500/10 text-fuchsia-600' },
     { href: '/user/study-planner', icon: <IconCalendarEvent className="h-4 w-4" />, label: 'Study Planner', sub: 'Plan study sessions', color: 'bg-teal-500/10 text-teal-600' },
     { href: '/user/cgpa', icon: <CalculatorIcon className="h-4 w-4" />, label: 'CGPA Calculator', sub: 'Simulate scenarios', color: 'bg-green-500/10 text-green-600' },
     { href: '/user/routines', icon: <CalendarDaysIcon className="h-4 w-4" />, label: 'Routines', sub: 'Exam & class schedule', color: 'bg-cyan-500/10 text-cyan-600' },
     { href: '/user/notices', icon: <IconNotification className="h-4 w-4" />, label: 'Notices', sub: 'Official announcements', color: 'bg-rose-500/10 text-rose-600' },
     { href: '/user/academic-calender', icon: <CalendarRangeIcon className="h-4 w-4" />, label: 'Academic Calendar', sub: 'Important dates', color: 'bg-pink-500/10 text-pink-600' },
     { href: '/user/performance/courses', icon: <BookOpenIcon className="h-4 w-4" />, label: 'My Courses', sub: 'Enrolled course details', color: 'bg-indigo-500/10 text-indigo-600' },
+    { href: '/user/performance/weaknesses', icon: <AlertTriangleIcon className="h-4 w-4" />, label: 'Weaknesses', sub: 'Manage weak topics', color: 'bg-amber-500/10 text-amber-500' },
+    { href: '/user/performance/assessments', icon: <ClipboardListIcon className="h-4 w-4" />, label: 'Assessments', sub: 'Scores & results', color: 'bg-blue-500/10 text-blue-600' },
     { href: '/user/settings/profile', icon: <SettingsIcon className="h-4 w-4" />, label: 'Profile Settings', sub: 'Account & preferences', color: 'bg-slate-500/10 text-slate-600' },
   ];
+
+  // ── Loading skeleton ────────────────────────────────────────────────────────
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-full">
+        <FrostedHeader title="Dashboard" subtitle="Your academic overview at a glance." onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
+        <div className="flex-1 p-4 md:p-6 space-y-6">
+          <Skeleton className="h-36 rounded-2xl" />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            {Array(6).fill(0).map((_, i) => (
+              <Card key={i} className="p-6"><Skeleton className="h-4 w-24 mb-2" /><Skeleton className="h-8 w-16 mb-1" /><Skeleton className="h-3 w-32" /></Card>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Skeleton className="h-80 rounded-xl" />
+            <Skeleton className="h-80 rounded-xl" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Skeleton className="h-80 rounded-xl" />
+            <Skeleton className="h-80 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -356,247 +431,325 @@ export default function UserDashboardPage() {
 
       <div className="flex-1 p-4 md:p-6 space-y-6">
 
+        {/* ── Performance Banner ── */}
+        <div className="rounded-2xl bg-primary text-white p-5 sm:p-6 shadow-md">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="h-12 w-12 rounded-full object-cover ring-2 ring-white/30" />
+              ) : (
+                <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center text-white text-lg font-bold ring-2 ring-white/30">
+                  {initials}
+                </div>
+              )}
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold mb-0.5">
+                  {greeting}, {displayName}!
+                </h2>
+                <p className="text-white/80 text-sm">
+                  {profile?.department && <span>{profile.department}</span>}
+                  {profile?.batch && <span> · {profile.batch}</span>}
+                  {profile?.student_id && <span> · <span className="font-mono">{profile.student_id}</span></span>}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              {trimester && (
+                <Badge className="bg-white/20 text-white border-white/30">
+                  {trimesterLabel(trimester)}
+                </Badge>
+              )}
+              {cgpa !== null && (
+                <Badge className="bg-white/20 text-white border-white/30">
+                  CGPA {cgpa.toFixed(2)}
+                </Badge>
+              )}
+            </div>
+          </div>
+          {/* CGPA progress */}
+          {cgpa !== null && (
+            <div className="mt-4">
+              <div className="flex justify-between text-xs text-white/70 mb-1">
+                <span>{completedCredits !== null ? `${completedCredits} credits completed` : ''}</span>
+                <span>{cgpaLabel(cgpa)} · {cgpa.toFixed(2)} / 4.00</span>
+              </div>
+              <div className="h-2 rounded-full bg-white/20 overflow-hidden">
+                <div className="h-full rounded-full bg-white/80 transition-all duration-500" style={{ width: `${(cgpa / 4.0) * 100}%` }} />
+              </div>
+            </div>
+          )}
+          <div className="mt-4 flex gap-2 flex-wrap">
+            <Button asChild size="sm" className="bg-white text-primary hover:bg-white/90 font-semibold gap-2">
+              <Link href="/user/performance/predict">
+                <SparklesIcon className="h-4 w-4" />
+                Predict My Grade
+                <ArrowRightIcon className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="border-white/30 text-white bg-white/10 hover:bg-white/20 gap-2">
+              <Link href="/user/performance/quiz">
+                <BrainCircuitIcon className="h-4 w-4" />
+                Take a Quiz
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="border-white/30 text-white bg-white/10 hover:bg-white/20 gap-2">
+              <Link href="/user/chat">
+                <MessageCircleIcon className="h-4 w-4" />
+                AI Chat
+              </Link>
+            </Button>
+          </div>
+        </div>
+
         {/* ── Key Metrics Cards ── */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {loading ? (
-            Array(6).fill(0).map((_, i) => (
-              <Card key={i} className="p-6">
-                <Skeleton className="h-4 w-24 mb-2" />
-                <Skeleton className="h-8 w-16 mb-1" />
-                <Skeleton className="h-3 w-32" />
-              </Card>
-            ))
+          <StatsCard
+            title="CGPA"
+            value={cgpa !== null ? cgpa.toFixed(2) : '—'}
+            description={cgpa !== null ? cgpaLabel(cgpa) : 'Not available'}
+            icon={GraduationCapIcon}
+          />
+          <StatsCard
+            title="Enrolled Courses"
+            value={courses.length}
+            description={trimester ? trimesterLabel(trimester) : 'Current trimester'}
+            icon={BookOpenIcon}
+          />
+          <StatsCard
+            title="Assessments"
+            value={assessments.length}
+            description={`${passedAssessments} passed`}
+            icon={ClipboardListIcon}
+          />
+          <StatsCard
+            title="Avg Score"
+            value={avgScore !== null ? `${avgScore}%` : 'N/A'}
+            description="Across all types"
+            icon={BarChart3Icon}
+          />
+          <StatsCard
+            title="Best Score"
+            value={bestScore !== null ? `${bestScore}%` : 'N/A'}
+            description="Highest assessment"
+            icon={StarIcon}
+          />
+          <StatsCard
+            title="Weaknesses"
+            value={weaknesses.length}
+            description="Topics to improve"
+            icon={AlertTriangleIcon}
+          />
+        </div>
+
+        {/* ── Charts Row 1: Score by Course + Assessment Distribution ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {scoreByCourse.length > 0 ? (
+            <div className="lg:col-span-2">
+              <DashboardBarChart
+                data={scoreByCourse}
+                dataKey="avg"
+                xAxisKey="course"
+                title="Average Score by Course"
+                description="Performance breakdown across your enrolled courses"
+                multiColor
+              />
+            </div>
           ) : (
-            <>
-              <StatsCard
-                title="CGPA"
-                value={cgpa !== null ? cgpa.toFixed(2) : '—'}
-                description={cgpa !== null ? cgpaLabel(cgpa) : 'Not available'}
-                icon={GraduationCapIcon}
-              />
-              <StatsCard
-                title="Enrolled Courses"
-                value={courses.length}
-                description={trimester ? trimesterLabel(trimester) : 'Current trimester'}
-                icon={BookOpenIcon}
-              />
-              <StatsCard
-                title="Assessments"
-                value={assessments.length}
-                description={`${passedAssessments} passed`}
-                icon={ClipboardListIcon}
-              />
-              <StatsCard
-                title="Avg Score"
-                value={avgScore !== null ? `${avgScore}%` : 'N/A'}
-                description="Across all types"
-                icon={BarChart3Icon}
-              />
-              <StatsCard
-                title="Best Score"
-                value={bestScore !== null ? `${bestScore}%` : 'N/A'}
-                description="Highest assessment"
-                icon={StarIcon}
-              />
-              <StatsCard
-                title="Weaknesses"
-                value={weaknesses.length}
-                description="Topics to improve"
-                icon={AlertTriangleIcon}
-              />
-            </>
+            <div className="lg:col-span-2">
+              <EmptyChartCard title="Average Score by Course" message="No course assessment data yet." />
+            </div>
+          )}
+
+          {typeDistribution.length > 0 ? (
+            <DashboardPieChart
+              data={typeDistribution}
+              title="Assessment Distribution"
+              description="Breakdown by assessment type"
+            />
+          ) : (
+            <EmptyChartCard title="Assessment Distribution" message="No assessments recorded yet." />
           )}
         </div>
 
-        {/* ── Academic Progress Bar ── */}
-        {!loading && cgpa !== null && (
-          <Card>
-            <CardContent className="py-4 px-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="Avatar" className="h-10 w-10 rounded-full object-cover ring-2 ring-border" />
-                  ) : (
-                    <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-bold ring-2 ring-border">
-                      {initials}
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-semibold">{greeting}, {displayName}!</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {profile?.department && <span>{profile.department}</span>}
-                      {profile?.batch && <><span>·</span><span>{profile.batch}</span></>}
-                      {profile?.student_id && <><span>·</span><span className="font-mono">{profile.student_id}</span></>}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1 rounded-full border ${cgpaBadgeClass(cgpa)}`}>
-                    <GraduationCapIcon className="h-3.5 w-3.5" />
-                    {cgpa.toFixed(2)} / 4.00
-                  </span>
-                </div>
+        {/* ── Charts Row 2: Score by Type + Radar ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {scoreByType.length > 0 ? (
+            <DashboardBarChart
+              data={scoreByType}
+              dataKey="avg"
+              xAxisKey="type"
+              title="Average Score by Type"
+              description="How you perform across different assessment types"
+              multiColor
+            />
+          ) : (
+            <EmptyChartCard title="Average Score by Type" message="No assessments recorded yet." />
+          )}
+
+          {radarData.length >= 3 ? (
+            <ChartCard title="Performance Radar" description="Relative strength across assessment types">
+              <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
+                <PolarGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+                <PolarAngleAxis dataKey="type" tick={{ fontSize: 12, fill: '#64748b', fontWeight: 500 }} />
+                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10, fill: '#94a3b8' }} tickCount={5} axisLine={false} />
+                <Radar
+                  name="Score %"
+                  dataKey="score"
+                  stroke="hsl(34, 100%, 50%)"
+                  fill="hsl(34, 100%, 50%)"
+                  fillOpacity={0.45}
+                  strokeWidth={2.5}
+                  dot={{ r: 4, fill: 'hsl(34, 100%, 50%)', strokeWidth: 0 }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                  }}
+                  formatter={(val: number) => [`${val}%`, 'Score']}
+                />
+              </RadarChart>
+            </ChartCard>
+          ) : (
+            <EmptyChartCard title="Performance Radar" message="Need at least 3 assessment types for radar." />
+          )}
+        </div>
+
+        {/* ── Course-wise Breakdown ────────────────────────────────────────── */}
+        {coursePerformance.length > 0 && (
+          <Card className="border shadow-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TargetIcon className="h-4 w-4 text-primary" />
+                  Course-wise Breakdown
+                </CardTitle>
+                <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" asChild>
+                  <Link href="/user/performance/courses">View all <ChevronRightIcon className="h-3 w-3" /></Link>
+                </Button>
               </div>
-              <Progress value={(cgpa / 4.0) * 100} className="h-2" />
-              <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                <span>{completedCredits !== null ? `${completedCredits} credits completed` : ''}</span>
-                <span>{trimesterCredits > 0 ? `${trimesterCredits} credits this trimester` : ''}</span>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border">
+                {coursePerformance.map((c, i) => {
+                  const color =
+                    c.avg === null ? '#94a3b8'
+                    : c.avg >= 80 ? '#16a34a'
+                    : c.avg >= 60 ? '#d97706'
+                    : '#dc2626';
+                  const bgTint =
+                    c.avg === null ? ''
+                    : c.avg >= 80 ? 'hover:bg-green-50/60 dark:hover:bg-green-950/20'
+                    : c.avg >= 60 ? 'hover:bg-amber-50/60 dark:hover:bg-amber-950/20'
+                    : 'hover:bg-red-50/60 dark:hover:bg-red-950/20';
+                  return (
+                    <div key={c.cid} className={`flex items-center gap-4 px-5 sm:px-6 py-5 transition-colors ${bgTint}`}>
+                      <div
+                        className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                        style={{ backgroundColor: color }}
+                      >
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-semibold leading-tight truncate">{c.name}</p>
+                          <Badge variant="outline" className="text-[10px] font-semibold shrink-0 px-1.5 py-0">
+                            {c.credit} cr
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {[c.faculty, c.sem].filter(Boolean).join(' · ')}
+                          {' · '}{c.count} assessment{c.count !== 1 ? 's' : ''}
+                          {c.wcCount > 0 && ` · ${c.wcCount} weakness${c.wcCount !== 1 ? 'es' : ''}`}
+                        </p>
+                        <div className="flex items-center gap-2 pt-0.5">
+                          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{ width: `${c.avg ?? 0}%`, backgroundColor: color }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        className="shrink-0 w-16 h-10 rounded-lg flex items-center justify-center text-sm font-bold text-white shadow-sm"
+                        style={{ backgroundColor: color }}
+                      >
+                        {c.avg !== null ? `${c.avg}%` : '—'}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* ── Charts Section ── */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {loading ? (
-            Array(3).fill(0).map((_, i) => (
-              <Card key={i} className="p-6">
-                <Skeleton className="h-6 w-32 mb-4" />
-                <Skeleton className="h-[300px] w-full" />
-              </Card>
-            ))
-          ) : (
-            <>
-              {/* Scores by course (bar) */}
-              {scoreByCourse.length > 0 && (
-                <div className="lg:col-span-2">
-                  <DashboardBarChart
-                    data={scoreByCourse}
-                    dataKey="avg"
-                    xAxisKey="course"
-                    title="Average Score by Course"
-                    description="Performance breakdown across your enrolled courses"
-                    multiColor
-                  />
-                </div>
-              )}
-
-              {/* Assessment type distribution (pie) */}
-              {typeDistribution.length > 0 && (
-                <DashboardPieChart
-                  data={typeDistribution}
-                  title="Assessment Distribution"
-                  description="Breakdown by assessment type"
-                />
-              )}
-
-              {/* Scores by type (bar) */}
-              {scoreByType.length > 0 && (
-                <div className="lg:col-span-2">
-                  <DashboardBarChart
-                    data={scoreByType}
-                    dataKey="avg"
-                    xAxisKey="type"
-                    title="Average Score by Type"
-                    description="How you perform across different assessment types"
-                    multiColor
-                  />
-                </div>
-              )}
-
-              {/* Weakness distribution (pie) */}
-              {weaknessByCourse.length > 0 && (
-                <DashboardPieChart
-                  data={weaknessByCourse}
-                  title="Weakness Areas"
-                  description="Weak topics by course"
-                />
-              )}
-
-              {/* Radar chart — skill profile */}
-              {radarData.length >= 3 && (
-                <ChartCard title="Skill Radar" description="Performance profile across assessment types">
-                  <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-                    <PolarGrid stroke="rgba(128,128,128,0.2)" />
-                    <PolarAngleAxis dataKey="type" tick={{ fontSize: 11, fill: '#888' }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
-                    <Radar
-                      name="Score"
-                      dataKey="score"
-                      stroke="hsl(34, 100%, 50%)"
-                      fill="hsl(34, 100%, 50%)"
-                      fillOpacity={0.2}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--background))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px',
-                      }}
-                      formatter={(val: number) => [`${val}%`, 'Avg Score']}
-                    />
-                  </RadarChart>
-                </ChartCard>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* ── Bottom Grid: Courses / Notices / Quick Nav ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-
-          {/* Current Courses + Notices (left 2 cols) */}
-          <div className="lg:col-span-2 space-y-6">
-
-            {/* Enrolled Courses */}
-            <Card>
-              <CardHeader className="pb-4">
+        {/* ── Weakness Analysis ────────────────────────────────────────────── */}
+        {weaknesses.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card className="border shadow-sm">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <BookOpenIcon className="h-5 w-5 text-primary" />
-                    Current Courses
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <AlertTriangleIcon className="h-4 w-4 text-amber-500" />
+                    Weaknesses by Course
                   </CardTitle>
                   <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" asChild>
-                    <Link href="/user/performance/courses">View all <ChevronRightIcon className="h-3 w-3" /></Link>
+                    <Link href="/user/performance/weaknesses">Manage <ChevronRightIcon className="h-3 w-3" /></Link>
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {Array(4).fill(0).map((_, i) => (
-                      <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-muted/30">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="space-y-2 flex-1">
-                          <Skeleton className="h-4 w-full" />
-                          <Skeleton className="h-3 w-24" />
-                        </div>
+              <CardContent className="space-y-3">
+                {weaknessByCourse.map(({ course, count }) => {
+                  const max = weaknessByCourse[0]?.count ?? 1;
+                  return (
+                    <div key={course} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground truncate max-w-[70%]">{course}</span>
+                        <span className="font-semibold">{count}</span>
                       </div>
-                    ))}
-                  </div>
-                ) : courses.length === 0 ? (
-                  <div className="text-center py-10">
-                    <BookOpenIcon className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground mb-3">No courses enrolled yet</p>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/user/performance/courses">Manage Courses</Link>
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {courses.map((c) => (
-                      <div
-                        key={c.enrollment_id}
-                        className="flex items-start gap-4 p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all duration-200 border border-border shadow-sm hover:shadow-md"
-                      >
-                        <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0">
-                          <BookOpenIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium line-clamp-1">{c.course_title || 'Unnamed Course'}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {[c.faculty, c.section ? `Sec ${c.section}` : null].filter(Boolean).join(' · ') || '—'}
-                          </p>
-                          <Badge variant="outline" className="mt-1.5 text-xs">{c.credit} credit{c.credit !== 1 ? 's' : ''}</Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      <Progress value={(count / max) * 100} className="h-1.5" />
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
 
-            {/* Latest Notices */}
+            <Card className="border shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CheckCircle2Icon className="h-4 w-4 text-primary" />
+                  Topics to Improve
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {weaknesses.slice(0, 16).map((w) => (
+                    <Badge key={w.id} variant="secondary" className="text-xs gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block shrink-0" />
+                      {w.topic_name}
+                      {w.course_code && (
+                        <span className="text-muted-foreground ml-0.5">· {w.course_code}</span>
+                      )}
+                    </Badge>
+                  ))}
+                  {weaknesses.length > 16 && (
+                    <Badge variant="outline" className="text-xs">+{weaknesses.length - 16} more</Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* ── Bottom Grid: Notices / Quick Nav ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+          {/* Left (2 cols): Notices */}
+          <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
@@ -610,19 +763,7 @@ export default function UserDashboardPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                {loading ? (
-                  <div className="space-y-3">
-                    {Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-muted/30">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="space-y-2 flex-1">
-                          <Skeleton className="h-4 w-full" />
-                          <Skeleton className="h-3 w-32" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : notices.length === 0 ? (
+                {notices.length === 0 ? (
                   <div className="text-center py-10">
                     <BellIcon className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
                     <p className="text-sm text-muted-foreground">No notices available</p>
@@ -652,40 +793,40 @@ export default function UserDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Weaknesses Table */}
-            {!loading && weaknesses.length > 0 && (
-              <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <AlertTriangleIcon className="h-5 w-5 text-amber-500" />
-                    Weak Topics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {weaknesses.slice(0, 6).map((w) => (
-                      <div
-                        key={w.id}
-                        className="flex items-start gap-4 p-4 rounded-xl bg-muted/30 border border-border shadow-sm"
-                      >
-                        <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 flex items-center justify-center shrink-0">
-                          <TargetIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            {/* Performance Quick Access */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Performance Quick Access
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {[
+                  { label: 'My Courses', href: '/user/performance/courses', icon: BookOpenIcon, color: 'text-blue-500', bg: 'bg-blue-500/10', desc: 'Enrolled courses' },
+                  { label: 'Assessments', href: '/user/performance/assessments', icon: ClipboardListIcon, color: 'text-green-500', bg: 'bg-green-500/10', desc: 'Scores & results' },
+                  { label: 'Weaknesses', href: '/user/performance/weaknesses', icon: AlertTriangleIcon, color: 'text-amber-500', bg: 'bg-amber-500/10', desc: 'Areas to improve' },
+                  { label: 'Quiz', href: '/user/performance/quiz', icon: BrainCircuitIcon, color: 'text-purple-500', bg: 'bg-purple-500/10', desc: 'AI-generated practice' },
+                  { label: 'Grade Predict', href: '/user/performance/predict', icon: SparklesIcon, color: 'text-pink-500', bg: 'bg-pink-500/10', desc: 'Final grade forecast' },
+                ].map((item) => (
+                  <Link key={item.href} href={item.href}>
+                    <Card className="border shadow-sm hover:shadow-md hover:border-primary/30 transition-all cursor-pointer h-full group">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className={`rounded-xl p-2 shrink-0 ${item.bg} group-hover:scale-110 transition-transform`}>
+                          <item.icon className={`h-4 w-4 ${item.color}`} />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium line-clamp-1">{w.topic_name}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{w.course_name}</p>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm truncate">{item.label}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{item.desc}</p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                        <ArrowRightIcon className="h-3.5 w-3.5 text-muted-foreground/50 ml-auto shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Right column: Quick Nav */}
           <div className="space-y-6">
-
             {/* AI CTA */}
             <Card className="border-primary/20 bg-primary/5">
               <CardContent className="p-5">

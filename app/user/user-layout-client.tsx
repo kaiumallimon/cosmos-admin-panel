@@ -27,7 +27,6 @@ import {
   ClipboardListIcon,
   Trophy,
   SparklesIcon,
-  TrendingUpIcon,
   CalculatorIcon,
   CalendarDaysIcon,
   HistoryIcon,
@@ -162,7 +161,6 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           </div>
 
           {([
-            { href: '/user/performance', label: 'Overview', icon: TrendingUpIcon, exact: true },
             { href: '/user/performance/courses', label: 'My Courses', icon: BookOpenIcon, exact: false },
             { href: '/user/performance/quiz', label: 'Quiz', icon: Trophy, exact: false },
             { href: '/user/performance/quiz/history', label: 'Quiz History', icon: HistoryIcon, exact: false },
