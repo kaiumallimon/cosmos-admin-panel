@@ -6,6 +6,7 @@ import { useMobileMenu } from '@/components/mobile-menu-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -17,12 +18,13 @@ import {
 import Link from 'next/link';
 import {
   CalendarIcon,
-  ChevronRightIcon as ArrowRightIcon,
+  ChevronRightIcon,
   RefreshCwIcon,
   BellIcon,
   ChevronLeftIcon,
-  ChevronRightIcon,
   AlertTriangleIcon,
+  FileTextIcon,
+  ArrowRightIcon,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -48,18 +50,15 @@ interface NoticeListResponse {
 
 function NoticeSkeleton() {
   return (
-    <Card className="border">
-      <CardContent className="p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 space-y-2 min-w-0">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-3/4" />
-          </div>
-          <Skeleton className="h-8 w-20 shrink-0 rounded-lg" />
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex items-start gap-4 p-4 sm:p-5 border-b border-border last:border-b-0">
+      <div className="h-9 w-9 rounded-xl bg-muted shrink-0" />
+      <div className="flex-1 min-w-0 space-y-2">
+        <Skeleton className="h-3.5 w-28" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-2/3" />
+      </div>
+      <Skeleton className="h-4 w-4 shrink-0 mt-2.5" />
+    </div>
   );
 }
 
@@ -81,8 +80,8 @@ export default function NoticesPage() {
       if (!res.ok) throw new Error('Failed to fetch notices.');
       const json: NoticeListResponse = await res.json();
       setData(json);
-    } catch (err: any) {
-      setError(err.message ?? 'Something went wrong.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
       setLoading(false);
     }
@@ -93,9 +92,6 @@ export default function NoticesPage() {
   }, [page]);
 
   const totalPages = data?.pagination.total_pages ?? 1;
-
-  const handlePrev = () => setPage((p) => Math.max(1, p - 1));
-  const handleNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
   return (
     <div className="min-h-screen bg-background">
@@ -115,27 +111,54 @@ export default function NoticesPage() {
           </BreadcrumbList>
         </Breadcrumb>
 
-        {/* Page header row */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <BellIcon className="h-5 w-5 text-primary" />
-              Official Notices
-            </h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Latest official notices from the university
-            </p>
+        {/* Hero banner */}
+        <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-orange-500/15 via-orange-400/8 to-transparent border border-orange-500/20 p-6 sm:p-8">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-orange-400/10 via-transparent to-transparent pointer-events-none" />
+          <div className="relative flex items-start justify-between gap-4 flex-wrap">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-xl bg-orange-500/20 flex items-center justify-center">
+                  <BellIcon className="h-4 w-4 text-orange-500" />
+                </div>
+                <Badge variant="secondary" className="text-xs bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20 hover:bg-orange-500/15">
+                  Official
+                </Badge>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">University Notices</h1>
+              <p className="text-sm text-muted-foreground max-w-lg">
+                Stay up to date with official announcements, academic schedules, and important updates from the university.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 border-orange-500/30 hover:bg-orange-500/10 hover:text-orange-600 hover:border-orange-500/50 shrink-0"
+              onClick={() => fetchNotices(page)}
+              disabled={loading}
+            >
+              <RefreshCwIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => fetchNotices(page)}
-            disabled={loading}
-          >
-            <RefreshCwIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+
+          {!loading && data && (
+            <div className="relative mt-5 pt-5 border-t border-orange-500/15 flex items-center gap-6 flex-wrap">
+              <div>
+                <p className="text-2xl font-bold text-foreground">{data.notices.length}</p>
+                <p className="text-xs text-muted-foreground">On this page</p>
+              </div>
+              <div className="w-px h-8 bg-border hidden sm:block" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{totalPages}</p>
+                <p className="text-xs text-muted-foreground">Total pages</p>
+              </div>
+              <div className="w-px h-8 bg-border hidden sm:block" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{page}</p>
+                <p className="text-xs text-muted-foreground">Current page</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Error state */}
@@ -159,57 +182,73 @@ export default function NoticesPage() {
         )}
 
         {/* Notice list */}
-        <div className="space-y-3">
-          {loading
-            ? Array.from({ length: 10 }).map((_, i) => <NoticeSkeleton key={i} />)
-            : !error && data && data.notices.length === 0
-              ? (
-                <div className="text-center py-16">
-                  <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-                    <BellIcon className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">No notices found.</p>
-                </div>
-              )
-              : data?.notices.map((notice, idx) => {
+        <Card className="border overflow-hidden">
+          {loading ? (
+            <div>
+              {Array.from({ length: 10 }).map((_, i) => (
+                <NoticeSkeleton key={i} />
+              ))}
+            </div>
+          ) : !error && data && data.notices.length === 0 ? (
+            <CardContent className="py-20 flex flex-col items-center gap-3">
+              <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center">
+                <BellIcon className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">No notices found for this page.</p>
+            </CardContent>
+          ) : (
+            <div>
+              {data?.notices.map((notice, idx) => {
                 const slug = notice.url.split('/notice/')[1]?.replace(/\/$/, '') ?? '';
+                const href = slug ? `/user/notices/${slug}` : notice.url;
+                const isExternal = !slug;
+
                 return (
-                  <Link key={idx} href={slug ? `/user/notices/${slug}` : notice.url} target={slug ? undefined : '_blank'} rel={slug ? undefined : 'noopener noreferrer'}>
-                    <Card className="border hover:border-primary/30 hover:shadow-md transition-all cursor-pointer">
-                      <CardContent className="p-4 sm:p-5">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0 space-y-1.5">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
-                              <span>{notice.date}</span>
-                            </div>
-                            <p className="text-sm font-medium leading-snug text-foreground">
-                              {notice.title}
-                            </p>
-                          </div>
-                          <ArrowRightIcon className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
-                        </div>
-                      </CardContent>
-                    </Card>
+                  <Link
+                    key={idx}
+                    href={href}
+                    target={isExternal ? '_blank' : undefined}
+                    rel={isExternal ? 'noopener noreferrer' : undefined}
+                    className="flex items-start gap-4 p-4 sm:p-5 border-b border-border last:border-b-0 hover:bg-muted/40 transition-colors group"
+                  >
+                    {/* Icon */}
+                    <div className="h-9 w-9 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0 group-hover:bg-orange-500/20 transition-colors mt-0.5">
+                      <FileTextIcon className="h-4 w-4 text-orange-500" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <CalendarIcon className="h-3 w-3 shrink-0" />
+                        <span>{notice.date}</span>
+                      </div>
+                      <p className="text-sm font-medium leading-snug text-foreground group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+                        {notice.title}
+                      </p>
+                    </div>
+
+                    {/* Arrow */}
+                    <ChevronRightIcon className="h-4 w-4 text-muted-foreground shrink-0 mt-2.5 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all" />
                   </Link>
                 );
-              })
-          }
-        </div>
+              })}
+            </div>
+          )}
+        </Card>
 
         {/* Pagination */}
         {!loading && !error && data && totalPages > 1 && (
-          <div className="flex items-center justify-between pt-2 flex-wrap gap-3">
+          <div className="flex items-center justify-between pt-1 flex-wrap gap-3">
             <p className="text-xs text-muted-foreground">
-              Page <span className="font-medium text-foreground">{page}</span> of{' '}
-              <span className="font-medium text-foreground">{totalPages}</span>
+              Page <span className="font-semibold text-foreground">{page}</span> of{' '}
+              <span className="font-semibold text-foreground">{totalPages}</span>
             </p>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 className="gap-1.5 h-8"
-                onClick={handlePrev}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
               >
                 <ChevronLeftIcon className="h-4 w-4" />
@@ -218,8 +257,8 @@ export default function NoticesPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 h-8"
-                onClick={handleNext}
+                className="gap-1.5 h-8 border-orange-500/30 hover:bg-orange-500/10 hover:text-orange-600 hover:border-orange-500/50"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
               >
                 Next

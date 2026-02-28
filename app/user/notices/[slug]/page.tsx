@@ -15,47 +15,80 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import Link from 'next/link';
 import {
   CalendarIcon,
   ExternalLinkIcon,
   ArrowLeftIcon,
   AlertTriangleIcon,
   BellIcon,
+  ChevronRightIcon,
+  FileTextIcon,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface RelatedNotice {
+  date: string;
+  title: string;
+  url: string;
+}
 
 interface NoticeDetail {
   title: string;
   publish_date: string;
   content_html: string;
   content_text: string;
+  related_notices?: RelatedNotice[];
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function DetailSkeleton() {
+function slugFromUrl(url: string): string {
+  return url.split('/notice/')[1]?.replace(/\/$/, '') ?? '';
+}
+
+// ─── Skeletons ────────────────────────────────────────────────────────────────
+
+function ContentSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="space-y-3">
         <Skeleton className="h-4 w-36" />
+        <Skeleton className="h-8 w-full" />
         <Skeleton className="h-8 w-3/4" />
-        <Skeleton className="h-8 w-1/2" />
+        <div className="flex items-center justify-between pt-1">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-8 w-36" />
+        </div>
       </div>
       <Card className="border">
         <CardContent className="p-6 space-y-3">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-5/6" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-4/5" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-2/3" />
+          {Array.from({ length: 9 }).map((_, i) => (
+            <Skeleton key={i} className={`h-4 ${i % 3 === 2 ? 'w-4/5' : 'w-full'}`} />
+          ))}
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function SidebarSkeleton() {
+  return (
+    <Card className="border">
+      <CardContent className="p-4 space-y-3">
+        <Skeleton className="h-4 w-32" />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-start gap-2 py-2">
+            <Skeleton className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3.5 w-full" />
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -92,11 +125,13 @@ export default function NoticeDetailPage() {
   // External URL to the original notice
   const externalUrl = `https://www.uiu.ac.bd/notice/${slug}/`;
 
+  const relatedNotices = data?.related_notices ?? [];
+
   return (
     <div className="min-h-screen bg-background">
       <FrostedHeader title="Notice Detail" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
 
-      <div className="p-6 space-y-6 max-w-4xl">
+      <div className="p-6 space-y-6">
         {/* Breadcrumb */}
         <Breadcrumb>
           <BreadcrumbList>
@@ -127,10 +162,8 @@ export default function NoticeDetailPage() {
           Back to Notices
         </Button>
 
-        {/* Content */}
-        {loading ? (
-          <DetailSkeleton />
-        ) : error ? (
+        {/* Error state */}
+        {error && (
           <Card className="border-destructive/30 bg-destructive/5">
             <CardContent className="p-5 flex items-center gap-3">
               <AlertTriangleIcon className="h-5 w-5 text-destructive shrink-0" />
@@ -147,67 +180,119 @@ export default function NoticeDetailPage() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {/* Two-column layout */}
+        {loading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+            <ContentSkeleton />
+            <SidebarSkeleton />
+          </div>
         ) : data ? (
-          <div className="space-y-5">
-            {/* Title + meta */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <BellIcon className="h-4 w-4 text-primary" />
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+
+            {/* ── Main content ── */}
+            <div className="space-y-5">
+              {/* Title + meta */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-7 w-7 rounded-lg bg-orange-500/15 flex items-center justify-center shrink-0">
+                    <BellIcon className="h-4 w-4 text-orange-500" />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Official Notice
+                  </span>
                 </div>
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Official Notice
-                </span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-bold leading-snug text-foreground">
-                {data.title}
-              </h1>
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <CalendarIcon className="h-4 w-4 shrink-0" />
-                  {data.publish_date}
+                <h1 className="text-xl sm:text-2xl font-bold leading-snug text-foreground">
+                  {data.title}
+                </h1>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <CalendarIcon className="h-4 w-4 shrink-0" />
+                    {data.publish_date}
+                  </div>
+                  <a href={externalUrl} target="_blank" rel="noopener noreferrer">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 h-8 text-xs hover:border-orange-500/40 hover:text-orange-600"
+                    >
+                      <ExternalLinkIcon className="h-3.5 w-3.5" />
+                      View on UIU website
+                    </Button>
+                  </a>
                 </div>
-                <a
-                  href={externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 h-8 text-xs hover:border-primary/40 hover:text-primary"
-                  >
-                    <ExternalLinkIcon className="h-3.5 w-3.5" />
-                    View on UIU website
-                  </Button>
-                </a>
               </div>
+
+              {/* Notice body */}
+              <Card className="border">
+                <CardContent className="p-5 sm:p-7">
+                  <div className="overflow-x-auto">
+                    <div
+                      className="prose prose-sm dark:prose-invert max-w-none
+                        prose-p:text-foreground prose-headings:text-foreground
+                        prose-strong:text-foreground
+                        prose-blockquote:border-l-orange-500 prose-blockquote:text-muted-foreground
+                        prose-a:text-orange-500 prose-a:no-underline hover:prose-a:underline
+                        prose-table:w-full prose-table:border-collapse
+                        prose-thead:bg-muted/50
+                        prose-th:border prose-th:border-border prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold prose-th:text-foreground
+                        prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2 prose-td:text-foreground
+                        prose-tr:border-b prose-tr:border-border
+                        [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm
+                        [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:bg-muted/50
+                        [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2
+                        [&_tr:nth-child(even)_td]:bg-muted/20"
+                      dangerouslySetInnerHTML={{ __html: data.content_html }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            {/* Notice body */}
-            <Card className="border">
-              <CardContent className="p-5 sm:p-7">
-                <div className="overflow-x-auto">
-                  <div
-                    className="prose prose-sm dark:prose-invert max-w-none
-                      prose-p:text-foreground prose-headings:text-foreground
-                      prose-strong:text-foreground
-                      prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground
-                      prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                      prose-table:w-full prose-table:border-collapse
-                      prose-thead:bg-muted/50
-                      prose-th:border prose-th:border-border prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold prose-th:text-foreground
-                      prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2 prose-td:text-foreground
-                      prose-tr:border-b prose-tr:border-border
-                      [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm
-                      [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:bg-muted/50
-                      [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2
-                      [&_tr:nth-child(even)]:bg-muted/20"
-                    dangerouslySetInnerHTML={{ __html: data.content_html }}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            {/* ── Sidebar: Related Notices ── */}
+            {relatedNotices.length > 0 && (
+              <div className="space-y-4">
+                <Card className="border sticky top-20">
+                  <div className="px-4 pt-4 pb-3 border-b border-border">
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-md bg-orange-500/15 flex items-center justify-center shrink-0">
+                        <FileTextIcon className="h-3.5 w-3.5 text-orange-500" />
+                      </div>
+                      <p className="text-sm font-semibold text-foreground">Related Notices</p>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {relatedNotices.map((item, idx) => {
+                      const itemSlug = slugFromUrl(item.url);
+                      const href = itemSlug ? `/user/notices/${itemSlug}` : item.url;
+                      const isExternal = !itemSlug;
+                      return (
+                        <Link
+                          key={idx}
+                          href={href}
+                          target={isExternal ? '_blank' : undefined}
+                          rel={isExternal ? 'noopener noreferrer' : undefined}
+                          className="flex items-start gap-3 px-4 py-3 hover:bg-muted/40 transition-colors group"
+                        >
+                          <div className="flex-1 min-w-0 space-y-0.5">
+                            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                              <CalendarIcon className="h-3 w-3 shrink-0" />
+                              <span>{item.date}</span>
+                            </div>
+                            <p className="text-xs font-medium leading-snug text-foreground group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors line-clamp-2">
+                              {item.title}
+                            </p>
+                          </div>
+                          <ChevronRightIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-1.5 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </Card>
+              </div>
+            )}
+
           </div>
         ) : null}
       </div>
