@@ -450,7 +450,7 @@ export default function ThreadChatPage() {
 
                     <div className={cn(
                       "prose dark:prose-invert max-w-none prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 prose-pre:rounded-none prose-pre:border-0 prose-code:before:content-none prose-code:after:content-none prose-code:bg-transparent",
-                      message.role === "human" && "prose-invert text-foreground"
+                      message.role === "human" && "text-foreground"
                     )}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                         {message.content}
