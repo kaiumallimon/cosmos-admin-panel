@@ -310,24 +310,71 @@ export default function AcademicCalendarDetailPage() {
             </Card>
 
             {/* Extra details */}
-            {data.extra_details && (
-              <Card className="border overflow-hidden">
-                <div className="relative px-4 py-3.5 bg-linear-to-r from-blue-500/10 to-transparent border-b border-border">
-                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-blue-500 rounded-r-full" />
-                  <div className="flex items-center gap-2">
-                    <div className="h-6 w-6 rounded-md bg-blue-500/15 flex items-center justify-center shrink-0">
-                      <InfoIcon className="h-3.5 w-3.5 text-blue-500" />
+            {data.extra_details && (() => {
+              // Merge orphaned ordinal lines (e.g. "1\nst" → "1st")
+              const merged = data.extra_details
+                .replace(/(\d)\n(st|nd|rd|th)\n?/g, '$1$2 ')
+                .replace(/\n{3,}/g, '\n\n');
+
+              // Split into non-empty lines
+              const lines = merged.split('\n').filter(l => l.trim().length > 0);
+
+              return (
+                <Card className="border overflow-hidden">
+                  <div className="relative px-4 py-3.5 bg-linear-to-r from-blue-500/10 to-transparent border-b border-border">
+                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-blue-500 rounded-r-full" />
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-md bg-blue-500/15 flex items-center justify-center shrink-0">
+                        <InfoIcon className="h-3.5 w-3.5 text-blue-500" />
+                      </div>
+                      <p className="text-sm font-semibold text-foreground">Additional Notes</p>
                     </div>
-                    <p className="text-sm font-semibold text-foreground">Additional Notes</p>
                   </div>
-                </div>
-                <CardContent className="p-5">
-                  <pre className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap font-sans">
-                    {data.extra_details}
-                  </pre>
-                </CardContent>
-              </Card>
-            )}
+                  <div className="p-5 space-y-2">
+                    {lines.map((line, i) => {
+                      const trimmed = line.trim();
+                      // Footnote lines: start with * or ** or ***
+                      const footnoteMatch = trimmed.match(/^(\*+)\s*(.*)/);
+                      if (footnoteMatch) {
+                        const stars = footnoteMatch[1];
+                        const text = footnoteMatch[2];
+                        return (
+                          <div key={i} className="flex gap-2 items-start">
+                            <span className="shrink-0 mt-0.5 text-[11px] font-bold text-blue-500 leading-relaxed w-5 text-right">
+                              {stars}
+                            </span>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{text}</p>
+                          </div>
+                        );
+                      }
+                      // Bullet lines: start with •
+                      if (trimmed.startsWith('•')) {
+                        return (
+                          <div key={i} className="flex gap-2 items-start">
+                            <span className="shrink-0 mt-1 h-1.5 w-1.5 rounded-full bg-blue-500/60" />
+                            <p className="text-xs text-muted-foreground leading-relaxed">{trimmed.slice(1).trim()}</p>
+                          </div>
+                        );
+                      }
+                      // NOTE / label lines (all caps start)
+                      if (/^NOTE:/i.test(trimmed)) {
+                        return (
+                          <p key={i} className="text-xs font-semibold text-foreground leading-relaxed pt-1">
+                            {trimmed}
+                          </p>
+                        );
+                      }
+                      // Regular paragraph
+                      return (
+                        <p key={i} className="text-xs text-muted-foreground leading-relaxed">
+                          {trimmed}
+                        </p>
+                      );
+                    })}
+                  </div>
+                </Card>
+              );
+            })()}
           </div>
         ) : null}
       </div>
