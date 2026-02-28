@@ -156,6 +156,7 @@ export default function PerformanceOverviewPage() {
     const groups: Record<string, number[]> = {};
     for (const a of assessments) {
       const t = a.assessment_type ?? 'other';
+      if (t === 'final') continue; // Final Exam excluded from this chart
       if (!groups[t]) groups[t] = [];
       groups[t].push(pct(a));
     }
