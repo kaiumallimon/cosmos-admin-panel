@@ -55,20 +55,27 @@ export default function LoginPage() {
 
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isUserAuthenticated = useAuthStore((state) => state.isUserAuthenticated);
 
   useEffect(() => {
-    try {
-      if (isAuthenticated()) {
-        router.push('/admin');
-      } else if (isUserAuthenticated()) {
-        router.push('/user');
+    // Verify with the server before trusting local Zustand state (avoids
+    // stale-persisted-state redirect loops where localStorage says "logged in"
+    // but the access-token cookie has already expired).
+    const checkServer = async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (!res.ok) return; // not authenticated — stay on login page
+        const data = await res.json();
+        if (data?.user?.role === 'admin') {
+          router.replace('/admin');
+        } else if (data?.user) {
+          router.replace('/user');
+        }
+      } catch {
+        // network error — stay on login page
       }
-    } catch (e) {
-      console.warn('Auth redirect check failed', e);
-    }
-  }, [isAuthenticated, isUserAuthenticated, router]);
+    };
+    checkServer();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

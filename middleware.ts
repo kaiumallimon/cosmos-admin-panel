@@ -42,7 +42,7 @@ export function middleware(req: NextRequest) {
             );
         } else {
             // Redirect to login for browser requests
-            const loginUrl = new URL('/', req.url);
+            const loginUrl = new URL('/login', req.url);
             return NextResponse.redirect(loginUrl);
         }
     }
@@ -76,7 +76,7 @@ export function middleware(req: NextRequest) {
             if (isApiRoute) {
                 return NextResponse.json({ error: 'Access token expired' }, { status: 401 });
             }
-            const loginUrl = new URL('/', req.url);
+            const loginUrl = new URL('/login', req.url);
             const res = NextResponse.redirect(loginUrl);
             res.cookies.set('access_token', '', { maxAge: 0, path: '/' });
             res.cookies.set('token', '', { maxAge: 0, path: '/' });
@@ -102,7 +102,7 @@ export function middleware(req: NextRequest) {
                 { status: 401 }
             );
         } else {
-            const loginUrl = new URL('/', req.url);
+            const loginUrl = new URL('/login', req.url);
             const response = NextResponse.redirect(loginUrl);
             response.cookies.set('access_token', '', { maxAge: 0, path: '/' });
             response.cookies.set('token', '', { maxAge: 0, path: '/' });
