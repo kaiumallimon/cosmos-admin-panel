@@ -611,9 +611,9 @@ export default function MyCoursesPage() {
                     You&apos;re already enrolled in all available courses.
                   </p>
                 ) : (
-                  unenrolledCourses.map((course) => (
+                  unenrolledCourses.map((course, i) => (
                     <div
-                      key={course.id}
+                      key={course.id || course.code || i}
                       className="flex items-center justify-between gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
                       onClick={() => openEnrollDialog(course)}
                     >
