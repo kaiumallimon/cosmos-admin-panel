@@ -451,16 +451,26 @@ export default function PerformanceOverviewPage() {
               description="Relative strength across assessment types"
             >
               <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-                <PolarGrid stroke="hsl(var(--border))" />
-                <PolarAngleAxis dataKey="type" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
+                <PolarGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+                <PolarAngleAxis
+                  dataKey="type"
+                  tick={{ fontSize: 12, fill: '#64748b', fontWeight: 500 }}
+                />
+                <PolarRadiusAxis
+                  angle={30}
+                  domain={[0, 100]}
+                  tick={{ fontSize: 10, fill: '#94a3b8' }}
+                  tickCount={5}
+                  axisLine={false}
+                />
                 <Radar
                   name="Score %"
                   dataKey="score"
-                  stroke="hsl(var(--primary))"
-                  fill="hsl(var(--primary))"
-                  fillOpacity={0.25}
-                  strokeWidth={2}
+                  stroke="hsl(34, 100%, 50%)"
+                  fill="hsl(34, 100%, 50%)"
+                  fillOpacity={0.45}
+                  strokeWidth={2.5}
+                  dot={{ r: 4, fill: 'hsl(34, 100%, 50%)', strokeWidth: 0 }}
                 />
                 <Tooltip
                   contentStyle={{
