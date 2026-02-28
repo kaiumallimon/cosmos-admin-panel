@@ -59,6 +59,7 @@ import {
   X,
   ClipboardListIcon,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -215,7 +216,7 @@ export default function MyCoursesPage() {
     if (!selectedCourse || !enrollForm.section || !enrollForm.faculty || !enrollForm.trimesterCode) return;
     setEnrolling(true);
     try {
-      await fetch('/api/performance/student-courses', {
+      const res = await fetch('/api/performance/student-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -226,24 +227,40 @@ export default function MyCoursesPage() {
           faculty: enrollForm.faculty,
         }),
       });
-      setSelectedCourse(null);
-      setEnrollOpen(false);
-      setViewTrimester(enrollForm.trimesterCode);
-      await fetchEnrolled(enrollForm.trimesterCode);
+      if (res.ok) {
+        toast.success(`Enrolled in ${selectedCourse.title}`);
+        setSelectedCourse(null);
+        setEnrollOpen(false);
+        setViewTrimester(enrollForm.trimesterCode);
+        await fetchEnrolled(enrollForm.trimesterCode);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.error ?? 'Failed to enroll. Please try again.');
+      }
+    } catch {
+      toast.error('Network error. Please try again.');
     } finally {
       setEnrolling(false);
     }
   };
 
-  const handleUnenroll = async (courseId: string) => {
-    setUnenrolling(courseId);
+  const handleUnenroll = async (enrollmentId: string, courseName: string) => {
+    setUnenrolling(enrollmentId);
     try {
-      await fetch('/api/performance/student-courses', {
+      const res = await fetch('/api/performance/student-courses', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: studentId, course_id: courseId, trimester: viewTrimester }),
+        body: JSON.stringify({ enrollment_id: enrollmentId }),
       });
-      await fetchEnrolled(viewTrimester);
+      if (res.ok || res.status === 204) {
+        toast.success(`Unenrolled from ${courseName}`);
+        await fetchEnrolled(viewTrimester);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.error ?? 'Failed to unenroll. Please try again.');
+      }
+    } catch {
+      toast.error('Network error. Please try again.');
     } finally {
       setUnenrolling(null);
     }
@@ -495,21 +512,27 @@ export default function MyCoursesPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuItem
-                                onClick={() => router.push(
-                                  `/user/performance/courses/${course.course_id}?enrollment_id=${encodeURIComponent(course.id)}&name=${encodeURIComponent(course.course_name)}&code=${encodeURIComponent(course.course_code)}`
-                                )}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(
+                                    `/user/performance/courses/${course.course_id}?enrollment_id=${encodeURIComponent(course.id)}&name=${encodeURIComponent(course.course_name)}&code=${encodeURIComponent(course.course_code)}`
+                                  );
+                                }}
                               >
                                 <ClipboardListIcon className="mr-2 h-4 w-4" />
                                 Assessments
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onClick={() => handleUnenroll(course.course_id)}
-                                disabled={unenrolling === course.course_id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUnenroll(course.id, course.course_name);
+                                }}
+                                disabled={unenrolling === course.id}
                                 className="text-destructive focus:text-destructive"
                               >
                                 <Trash2Icon className="mr-2 h-4 w-4" />
-                                {unenrolling === course.course_id ? 'Unenrolling…' : 'Unenroll'}
+                                {unenrolling === course.id ? 'Unenrolling…' : 'Unenroll'}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
