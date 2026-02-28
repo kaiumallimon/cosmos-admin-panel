@@ -122,23 +122,9 @@ export default function PerformanceOverviewPage() {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        // Resolve trimester — use profile value, or fallback to latest from trimesters API
-        let sem = trimester;
-        if (!sem) {
-          try {
-            const tRes = await fetch('/api/course-management/trimesters');
-            const tData = await tRes.json();
-            const sorted = (Array.isArray(tData?.trimesters) ? tData.trimesters : [])
-              .sort((a: { created_at?: string }, b: { created_at?: string }) =>
-                new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
-              );
-            sem = sorted[0]?.trimester ?? '';
-          } catch { /* silent */ }
-        }
-
-        const enrollUrl = sem
-          ? `/api/performance/enrollments/${studentId}?trimester=${encodeURIComponent(sem)}`
-          : `/api/performance/enrollments/${studentId}`;
+        // Fetch all enrollments — no trimester filter so the count is always accurate
+        // regardless of what current_trimester is stored in the profile.
+        const enrollUrl = `/api/performance/enrollments/${studentId}`;
 
         const [cRes, aRes, wRes] = await Promise.all([
           fetch(enrollUrl),
@@ -189,7 +175,7 @@ export default function PerformanceOverviewPage() {
       }
     };
     fetchAll();
-  }, [studentId, trimester]);
+  }, [studentId]);
 
   // ─── Derived analytics ──────────────────────────────────────────────────────
 
