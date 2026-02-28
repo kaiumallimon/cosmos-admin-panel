@@ -186,7 +186,7 @@ function NoticesContent() {
         )}
 
         {/* Notice list */}
-        <Card className="border overflow-hidden">
+        <Card className="p-0 border overflow-hidden">
           {loading ? (
             <div>
               {Array.from({ length: 10 }).map((_, i) => (

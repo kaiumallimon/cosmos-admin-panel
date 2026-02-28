@@ -783,7 +783,7 @@ export default function GradePredictionPage() {
               {/* Top row: hero + marks summary */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Final prediction hero */}
-                <Card className="border shadow-sm overflow-hidden lg:col-span-1">
+                <Card className="p-0 border shadow-sm overflow-hidden lg:col-span-1">
                   <div className="bg-linear-to-br from-primary/5 to-primary/10 px-6 py-8 text-center space-y-3 h-full flex flex-col items-center justify-center">
                     <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                       <TrendingUpIcon className="h-4 w-4 text-primary" />
@@ -809,9 +809,6 @@ export default function GradePredictionPage() {
                     <div className="flex items-center justify-center gap-2 flex-wrap">
                       <Badge variant="secondary" className="text-xs">
                         {result.student_type}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        Max: {result.final_prediction.max_possible_score?.toFixed(1)}
                       </Badge>
                     </div>
                   </div>
@@ -854,7 +851,7 @@ export default function GradePredictionPage() {
               </div>
 
               {/* Layer breakdowns */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
                 {/* Layer 1 */}
                 <Card className="border shadow-sm">
                   <CardHeader className="pb-2">
@@ -878,12 +875,7 @@ export default function GradePredictionPage() {
                       <span className="text-muted-foreground">GPA</span>
                       <span className="font-medium">{result.layer1_prediction.grade_point?.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Confidence</span>
-                      <Badge variant="secondary" className="text-xs">
-                        {Math.round((result.layer1_prediction.confidence ?? 0) * 100)}%
-                      </Badge>
-                    </div>
+
                     {result.layer1_prediction.model_used && (
                       <div className="flex justify-between items-start gap-2 pt-2 border-t">
                         <span className="text-muted-foreground shrink-0">Model</span>
@@ -896,7 +888,7 @@ export default function GradePredictionPage() {
                 </Card>
 
                 {/* Layer 2 */}
-                <Card className="border shadow-sm">
+                {/* <Card className="border shadow-sm">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <ActivityIcon className="h-4 w-4 text-primary" />
@@ -958,14 +950,16 @@ export default function GradePredictionPage() {
                         </div>
                       )}
                   </CardContent>
-                </Card>
+                </Card> */}
               </div>
 
               {/* Actions */}
-              <Button variant="outline" onClick={goToStep1} className="gap-2">
-                <RefreshCwIcon className="h-4 w-4" />
-                Predict Another Course
-              </Button>
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={goToStep1} className="gap-2">
+                  <RefreshCwIcon className="h-4 w-4" />
+                  Predict Another Course
+                </Button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

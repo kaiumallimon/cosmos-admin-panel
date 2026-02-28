@@ -169,7 +169,7 @@ export default function AcademicCalendarPage() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border overflow-hidden">
+          <Card className="p-0 border overflow-hidden">
             {titles.map((title, idx) => {
               const slug = titleToSlug(title);
               const revised = isRevised(title);

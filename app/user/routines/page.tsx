@@ -217,7 +217,7 @@ export default function RoutinesPage() {
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
         {/* Profile card */}
-        <Card className="border shadow-sm">
+        <Card className="p-0 border shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
