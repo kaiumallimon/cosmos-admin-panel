@@ -129,23 +129,26 @@ export default function MyCoursesPage() {
   // ─── Data fetching ──────────────────────────────────────────────────────────
 
   const fetchEnrolled = async (sem: string) => {
-    if (!studentId || !sem) { setEnrolled([]); setLoading(false); return; }
+    if (!studentId) { setEnrolled([]); setLoading(false); return; }
     setLoading(true);
     try {
-      const res = await fetch(`/api/performance/students/${studentId}/courses/${encodeURIComponent(sem)}`);
+      const url = sem
+        ? `/api/performance/enrollments/${studentId}?trimester=${encodeURIComponent(sem)}`
+        : `/api/performance/enrollments/${studentId}`;
+      const res = await fetch(url);
       const data = await res.json();
       const normalized: EnrolledCourse[] = Array.isArray(data)
         ? data.map((c: any) => ({
             id: c.enrollment_id ?? c.id ?? '',
             course_id: c.course_id ?? '',
-            course_name: c.title ?? c.course_name ?? '',
-            course_code: c.code ?? c.course_code ?? '',
+            course_name: c.course_title ?? c.title ?? c.course_name ?? '',
+            course_code: c.course_code ?? c.code ?? '',
             trimester: c.trimester ?? '',
-            section: c.section,
-            faculty: c.faculty_name ?? c.faculty,
-            credits: c.credits,
-            ct_count: c.ct_count,
-            assignment_count: c.assignment_count,
+            section: c.section ?? undefined,
+            faculty: c.faculty ?? c.faculty_name ?? undefined,
+            credits: c.credit ?? c.credits ?? undefined,
+            ct_count: c.ct_count ?? undefined,
+            assignment_count: c.assignment_count ?? undefined,
           }))
         : [];
       setEnrolled(normalized);
