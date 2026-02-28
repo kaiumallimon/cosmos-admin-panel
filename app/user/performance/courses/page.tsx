@@ -129,9 +129,9 @@ export default function MyCoursesPage() {
 
   // ─── Data fetching ──────────────────────────────────────────────────────────
 
-  const fetchEnrolled = async (sem: string) => {
-    if (!studentId) { setEnrolled([]); setLoading(false); return; }
-    setLoading(true);
+  const fetchEnrolled = async (sem: string, silent = false) => {
+    if (!studentId) { setEnrolled([]); if (!silent) setLoading(false); return; }
+    if (!silent) setLoading(true);
     try {
       const url = sem
         ? `/api/performance/enrollments/${studentId}?trimester=${encodeURIComponent(sem)}`
@@ -154,9 +154,9 @@ export default function MyCoursesPage() {
         : [];
       setEnrolled(normalized);
     } catch {
-      setEnrolled([]);
+      if (!silent) setEnrolled([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -245,6 +245,8 @@ export default function MyCoursesPage() {
   };
 
   const handleUnenroll = async (enrollmentId: string, courseName: string) => {
+    // Optimistically remove from list immediately so UI feels instant
+    setEnrolled((prev) => prev.filter((e) => e.id !== enrollmentId));
     setUnenrolling(enrollmentId);
     try {
       const res = await fetch('/api/performance/student-courses', {
@@ -254,13 +256,18 @@ export default function MyCoursesPage() {
       });
       if (res.ok || res.status === 204) {
         toast.success(`Unenrolled from ${courseName}`);
-        await fetchEnrolled(viewTrimester);
+        // Silent background sync to ensure list is up-to-date
+        fetchEnrolled(viewTrimester, true);
       } else {
         const err = await res.json().catch(() => ({}));
         toast.error(err?.error ?? 'Failed to unenroll. Please try again.');
+        // Restore list on failure
+        await fetchEnrolled(viewTrimester, true);
       }
     } catch {
       toast.error('Network error. Please try again.');
+      // Restore list on failure
+      await fetchEnrolled(viewTrimester, true);
     } finally {
       setUnenrolling(null);
     }
