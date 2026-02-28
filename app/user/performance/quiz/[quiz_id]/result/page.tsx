@@ -95,11 +95,26 @@ export default function QuizResultPage() {
     return (
       <div className="min-h-screen bg-background">
         <FrostedHeader title="Quiz Result" onMobileMenuToggle={toggleMobileMenu} showSearch={false} />
-        <div className="flex flex-col items-center justify-center p-12 gap-4 text-center">
-          <AlertTriangleIcon className="h-12 w-12 text-muted-foreground/40" />
-          <h2 className="text-lg font-semibold">Result not found</h2>
-          <p className="text-sm text-muted-foreground">This result session has expired or does not exist.</p>
-          <Button onClick={() => router.push('/user/performance')} className="mt-2">Back to Performance</Button>
+        <div className="p-6 flex flex-col items-center justify-center min-h-[70vh] gap-6">
+          <div className="flex flex-col items-center gap-4 text-center max-w-md">
+            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+              <AlertTriangleIcon className="h-8 w-8 text-muted-foreground/60" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Result not found</h2>
+              <p className="text-sm text-muted-foreground mt-1">This result session has expired or was cleared. Results are only kept for the current browser session.</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              <Button variant="outline" onClick={() => router.push('/user/performance/quiz/history')} className="gap-2">
+                <HistoryIcon className="h-4 w-4" />
+                Quiz History
+              </Button>
+              <Button onClick={() => router.push('/user/performance/quiz')} className="gap-2 bg-primary hover:bg-primary/90">
+                <RefreshCwIcon className="h-4 w-4" />
+                Try New Quiz
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     );

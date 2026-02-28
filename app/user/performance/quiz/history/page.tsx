@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { FrostedHeader } from '@/components/custom/frosted-header';
+import { StatsCard } from '@/components/dashboard/stats-card';
 import { useMobileMenu } from '@/components/mobile-menu-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,9 @@ import {
   BrainCircuitIcon,
   CalendarIcon,
   TrophyIcon,
+  TrendingUpIcon,
+  TargetIcon,
+  BookOpenIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   RefreshCwIcon,
@@ -49,6 +53,13 @@ interface HistoryEntry {
   }[];
   created_at: string;
   updated_at: string;
+}
+
+interface QuizStats {
+  total_attempts: number;
+  avg_percentage: number | null;
+  topics_covered: number;
+  avg_precision: number | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -85,6 +96,19 @@ export default function QuizHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [stats, setStats] = useState<QuizStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  const fetchStats = async () => {
+    if (!studentId) return;
+    setStatsLoading(true);
+    try {
+      const res = await fetch(`/api/performance/quiz/stats?student_id=${studentId}`);
+      const data = await res.json();
+      setStats(data);
+    } catch { setStats(null); }
+    finally { setStatsLoading(false); }
+  };
 
   const fetchHistory = async () => {
     if (!studentId) { setLoading(false); return; }
@@ -101,7 +125,10 @@ export default function QuizHistoryPage() {
     }
   };
 
-  useEffect(() => { fetchHistory(); }, [studentId]);
+  useEffect(() => {
+    fetchHistory();
+    fetchStats();
+  }, [studentId]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -154,6 +181,25 @@ export default function QuizHistoryPage() {
           </div>
         </div>
 
+        {/* Stats cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {statsLoading ? (
+            [1,2,3,4].map(i => (
+              <Card key={i} className="p-6">
+                <Skeleton className="h-4 w-24 mb-3" />
+                <Skeleton className="h-8 w-16" />
+              </Card>
+            ))
+          ) : (
+            <>
+              <StatsCard icon={TrophyIcon} title="Total Attempts" value={stats?.total_attempts ?? 0} description="Quiz attempts made so far" />
+              <StatsCard icon={TrendingUpIcon} title="Avg Score" value={stats?.avg_percentage != null ? `${stats.avg_percentage}%` : '—'} description="Average across all quizzes" />
+              <StatsCard icon={BookOpenIcon} title="Topics Covered" value={stats?.topics_covered ?? 0} description="Unique topics practised" />
+              <StatsCard icon={TargetIcon} title="Avg Precision" value={stats?.avg_precision != null ? `${stats.avg_precision}%` : '—'} description="Accuracy on answered questions" />
+            </>
+          )}
+        </div>
+
         {/* Content */}
         {loading ? (
           <div className="space-y-3">
@@ -192,87 +238,102 @@ export default function QuizHistoryPage() {
             {history.map((entry) => {
               const pct = entry.percentage != null ? Math.round(entry.percentage) : null;
               const scoreColor = getScoreColor(pct);
+              const scoreBg =
+                pct == null ? 'bg-muted/50' :
+                pct >= 80 ? 'bg-green-500/10' :
+                pct >= 60 ? 'bg-blue-500/10' :
+                pct >= 40 ? 'bg-amber-500/10' : 'bg-red-500/10';
+              const accentBar =
+                pct == null ? 'bg-muted' :
+                pct >= 80 ? 'bg-green-500' :
+                pct >= 60 ? 'bg-blue-500' :
+                pct >= 40 ? 'bg-amber-500' : 'bg-red-500';
+              const total = (entry.right_answers?.length ?? 0) + (entry.wrong_answers?.length ?? 0);
               const isExpanded = expandedId === entry.id;
-              const hasAnswers =
-                (entry.right_answers?.length ?? 0) + (entry.wrong_answers?.length ?? 0) > 0;
+              const hasAnswers = total > 0;
 
               return (
                 <Card
                   key={entry.id}
-                  className="border hover:border-primary/30 hover:shadow-sm transition-all overflow-hidden"
+                  className="border hover:border-primary/30 hover:shadow-md transition-all overflow-hidden"
                 >
-                  <CardContent className="p-0 space-y-0">
-                    {/* Overview row */}
-                    <div className="flex items-stretch gap-0">
-                      {/* Coloured score bar on the left */}
-                      <div
-                        className={`w-1.5 shrink-0 rounded-l-xl ${
-                          pct == null ? 'bg-muted' :
-                          pct >= 80 ? 'bg-green-500' :
-                          pct >= 60 ? 'bg-blue-500' :
-                          pct >= 40 ? 'bg-amber-500' :
-                          'bg-red-500'
-                        }`}
-                      />
+                  <CardContent className="p-0">
+                    {/* Top accent strip */}
+                    <div className={`h-1 w-full ${accentBar}`} />
 
-                      <div className="flex-1 p-5 flex items-center justify-between gap-4 flex-wrap">
-                        {/* Left: topics + meta */}
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <div className="flex flex-wrap gap-1.5">
-                            {(entry.topic_names ?? []).map((t) => (
-                              <Badge key={t} variant="secondary" className="text-xs font-medium">
-                                {t}
-                              </Badge>
-                            ))}
+                    <div className="p-5 space-y-4">
+                      {/* Row 1: topics + date + score */}
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        {/* Topics */}
+                        <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
+                          {(entry.topic_names ?? []).map((t) => (
+                            <Badge key={t} variant="secondary" className="text-xs font-medium">
+                              {t}
+                            </Badge>
+                          ))}
+                        </div>
+
+                        {/* Date */}
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+                          <CalendarIcon className="h-3.5 w-3.5" />
+                          {formatDate(entry.updated_at || entry.created_at)}
+                        </div>
+                      </div>
+
+                      {/* Row 2: stats + score */}
+                      <div className="flex items-center justify-between gap-4 flex-wrap">
+                        {/* Stats pills */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 text-xs rounded-full bg-green-500/10 border border-green-500/20 px-2.5 py-1">
+                            <CheckCircle2Icon className="h-3.5 w-3.5 text-green-500" />
+                            <span className="font-semibold text-green-600 dark:text-green-400">{entry.right_answers?.length ?? 0}</span>
+                            <span className="text-muted-foreground">correct</span>
                           </div>
-
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                            <div className="flex items-center gap-1.5">
-                              <CalendarIcon className="h-3.5 w-3.5" />
-                              {formatDate(entry.updated_at || entry.created_at)}
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <CheckCircle2Icon className="h-3.5 w-3.5 text-green-500" />
-                              <span className="text-green-600 dark:text-green-400 font-medium">{entry.right_answers?.length ?? 0}</span>
-                              <span>correct</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <XCircleIcon className="h-3.5 w-3.5 text-red-500" />
-                              <span className="text-red-500 font-medium">{entry.wrong_answers?.length ?? 0}</span>
-                              <span>incorrect</span>
-                            </div>
+                          <div className="flex items-center gap-1.5 text-xs rounded-full bg-red-500/10 border border-red-500/20 px-2.5 py-1">
+                            <XCircleIcon className="h-3.5 w-3.5 text-red-500" />
+                            <span className="font-semibold text-red-500">{entry.wrong_answers?.length ?? 0}</span>
+                            <span className="text-muted-foreground">incorrect</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {entry.marks} / {entry.full_marks} marks
                           </div>
                         </div>
 
-                        {/* Right: score + marks + expand button */}
-                        <div className="flex items-center gap-5 shrink-0">
-                          <div className="text-right">
-                            <div className={`text-2xl font-bold tabular-nums ${scoreColor}`}>
+                        {/* Score + toggle */}
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className={`rounded-xl px-4 py-2 ${scoreBg} text-center`}>
+                            <div className={`text-xl font-bold tabular-nums leading-none ${scoreColor}`}>
                               {pct != null ? `${pct}%` : '—'}
                             </div>
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {entry.marks} / {entry.full_marks} marks
-                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">score</div>
                           </div>
 
                           {hasAnswers && (
                             <button
                               type="button"
                               onClick={() => setExpandedId(isExpanded ? null : entry.id)}
-                              className={`shrink-0 flex flex-col items-center gap-0.5 text-xs rounded-lg border px-3 py-2 transition-all ${
+                              className={`flex items-center gap-1.5 text-xs rounded-lg border px-3 py-2 transition-all font-medium ${
                                 isExpanded
                                   ? 'bg-primary text-primary-foreground border-primary'
                                   : 'text-muted-foreground hover:text-foreground hover:border-primary/40 border-border'
                               }`}
                             >
-                              {isExpanded
-                                ? <ChevronUpIcon className="h-4 w-4" />
-                                : <ChevronDownIcon className="h-4 w-4" />}
-                              <span>{isExpanded ? 'Hide' : 'Review'}</span>
+                              {isExpanded ? <ChevronUpIcon className="h-3.5 w-3.5" /> : <ChevronDownIcon className="h-3.5 w-3.5" />}
+                              {isExpanded ? 'Hide' : 'Review'}
                             </button>
                           )}
                         </div>
                       </div>
+
+                      {/* Progress bar */}
+                      {total > 0 && (
+                        <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${accentBar}`}
+                            style={{ width: `${pct ?? 0}%` }}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Expanded review */}
