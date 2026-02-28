@@ -35,6 +35,9 @@ import {
   AwardIcon,
   MousePointerClickIcon,
   CheckCircle2Icon,
+  ServerIcon,
+  LinkIcon,
+  WorkflowIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import LandingHeader from '@/components/landing/landing-header';
@@ -262,13 +265,13 @@ export default function Home() {
     {
       icon: BrainCircuitIcon,
       title: 'Multi-Agent AI Orchestration',
-      description: 'Intelligent query routing across specialized AI agents fine-tuned for CSE, EEE, BBA, and other UIU departments.',
+      description: 'Intelligent query routing across specialized AI agents orchestrated with LangGraph — fine-tuned for CSE, EEE, BBA, and other UIU departments.',
       gradient: 'bg-linear-to-br from-violet-500 to-purple-600',
     },
     {
       icon: SearchIcon,
       title: 'Retrieval-Augmented Generation',
-      description: 'Semantic vector search over thousands of past UIU exam questions, powered by OpenAI embeddings and Pinecone.',
+      description: 'Semantic vector search over thousands of past UIU exam questions, powered by LangChain, OpenAI embeddings, and Pinecone.',
       gradient: 'bg-linear-to-br from-blue-500 to-cyan-600',
     },
     {
@@ -320,6 +323,9 @@ export default function Home() {
     { icon: BrainCircuitIcon, label: 'OpenAI GPT-4o' },
     { icon: DatabaseIcon, label: 'MongoDB Atlas' },
     { icon: SearchIcon, label: 'Pinecone' },
+    { icon: LinkIcon, label: 'LangChain' },
+    { icon: WorkflowIcon, label: 'LangGraph' },
+    { icon: ServerIcon, label: 'FastAPI (Python)' },
     { icon: LayersIcon, label: 'Tailwind CSS v4' },
     { icon: ShieldCheckIcon, label: 'JWT + bcrypt' },
     { icon: BotIcon, label: 'Multi-Agent RAG' },

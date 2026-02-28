@@ -75,7 +75,7 @@ const team: TeamMember[] = [
     role: 'Software Engineer (Full-Stack, Cross Platform)',
     image: '/bordered.png',
     description:
-      'Architected and built the entire COSMOS-ITS platform end-to-end — from the multi-agent AI backend and RAG pipeline to the responsive frontend with bento-grid dashboards. Specializes in full-stack TypeScript, cross-platform development, and AI-integrated systems.',
+      'Architected and built the entire COSMOS-ITS platform end-to-end — from the multi-agent AI backend (LangChain, LangGraph, FastAPI) and RAG pipeline to the responsive Next.js frontend. Specializes in full-stack TypeScript, Python, cross-platform development, and AI-integrated systems.',
     icon: CodeIcon,
     gradient: 'from-orange-500 to-amber-500',
     gradientFrom: 'rgb(249 115 22)',
@@ -86,7 +86,7 @@ const team: TeamMember[] = [
     role: 'Backend Developer & Project Team Lead',
     image: '/arnob.jpg',
     description:
-      'Led the backend development effort and coordinated the engineering team. Designed the API architecture, implemented authentication flows with JWT + bcrypt, and built the question indexing pipeline that powers semantic search across thousands of UIU exam questions.',
+      'Led the backend development effort and coordinated the engineering team. Designed the FastAPI service architecture, implemented authentication flows with JWT + bcrypt, and built the question indexing pipeline that powers semantic search across thousands of UIU exam questions.',
     icon: ServerIcon,
     gradient: 'from-violet-500 to-purple-600',
     gradientFrom: 'rgb(139 92 246)',
