@@ -135,12 +135,19 @@ export const useAuthStore = create<AuthState>()(
             credentials: 'include',
           });
 
-          if (!refreshResponse.ok) {
-            console.log("Auth store: Refresh token expired, logging out");
+          if (refreshResponse.status === 401) {
+            // Refresh token is truly expired or revoked — only now should we log out
+            console.log("Auth store: Refresh token expired/invalid (401), logging out");
             const user = logoutUser();
             set({ user });
             localStorage.removeItem(AUTH_STORAGE_KEY);
             document.cookie = 'auth-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            return false;
+          }
+
+          if (!refreshResponse.ok) {
+            // Transient server error (5xx etc.) — keep the existing session alive
+            console.warn("Auth store: Refresh endpoint returned", refreshResponse.status, "— keeping session, will retry later");
             return false;
           }
 

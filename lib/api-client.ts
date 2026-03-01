@@ -82,16 +82,20 @@ class ApiClient {
         } else {
           return { success: false, error: retryData.error || 'Retry failed' };
         }
-      } else {
-        // Refresh failed, logout user
+      } else if (refreshResponse.status === 401) {
+        // Refresh token is truly expired/revoked — only now sign out
         this.processQueue(new Error('Token refresh failed'));
         await signOutAndRedirect();
         return { success: false, error: 'Authentication expired' };
+      } else {
+        // Transient server error — do NOT sign out; surface the error to the caller
+        this.processQueue(new Error('Token refresh server error'));
+        return { success: false, error: 'Authentication error — please try again' };
       }
     } catch (error) {
+      // Network error during refresh — do NOT sign out; user is likely just offline
       this.processQueue(error);
-      await signOutAndRedirect();
-      return { success: false, error: 'Authentication error' };
+      return { success: false, error: 'Network error — please check your connection' };
     } finally {
       this.isRefreshing = false;
     }
@@ -151,10 +155,15 @@ export async function fetchWithAuth(
     credentials: 'include',
   });
 
-  if (!refreshRes.ok) {
-    // Refresh token is also expired — sign out
+  if (refreshRes.status === 401) {
+    // Refresh token is truly expired/revoked — sign out
     await signOutAndRedirect('/');
     // Return the original 401 so any caller that catches errors sees it
+    return response;
+  }
+
+  if (!refreshRes.ok) {
+    // Transient server error during refresh — do NOT sign out; return original response
     return response;
   }
 

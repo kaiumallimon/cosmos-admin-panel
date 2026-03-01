@@ -102,6 +102,13 @@ export function middleware(req: NextRequest) {
                 { status: 401 }
             );
         } else {
+            // Malformed / corrupted access token — try refresh before sending to login
+            const refreshToken = req.cookies.get('refresh_token')?.value;
+            if (refreshToken) {
+                const refreshUrl = new URL('/api/auth/refresh-and-redirect', req.url);
+                refreshUrl.searchParams.set('to', pathname + (req.nextUrl.search || ''));
+                return NextResponse.redirect(refreshUrl);
+            }
             const loginUrl = new URL('/login', req.url);
             const response = NextResponse.redirect(loginUrl);
             response.cookies.set('access_token', '', { maxAge: 0, path: '/' });
