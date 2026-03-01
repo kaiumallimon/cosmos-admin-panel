@@ -4,13 +4,13 @@ import { FrostedHeader } from "@/components/custom/frosted-header";
 import { useMobileMenu } from "@/components/mobile-menu-context";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
+import {
   Breadcrumb,
   BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbPage,
-  BreadcrumbSeparator 
+  BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { useParams, useRouter } from "next/navigation";
 
@@ -21,18 +21,18 @@ export default function QuestionsCourseMenuPage() {
     const { toggleMobileMenu } = useMobileMenu();
 
     const cards = [
-        
+
         {
             key: 1,
             title: "Midterm Questions",
             description: "Browse and manage questions for this course.",
-            href: `/dashboard/questions/${courseId}/mid`,
+            href: `/admin/questions/${courseId}/mid`,
         },
         {
             key: 2,
             title: "Final Questions",
             description: "Explore questions categorized by trimester for this course.",
-            href: `/dashboard/questions/${courseId}/final`,
+            href: `/admin/questions/${courseId}/final`,
         }
     ]
 
@@ -46,7 +46,7 @@ export default function QuestionsCourseMenuPage() {
             <div className="min-h-screen bg-background">
                 {/* glass header */}
                 <FrostedHeader title={`Menu for ${formatCourseCode(courseId)} Questions`} onMobileMenuToggle={toggleMobileMenu} />
-                
+
                 {/* breadcrumbs */}
                 <div className="p-6 pb-0">
                   <Breadcrumb>
@@ -65,7 +65,7 @@ export default function QuestionsCourseMenuPage() {
                     </BreadcrumbList>
                   </Breadcrumb>
                 </div>
-                
+
                  {/* menu cards */}
                  <div className="p-6">
                     {cards.map((card)=>{

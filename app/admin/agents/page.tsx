@@ -110,7 +110,7 @@ export default function AgentsPage() {
         }
     };
 
-    const handleEditAgent = (agentId: string) => router.push(`/dashboard/agents/${agentId}/edit`);
+    const handleEditAgent = (agentId: string) => router.push(`/admin/agents/${agentId}/edit`);
 
     if (loading) return <ProtectedRoute><div className="fixed inset-0 flex items-center justify-center bg-background/80">
         <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-500 mx-auto mb-4"></div>

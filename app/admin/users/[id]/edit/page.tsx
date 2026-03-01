@@ -146,7 +146,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       const data = await response.json();
 
       if (response.ok) {
-        router.push(`/dashboard/users/${resolvedParams.id}`);
+        router.push(`/admin/users/${resolvedParams.id}`);
       } else {
         setError(data.error || 'Failed to update user');
       }
@@ -227,7 +227,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/dashboard/users/${resolvedParams.id}`}>
+                <BreadcrumbLink href={`/admin/users/${resolvedParams.id}`}>
                   {user?.profile?.full_name}
                 </BreadcrumbLink>
               </BreadcrumbItem>
@@ -246,7 +246,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
               <UserPen className="h-6 w-6" />
               <h1 className="text-2xl font-bold">Edit User</h1>
             </div>
-            <Link href={`/dashboard/users/${resolvedParams.id}`}>
+            <Link href={`/admin/users/${resolvedParams.id}`}>
               <Button variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to User
@@ -475,7 +475,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                     </>
                   )}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => router.push(`/dashboard/users/${resolvedParams.id}`)}>
+                <Button type="button" variant="outline" onClick={() => router.push(`/admin/users/${resolvedParams.id}`)}>
                   Cancel
                 </Button>
               </div>

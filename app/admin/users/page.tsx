@@ -575,7 +575,7 @@ export default function UsersPage() {
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => router.push(`/dashboard/users/${user.id}/edit`)}>
+                              <DropdownMenuItem onClick={() => router.push(`/admin/users/${user.id}/edit`)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit User
                               </DropdownMenuItem>

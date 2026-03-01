@@ -4,13 +4,13 @@ import { FrostedHeader } from "@/components/custom/frosted-header";
 import { useMobileMenu } from "@/components/mobile-menu-context";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
+import {
   Breadcrumb,
   BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbPage,
-  BreadcrumbSeparator 
+  BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -52,12 +52,12 @@ export default function QuestionsTypePage(){
     function sanitizeType(type: any) {
         return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
     }
-    
+
     return (
         <ProtectedRoute>
             <div className="min-h-screen bg-background">
                 <FrostedHeader title={`${courseId?.toString().replace("%20", "-")} ${sanitizeType(questionType)} Questions`} onMobileMenuToggle={()=>{toggleMobileMenu()}} />
-                
+
                 {/* breadcrumbs */}
                 <div className="p-6 pb-0">
                   <Breadcrumb>
@@ -71,7 +71,7 @@ export default function QuestionsTypePage(){
                       </BreadcrumbItem>
                       <BreadcrumbSeparator />
                       <BreadcrumbItem>
-                        <BreadcrumbLink href={`/dashboard/questions/${courseId}`}>{courseId?.toString().replace("%20", "-")}</BreadcrumbLink>
+                        <BreadcrumbLink href={`/admin/questions/${courseId}`}>{courseId?.toString().replace("%20", "-")}</BreadcrumbLink>
                       </BreadcrumbItem>
                       <BreadcrumbSeparator />
                       <BreadcrumbItem>
@@ -80,20 +80,20 @@ export default function QuestionsTypePage(){
                     </BreadcrumbList>
                   </Breadcrumb>
                 </div>
-                
+
                 <div className="p-6">
                     {loading && (
                         <div className="flex items-center justify-center p-8">
                             <p>Loading available terms...</p>
                         </div>
                     )}
-                    
+
                     {error && (
                         <div className="flex items-center justify-center p-8">
                             <p className="text-red-500">Error: {error}</p>
                         </div>
                     )}
-                    
+
                     {!loading && !error && trimesterTerms.length === 0 && (
                         <div className="flex flex-col items-center justify-center p-8 text-center">
                             <h3 className="text-lg font-semibold mb-2">No Terms Available</h3>
@@ -110,11 +110,11 @@ export default function QuestionsTypePage(){
                             </ul>
                         </div>
                     )}
-                    
+
                     {!loading && !error && trimesterTerms.map(term => (
-                        <Card key={term} 
+                        <Card key={term}
                         className="mt-3 cursor-pointer hover:border-primary transition-colors duration-300"
-                        onClick={() => {router.push(`/dashboard/questions/${courseId}/${questionType}/trimester/${term}`)}}
+                        onClick={() => {router.push(`/admin/questions/${courseId}/${questionType}/trimester/${term}`)}}
                         >
                             <CardContent>
                                 <h3 className="text-lg font-semibold">Trimester {term}</h3>

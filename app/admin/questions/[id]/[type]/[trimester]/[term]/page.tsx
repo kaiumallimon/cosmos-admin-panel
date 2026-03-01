@@ -19,13 +19,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { 
+import {
   Breadcrumb,
   BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbPage,
-  BreadcrumbSeparator 
+  BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -99,7 +99,7 @@ export default function QuestionsPage() {
     const [questions, setQuestions] = useState<QuestionsModel[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Edit dialog state
     const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
     const [editingQuestion, setEditingQuestion] = useState<QuestionsModel | null>(null);
@@ -154,7 +154,7 @@ export default function QuestionsPage() {
     const handleDelete = async (questionId: number) => {
         const questionToDelete = questions.find(q => q.id === questionId);
         const confirmMessage = `Are you sure you want to delete this question?\n\nQ${questionToDelete?.question_number}${questionToDelete?.sub_question ? `.${questionToDelete.sub_question}` : ""}\n\nThis action cannot be undone.`;
-        
+
         if (!confirm(confirmMessage)) {
             return;
         }
@@ -172,7 +172,7 @@ export default function QuestionsPage() {
             if (response.ok && result.transaction === 'completed' && !result.criticalError) {
                 // Update local state immediately for better UX
                 setQuestions(prev => prev.filter(q => q.id !== questionId));
-                
+
                 // Show success toast with details
                 toast.success("Question deleted successfully!", {
                     description: `Q${questionToDelete?.question_number}${questionToDelete?.sub_question ? `.${questionToDelete.sub_question}` : ""} removed from both MongoDB and Pinecone`,
@@ -185,7 +185,7 @@ export default function QuestionsPage() {
                         const verifyResponse = await fetch(`/api/questions/${questionId}`, {
                             method: 'GET',
                         });
-                        
+
                         if (verifyResponse.ok) {
                             // Question still exists! Update UI to reflect reality
                             console.warn("Question still exists after deletion - refreshing data");
@@ -208,7 +208,7 @@ export default function QuestionsPage() {
                     description: result.message || "Manual intervention required - refreshing data...",
                     duration: 10000
                 });
-                
+
                 // Force refresh the data to show actual server state
                 setTimeout(() => {
                     window.location.reload();
@@ -219,7 +219,7 @@ export default function QuestionsPage() {
                     description: result.error || "Transaction was not completed successfully",
                     duration: 5000
                 });
-                
+
                 // Refresh data to ensure UI matches server state
                 fetchQuestions();
             } else {
@@ -235,7 +235,7 @@ export default function QuestionsPage() {
                 description: "Failed to communicate with the server - data may be inconsistent",
                 duration: 5000
             });
-            
+
             // Refresh data to ensure UI matches server state after network error
             setTimeout(() => {
                 fetchQuestions();
@@ -250,7 +250,7 @@ export default function QuestionsPage() {
     const handleEdit = async (questionId: number) => {
         const question = questions.find(q => q.id === questionId);
         if (!question) return;
-        
+
         setEditingQuestion(question);
         setEditForm({ ...question });
         setEditDialogOpen(true);
@@ -262,30 +262,30 @@ export default function QuestionsPage() {
     // Save edited question
     const handleSaveEdit = async () => {
         if (!editForm || !editingQuestion) return;
-        
+
         setEditLoading(true);
         setEditError(null);
-        
+
         try {
             const response = await fetch(`/api/questions/${editingQuestion.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(editForm),
             });
-            
+
             if (response.ok) {
                 const updatedQuestion = await response.json();
-                
+
                 // Update local state with the edited question
-                setQuestions(prev => prev.map(q => 
+                setQuestions(prev => prev.map(q =>
                     q.id === editingQuestion.id ? { ...editForm } : q
                 ));
-                
+
                 // Close dialog
                 setEditDialogOpen(false);
                 setEditingQuestion(null);
                 setEditForm(null);
-                
+
                 console.log("Question updated successfully");
             } else {
                 const errorData = await response.json();
@@ -342,11 +342,11 @@ export default function QuestionsPage() {
                       </BreadcrumbItem>
                       <BreadcrumbSeparator />
                       <BreadcrumbItem>
-                        <BreadcrumbLink href={`/dashboard/questions/${course_code}`}>{course_code?.toString().replace("%20", "-")}</BreadcrumbLink>
+                        <BreadcrumbLink href={`/admin/questions/${course_code}`}>{course_code?.toString().replace("%20", "-")}</BreadcrumbLink>
                       </BreadcrumbItem>
                       <BreadcrumbSeparator />
                       <BreadcrumbItem>
-                        <BreadcrumbLink href={`/dashboard/questions/${course_code}/${exam_type}`}>{exam_type}</BreadcrumbLink>
+                        <BreadcrumbLink href={`/admin/questions/${course_code}/${exam_type}`}>{exam_type}</BreadcrumbLink>
                       </BreadcrumbItem>
                       <BreadcrumbSeparator />
                       <BreadcrumbItem>
@@ -630,7 +630,7 @@ export default function QuestionsPage() {
                                                 placeholder="Image URL"
                                             />
                                         </div>
-                                        
+
                                         <div className="space-y-2">
                                             <Label htmlFor="edit_image_type">Image Type</Label>
                                             <Input

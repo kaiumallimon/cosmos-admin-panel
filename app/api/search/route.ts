@@ -22,7 +22,7 @@ interface SearchResponse {
 // GET /api/search - Dynamic search across all collections
 async function searchHandler(req: AuthenticatedRequest) {
   const startTime = Date.now();
-  
+
   try {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get('q')?.trim();
@@ -73,7 +73,7 @@ async function searchHandler(req: AuthenticatedRequest) {
         ];
 
         const users = await db.collection('accounts').aggregate(usersPipeline).toArray();
-        
+
         users.forEach(user => {
           const profile = user.profile?.[0];
           results.push({
@@ -81,7 +81,7 @@ async function searchHandler(req: AuthenticatedRequest) {
             title: profile?.full_name || user.email,
             description: `${user.email} | ${user.role.charAt(0).toUpperCase() + user.role.slice(1)} - ${profile?.department || 'No department'} ${profile?.student_id ? `(${profile.student_id})` : ''}`,
             type: 'user',
-            url: `/dashboard/users/${user.id}`,
+            url: `/admin/users/${user.id}`,
             metadata: {
               email: user.email,
               role: user.role,
@@ -107,7 +107,7 @@ async function searchHandler(req: AuthenticatedRequest) {
               $or: [
                 // Direct question text search - primary field
                 { question: { $regex: searchRegex } },
-                // Course and metadata search  
+                // Course and metadata search
                 { course_title: { $regex: searchRegex } },
                 { course_code: { $regex: searchRegex } },
                 { semester_term: { $regex: searchRegex } },
@@ -129,11 +129,11 @@ async function searchHandler(req: AuthenticatedRequest) {
           console.log('Sample question fields:', Object.keys(questions[0]));
           console.log('Sample question:', JSON.stringify(questions[0], null, 2));
         }
-        
+
         questions.forEach(question => {
           // Extract trimester code from semester_term
           let trimesterCode = '';
-          
+
           if (question.semester_term) {
             // First try to find a 3-digit number (like 233, 241, etc.) in semester_term
             const directTrimesterMatch = question.semester_term.match(/\b(\d{3})\b/);
@@ -144,7 +144,7 @@ async function searchHandler(req: AuthenticatedRequest) {
               const yearMatch = question.semester_term.match(/(\d{4})/);
               const year = yearMatch ? yearMatch[1] : '2024';
               const season = question.semester_term.toLowerCase();
-              
+
               if (season.includes('fall')) {
                 trimesterCode = year.slice(-2) + '1';
               } else if (season.includes('spring')) {
@@ -156,15 +156,15 @@ async function searchHandler(req: AuthenticatedRequest) {
               }
             }
           }
-          
+
           // Fallback if still no trimester code
           if (!trimesterCode) {
             trimesterCode = '241'; // Default fallback
           }
-          
+
           // Convert exam_type to lowercase for URL
           const examType = question.exam_type?.toLowerCase() === 'final' ? 'final' : 'mid';
-          
+
           // Skip if essential fields are missing
           if (!question.course_code || !question.question_number) {
             console.log('Skipping question due to missing fields:', {
@@ -174,12 +174,12 @@ async function searchHandler(req: AuthenticatedRequest) {
             });
             return;
           }
-          
+
           // Determine which field matched the search
           const searchLower = query.toLowerCase();
           let matchedField = '';
           let displayText = '';
-          
+
           if (question.question && question.question.toLowerCase().includes(searchLower)) {
             matchedField = 'question';
             displayText = question.question;
@@ -198,17 +198,17 @@ async function searchHandler(req: AuthenticatedRequest) {
               displayText = question.course_title || 'No question text available';
             }
           }
-          
+
           // Create a preview (first 120 characters)
           const preview = displayText ? displayText.substring(0, 120) + (displayText.length > 120 ? '...' : '') : '';
           const matchIndicator = matchedField ? `[${matchedField.toUpperCase()}]` : '';
-          
+
           const questionResult = {
             id: question.id?.toString() || question._id?.toString() || `q-${Date.now()}-${Math.random()}`,
             title: `${question.short || question.course_code || 'Unknown'} - ${question.semester_term || 'Unknown'} - ${question.question_number}${question.sub_question ? '(' + question.sub_question + ')' : ''}`,
             description: `${matchIndicator} ${preview} | ${question.exam_type || 'Unknown'} | ${question.marks || 0} marks | ${trimesterCode}`,
             type: 'question' as const,
-            url: `/dashboard/questions/${question.course_code}/${examType}/trimester/${trimesterCode}`,
+            url: `/admin/questions/${question.course_code}/${examType}/trimester/${trimesterCode}`,
             metadata: {
               course_code: question.course_code,
               course_title: question.course_title,
@@ -227,7 +227,7 @@ async function searchHandler(req: AuthenticatedRequest) {
               full_matched_text: displayText
             }
           };
-          
+
           console.log('Adding question result:', questionResult);
           results.push(questionResult);
         });
@@ -253,14 +253,14 @@ async function searchHandler(req: AuthenticatedRequest) {
         ];
 
         const courses = await db.collection('courses').aggregate(coursesPipeline).toArray();
-        
+
         courses.forEach(course => {
           results.push({
             id: course.id,
             title: `${course.code} - ${course.title}`,
             description: `${course.department} | ${course.credit} credits`,
             type: 'course',
-            url: `/dashboard/courses`,
+            url: `/admin/courses`,
             metadata: {
               code: course.code,
               title: course.title,
@@ -292,14 +292,14 @@ async function searchHandler(req: AuthenticatedRequest) {
         ];
 
         const agents = await db.collection('agents').aggregate(agentsPipeline).toArray();
-        
+
         agents.forEach(agent => {
           results.push({
             id: agent.id,
             title: agent.display_name || agent.name,
             description: `AI Agent | ${agent.description} | ${agent.is_active ? 'Active' : 'Inactive'}`,
             type: 'agent',
-            url: `/dashboard/agents/${agent.id}/edit`,
+            url: `/admin/agents/${agent.id}/edit`,
             metadata: {
               name: agent.name,
               display_name: agent.display_name,
@@ -335,14 +335,14 @@ async function searchHandler(req: AuthenticatedRequest) {
         ];
 
         const logs = await db.collection('system_logs').aggregate(logsPipeline).toArray();
-        
+
         logs.forEach(log => {
           results.push({
             id: log.id,
             title: `${log.action} - ${log.resource_type}`,
             description: `${log.description} | By ${log.admin_name} | ${log.success ? 'Success' : 'Failed'}`,
             type: 'system-log',
-            url: `/dashboard/system-logs`,
+            url: `/admin/system-logs`,
             metadata: {
               admin_name: log.admin_name,
               method: log.method,
@@ -358,18 +358,18 @@ async function searchHandler(req: AuthenticatedRequest) {
     }
 
     // Add navigation results if query matches
-    const navigationResults = getNavigationResults().filter(nav => 
+    const navigationResults = getNavigationResults().filter(nav =>
       nav.title.toLowerCase().includes(query.toLowerCase()) ||
       nav.description.toLowerCase().includes(query.toLowerCase())
     );
-    
+
     results.push(...navigationResults);
 
     // Sort results by relevance (title matches first, then description matches)
     results.sort((a, b) => {
       const aInTitle = a.title.toLowerCase().includes(query.toLowerCase());
       const bInTitle = b.title.toLowerCase().includes(query.toLowerCase());
-      
+
       if (aInTitle && !bInTitle) return -1;
       if (!aInTitle && bInTitle) return 1;
       return 0;

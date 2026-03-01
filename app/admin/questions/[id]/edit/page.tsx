@@ -9,13 +9,13 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { FrostedHeader } from "@/components/custom/frosted-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
+import {
   Breadcrumb,
   BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbPage,
-  BreadcrumbSeparator 
+  BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -59,11 +59,11 @@ export default function EditQuestionPage() {
             try {
                 setLoading(true);
                 const res = await fetch(`/api/questions/${id}`, { cache: "no-store" });
-                
+
                 if (!res.ok) {
                     throw new Error(`Failed to load question: ${res.statusText}`);
                 }
-                
+
                 const data = await res.json();
                 setForm(data);
                 setError(null);
@@ -74,7 +74,7 @@ export default function EditQuestionPage() {
                 setLoading(false);
             }
         }
-        
+
         if (id) {
             loadQuestion();
         }
@@ -82,22 +82,22 @@ export default function EditQuestionPage() {
 
     async function handleSave() {
         if (!form) return;
-        
+
         setSaving(true);
         setError(null);
-        
+
         try {
             const res = await fetch(`/api/questions/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(form),
             });
-            
+
             if (!res.ok) {
                 const errorData = await res.json();
                 throw new Error(errorData.error || "Update failed");
             }
-            
+
             // Successfully saved, close the tab/window
             alert("Question updated successfully!");
             window.close();
@@ -114,7 +114,7 @@ export default function EditQuestionPage() {
             <ProtectedRoute>
                 <div className="min-h-screen bg-background">
                     <FrostedHeader title="Edit Question" onMobileMenuToggle={() => {}} />
-                    
+
                     {/* breadcrumbs */}
                     <div className="p-6 pb-0">
                       <Breadcrumb>
@@ -133,7 +133,7 @@ export default function EditQuestionPage() {
                         </BreadcrumbList>
                       </Breadcrumb>
                     </div>
-                    
+
                     <div className="p-6">
                         <p className="text-red-500 p-4">{error}</p>
                         <Button onClick={() => router.back()}>Go Back</Button>
@@ -161,7 +161,7 @@ export default function EditQuestionPage() {
                       </BreadcrumbItem>
                       <BreadcrumbSeparator />
                       <BreadcrumbItem>
-                        <BreadcrumbLink href={`/dashboard/questions/${form?.course_code}`}>{form?.course_code}</BreadcrumbLink>
+                        <BreadcrumbLink href={`/admin/questions/${form?.course_code}`}>{form?.course_code}</BreadcrumbLink>
                       </BreadcrumbItem>
                       <BreadcrumbSeparator />
                       <BreadcrumbItem>
@@ -354,7 +354,7 @@ export default function EditQuestionPage() {
                                             placeholder="Image URL"
                                         />
                                     </div>
-                                    
+
                                     <div className="space-y-2">
                                         <Label htmlFor="image_type">Image Type</Label>
                                         <Input
